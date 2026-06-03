@@ -1,9 +1,10 @@
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
+const path = require('path');
 
 const port = process.env.PORT || 3000;
-const app = next({ dev: false, dir: './apps/web' });
+const app = next({ dev: false, dir: path.join(__dirname, 'apps/web') });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
