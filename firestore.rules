@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Celebrations ──────────────────────────────────────────────────────────
+    match /celebrations/{celebrationId} {
+      // PUBLIC: Anyone with the link can read an active, non-blocked celebration.
+      // This is required for the birthday website viewer (apps/birthday).
+      allow read: if resource.data.isActive == true
+                  && resource.data.isBlocked == false;
+
+      // OWNER: Authenticated users can read/write their own celebrations.
+      allow read, write: if request.auth != null
+                         && request.auth.uid == resource.data.userId;
+
+      // CREATE: Authenticated users can create new celebrations for themselves.
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.userId;
+
+      // ── Reactions sub-collection (public guestbook) ────────────────────────
+      match /reactions/{reactionId} {
+        // PUBLIC READ: Anyone can see reactions on active celebrations
+        allow read: if get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.isActive == true;
+
+        // PUBLIC CREATE: Anyone can leave a reaction (no auth required)
+        // Validate fields to prevent abuse
+        allow create: if request.resource.data.keys().hasOnly(["emoji", "name", "message", "createdAt"])
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() <= 40
+                      && request.resource.data.emoji is string
+                      && request.resource.data.emoji.size() <= 8
+                      && (request.resource.data.message is string || !("message" in request.resource.data))
+                      && (!("message" in request.resource.data) || request.resource.data.message.size() <= 100);
+
+        // No update or delete by public
+        allow update, delete: if false;
+      }
+
+      // ── View log sub-collection (written by server only) ──────────────────
+      match /viewLog/{logId} {
+        // OWNER: can read their own view logs for analytics
+        allow read: if request.auth != null
+                    && request.auth.uid == get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.userId;
+        // No client-side writes — handled by server-side Admin SDK
+        allow write: if false;
+      }
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Users can read and write only their own document.
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // ── Admin-only: everything else blocked by default ─────────────────────
+  }
+}

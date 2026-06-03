@@ -1,0 +1,179 @@
+import { adminDb } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+import { notFound } from "next/navigation";
+import { Metadata } from "next";
+import { headers, cookies } from "next/headers";
+import type { ComponentType } from "react";
+import GalaxyTheme from "@/components/themes/GalaxyTheme";
+import FloralTheme from "@/components/themes/FloralTheme";
+import NeonTheme from "@/components/themes/NeonTheme";
+import MinimalTheme from "@/components/themes/MinimalTheme";
+import RetroTheme from "@/components/themes/RetroTheme";
+import MagicalTheme from "@/components/themes/MagicalTheme";
+import ExpiredPage from "@/components/ExpiredPage";
+import CountdownPage from "@/components/CountdownPage";
+
+interface Props {
+  params: Promise<{ slug: string }>;
+}
+
+// Convert Firestore Admin Timestamps → plain ISO strings so Next.js can
+// safely pass the object from Server → Client Components.
+function serializeCelebration(data: any): any {
+  const out: any = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (val && typeof (val as any).toDate === "function") {
+      // Firestore Admin Timestamp
+      out[key] = (val as any).toDate().toISOString();
+    } else if (Array.isArray(val)) {
+      out[key] = val;
+    } else {
+      out[key] = val;
+    }
+  }
+  return out;
+}
+
+async function getCelebration(slug: string) {
+  const snap = await adminDb
+    .collection("celebrations")
+    .where("slug", "==", slug)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const raw = { id: snap.docs[0].id, ...snap.docs[0].data() };
+  return { serialized: serializeCelebration(raw), docId: snap.docs[0].id };
+}
+
+/** Bot user-agents to skip view counting */
+function isBot(userAgent: string) {
+  return /bot|crawl|spider|slurp|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram/i.test(userAgent);
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const result = await getCelebration(slug);
+  const celeb = result?.serialized;
+  if (!celeb) return { title: "Just4You" };
+
+  let title = `Happy Birthday, ${celeb.recipientName}! 🎂`;
+  if (celeb.occasionType === "kids-birthday") {
+    title = `Happy Birthday, ${celeb.recipientName}! 🧸`;
+  } else if (celeb.occasionType === "anniversary") {
+    title = `Happy Anniversary, ${celeb.recipientName}! 💍`;
+  } else if (celeb.occasionType === "proposal") {
+    title = `A Special Surprise for ${celeb.recipientName} 💌`;
+  }
+
+  const description = celeb.message?.slice(0, 155) ?? "A beautiful interactive celebration website made with Just4You";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: celeb.photos?.[0] ? [{ url: celeb.photos[0], width: 1200, height: 630 }] : [],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      images: celeb.photos?.[0] ? [celeb.photos[0]] : [],
+    },
+  };
+}
+
+export default async function WishPage({ params }: Props) {
+  const { slug } = await params;
+  const result = await getCelebration(slug);
+
+  if (!result) return notFound();
+  const { serialized: celeb, docId } = result;
+
+  if (!celeb.isActive || celeb.isBlocked) {
+    return notFound();
+  }
+
+  // Check expiry — expiresAt is now an ISO string after serialization
+  const now = new Date();
+  const expiresAt = celeb.expiresAt ? new Date(celeb.expiresAt) : null;
+  if (expiresAt && expiresAt < now) {
+    return <ExpiredPage name={celeb.recipientName} />;
+  }
+
+  // ── Increment view count (server-side, atomic, no race conditions) ──────────
+  // BUG-08: implement the cookie deduplication that was described in comments
+  // but was never actually written. We read a short-lived session cookie; if
+  // it's already set for this celebration we skip the increment entirely.
+  const headersList = await headers();
+  const cookieStore = await cookies();
+  const viewCookieName = `vw_${docId}`;
+  const userAgent = headersList.get("user-agent") ?? "";
+  const alreadyCounted = cookieStore.has(viewCookieName);
+
+  // Track whether we need to attach a Set-Cookie header to the response.
+  let setViewCookie = false;
+
+  if (!isBot(userAgent) && !alreadyCounted) {
+    try {
+      await adminDb.collection("celebrations").doc(docId).update({
+        views: FieldValue.increment(1),
+      });
+      // Also write a view log entry for analytics sparklines
+      await adminDb
+        .collection("celebrations")
+        .doc(docId)
+        .collection("viewLog")
+        .add({ ts: FieldValue.serverTimestamp() });
+      setViewCookie = true;
+    } catch {
+      // Non-critical — don't fail the page if view counting breaks
+    }
+  }
+
+  // ── Countdown check ─────────────────────────────────────────────────────────
+  const eventDate = celeb.eventDate || celeb.birthdayDate;
+  if (celeb.countdownEnabled && eventDate) {
+    const event = new Date(eventDate);
+    event.setHours(0, 0, 0, 0);
+    if (event > now) {
+      return (
+        <CountdownPage
+          recipientName={celeb.recipientName}
+          eventDate={eventDate}
+          occasionType={celeb.occasionType}
+          theme={celeb.theme}
+        />
+      );
+    }
+  }
+
+  // BUG-17: use ComponentType<any> from 'react' import instead of React.ComponentType
+  // (React was never imported in this file, causing a TS error).
+  const ThemeComponents: Record<string, ComponentType<any>> = {
+    galaxy: GalaxyTheme,
+    floral: FloralTheme,
+    neon: NeonTheme,
+    minimal: MinimalTheme,
+    retro: RetroTheme,
+    magical: MagicalTheme,
+  };
+
+  const Theme = ThemeComponents[celeb.theme] ?? GalaxyTheme;
+
+  // If a view was counted this request, set a 1-hour cookie so subsequent
+  // reloads/back-navigations don't increment the counter again.
+  const themeJsx = <Theme celebration={celeb} />;
+  if (!setViewCookie) return themeJsx;
+
+  const { NextResponse } = await import("next/server");
+  const res = NextResponse.next();
+  res.cookies.set(viewCookieName, "1", {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60, // 1 hour
+    path: "/",
+  });
+  return themeJsx;
+}
