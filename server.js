@@ -1,18 +1,6 @@
-const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
-const path = require('path');
+// Entry point for the main Just4You web app (apps/web)
+// Uses the standalone Next.js output built by `npm run build`
+process.env.PORT = process.env.PORT || 3000;
+process.env.HOSTNAME = '0.0.0.0';
 
-const port = process.env.PORT || 3000;
-const app = next({ dev: false, dir: path.join(__dirname, 'apps/web') });
-const handle = app.getRequestHandler();
-
-app.prepare().then(() => {
-  createServer((req, res) => {
-    const parsedUrl = parse(req.url, true);
-    handle(req, res, parsedUrl);
-  }).listen(port, (err) => {
-    if (err) throw err;
-    console.log(`> Main dashboard app ready on port ${port}`);
-  });
-});
+require('./apps/web/.next/standalone/server.js');

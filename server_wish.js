@@ -1,18 +1,6 @@
-const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
-const path = require('path');
+// Entry point for the birthday wish viewer app (apps/birthday)
+// Uses the standalone Next.js output built by `npm run build`
+process.env.PORT = process.env.PORT || 3001;
+process.env.HOSTNAME = '0.0.0.0';
 
-const port = process.env.PORT || 3000;
-const app = next({ dev: false, dir: path.join(__dirname, 'apps/birthday') });
-const handle = app.getRequestHandler();
-
-app.prepare().then(() => {
-  createServer((req, res) => {
-    const parsedUrl = parse(req.url, true);
-    handle(req, res, parsedUrl);
-  }).listen(port, (err) => {
-    if (err) throw err;
-    console.log(`> Wish pages app ready on port ${port}`);
-  });
-});
+require('./apps/birthday/.next/standalone/server.js');
