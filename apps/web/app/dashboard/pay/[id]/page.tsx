@@ -5,26 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { COLLECTIONS } from "@/lib/constants";
-import { ArrowLeft, CreditCard, Gift, Music, Camera, Sparkles } from "lucide-react";
+import { COLLECTIONS, PRICE_INR } from "@/lib/constants";
+import { ArrowLeft, CreditCard, Camera, Sparkles } from "lucide-react";
 
-// ─── Connectivity check ───────────────────────────────────────────────────────
-async function canReachRazorpay(): Promise<boolean> {
-  try {
-    // Fetch the Razorpay checkout script as a HEAD request to confirm reachability
-    const res = await fetch("https://checkout.razorpay.com/v1/checkout.js", {
-      method: "HEAD",
-      mode: "no-cors", // avoids CORS errors; success = reachable
-      cache: "no-store",
-      signal: AbortSignal.timeout(5000),
-    });
-    return true; // no-cors always resolves if server is reachable
-  } catch {
-    return false;
-  }
-}
-
-// ─── Payment component (self-contained, same logic as Step5 in create flow) ──
+// ─── Payment component ────────────────────────────────────────────────────────
 function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasionType, onSuccess }: {
   celebrationId: string;
   recipientName: string;
@@ -36,28 +20,10 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [scriptReady, setScriptReady] = useState(false);
 
   const occasion = occasionType || "birthday";
   const occasionEmoji = occasion === "anniversary" ? "💍" : occasion === "proposal" ? "💌" : occasion === "kids-birthday" ? "🧸" : "🎂";
   const occasionLabel = occasion === "anniversary" ? "Marriage Anniversary" : occasion === "proposal" ? "Proposal" : occasion === "kids-birthday" ? "Kids Birthday" : "Birthday";
-
-  const isRedirectMode = !!process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_URL;
-
-  // Load Razorpay checkout script dynamically
-  useEffect(() => {
-    if (isRedirectMode) return;
-    if ((window as any).Razorpay) { setScriptReady(true); return; }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => setScriptReady(true);
-    script.onerror = () => setError(
-      "⚠️ Could not load the payment gateway. A browser extension (ad-blocker, privacy shield) may be blocking Razorpay. " +
-      "Please disable extensions or try in an Incognito window."
-    );
-    document.body.appendChild(script);
-  }, [isRedirectMode]);
 
   const handlePay = async () => {
     setLoading(true);
@@ -85,10 +51,10 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
 
       const { paymentUrl } = await linkRes.json();
 
-      // Save celebrationId locally so payment-return page can poll it
+      // Save celebrationId so payment-return page can poll Firestore
       localStorage.setItem("pending_celebration_id", celebrationId);
 
-      // Redirect to unique payment link (celebrationId is in notes — webhook will find it)
+      // Redirect to unique payment link — celebrationId is locked in notes
       window.location.href = paymentUrl;
     } catch (err: any) {
       console.error("Payment error:", err);
@@ -96,10 +62,6 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
       setLoading(false);
     }
   };
-
-  // Keep scriptReady for legacy non-redirect mode (unused now)
-  const isRedirectMode = true;
-
 
   return (
     <div className="glass-card p-8 text-center">
@@ -117,7 +79,7 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
       <h2 className="text-2xl font-bold font-playfair mb-2">Almost there!</h2>
       <p className="text-[var(--text-muted)] text-sm mb-6">Pay once to make this website go live.</p>
 
-      <div className="text-6xl font-bold gradient-text mb-1">₹299</div>
+      <div className="text-6xl font-bold gradient-text mb-1">₹{PRICE_INR}</div>
       <div className="text-xs text-[var(--text-muted)] mb-8">One-time payment • 1 year validity • Instant delivery</div>
 
       {error && (
@@ -129,11 +91,11 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
       <button
         id="pay-button"
         onClick={handlePay}
-        disabled={loading || (!isRedirectMode && !scriptReady)}
+        disabled={loading}
         className="btn-primary w-full justify-center py-4 text-base glow-purple disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <CreditCard size={20} />
-        {!isRedirectMode && !scriptReady ? "Loading payment..." : loading ? "Opening payment..." : "Pay ₹299 & Go Live!"}
+        {loading ? "Creating payment link..." : `✨ Unlock My Surprise Website — ₹${PRICE_INR}`}
       </button>
 
       <div className="flex items-center justify-center gap-4 mt-4 text-xs text-[var(--text-muted)]">
@@ -169,7 +131,6 @@ export default function PayPage() {
         if (!snap.exists() || snap.data()?.userId !== user.uid) {
           setNotFound(true);
         } else if (snap.data()?.isActive) {
-          // Already paid — redirect to dashboard
           router.replace("/dashboard");
         } else {
           setCelebration({ id: snap.id, ...snap.data() });
@@ -209,7 +170,6 @@ export default function PayPage() {
 
   return (
     <main className="min-h-screen px-6 py-12" style={{ background: "var(--bg-deep)" }}>
-      {/* Header */}
       <div className="max-w-lg mx-auto mb-8 flex items-center gap-4">
         <Link href="/dashboard" className="text-[var(--text-muted)] hover:text-white transition-colors">
           <ArrowLeft size={20} />
@@ -217,23 +177,6 @@ export default function PayPage() {
         <div>
           <h1 className="text-2xl font-bold font-playfair gradient-text">Complete Payment</h1>
           <p className="text-sm text-[var(--text-muted)]">Activate your surprise website</p>
-        </div>
-      </div>
-
-      {/* Step bar showing user is on step 5 */}
-      <div className="max-w-lg mx-auto mb-6">
-        <div className="flex items-center justify-center gap-1 text-xs text-[var(--text-muted)]">
-          {["Details", "Photos", "Music", "Preview", "Pay"].map((s, i) => (
-            <div key={i} className="flex items-center gap-1">
-              <div className={`px-3 py-1 rounded-full font-semibold ${
-                i < 4 ? "text-green-400" : "text-white border"
-              }`}
-                style={i === 4 ? { background: "rgba(168,85,247,0.2)", borderColor: "rgba(168,85,247,0.5)" } : {}}>
-                {i < 4 ? "✓" : "5"} <span className="hidden sm:inline">{s}</span>
-              </div>
-              {i < 4 && <div className="w-4 h-px" style={{ background: i < 4 ? "#22c55e" : "rgba(255,255,255,0.1)" }} />}
-            </div>
-          ))}
         </div>
       </div>
 
