@@ -8,11 +8,33 @@ function getAdminApp(): App {
 
   const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 
-  // ── Method 1: Full service account JSON (RECOMMENDED for Hostinger) ──────────
+  // ── Method 1: Base64-encoded service account (MOST RELIABLE for Hostinger) ──
+  const serviceAccountB64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
+  if (serviceAccountB64) {
+    try {
+      const json = Buffer.from(serviceAccountB64.trim(), "base64").toString("utf-8");
+      const serviceAccount: ServiceAccount = JSON.parse(json);
+      adminApp = initializeApp({ credential: cert(serviceAccount) });
+      return adminApp;
+    } catch (err: any) {
+      if (!isBuildPhase) {
+        throw new Error(`[birthday/firebase-admin] Failed to decode FIREBASE_SERVICE_ACCOUNT_B64: ${err.message}`);
+      }
+    }
+  }
+
+  // ── Method 2: Plain JSON service account ──────────────────────────────────
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (serviceAccountJson) {
     try {
-      const serviceAccount: ServiceAccount = JSON.parse(serviceAccountJson);
+      let jsonStr = serviceAccountJson.trim();
+      while ((jsonStr.startsWith('"') && jsonStr.endsWith('"')) ||
+             (jsonStr.startsWith("'") && jsonStr.endsWith("'"))) {
+        jsonStr = jsonStr.slice(1, -1).trim();
+      }
+      if (jsonStr.startsWith('\\"')) jsonStr = jsonStr.slice(2);
+      if (jsonStr.endsWith('\\"')) jsonStr = jsonStr.slice(0, -2);
+      const serviceAccount: ServiceAccount = JSON.parse(jsonStr);
       adminApp = initializeApp({ credential: cert(serviceAccount) });
       return adminApp;
     } catch (err: any) {
@@ -22,7 +44,7 @@ function getAdminApp(): App {
     }
   }
 
-  // ── Method 2: Individual env vars (fallback) ───────────────────────────────
+  // ── Method 3: Individual env vars (last resort) ────────────────────────────
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -30,8 +52,8 @@ function getAdminApp(): App {
   if (!projectId || !clientEmail || !privateKey) {
     if (!isBuildPhase) {
       throw new Error(
-        "[birthday/firebase-admin] Missing credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON " +
-          "(preferred) or FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY."
+        "[birthday/firebase-admin] Missing credentials. Set FIREBASE_SERVICE_ACCOUNT_B64 " +
+          "(preferred) or individual Firebase env vars."
       );
     }
     console.warn("[birthday/firebase-admin] Missing env vars during build — using dummy config.");
@@ -59,7 +81,7 @@ function assertRealApp(): void {
   if (app.options.projectId === "dummy-project-id") {
     throw new Error(
       "[birthday/firebase-admin] Attempted to use Firestore with a dummy build-time app. " +
-        "Set FIREBASE_SERVICE_ACCOUNT_JSON or individual Firebase env vars in your deployment."
+        "Set FIREBASE_SERVICE_ACCOUNT_B64 in your deployment."
     );
   }
 }

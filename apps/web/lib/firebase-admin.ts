@@ -12,13 +12,38 @@ function getAdminApp(): App {
 
   const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 
-  // ── Method 1: Full service account JSON (RECOMMENDED for Hostinger) ──────────
-  // Set FIREBASE_SERVICE_ACCOUNT_JSON to the entire contents of your
-  // serviceAccountKey.json file. JSON.parse handles all escaping automatically.
+  // ── Method 1: Base64-encoded service account (MOST RELIABLE for Hostinger) ──
+  // Set FIREBASE_SERVICE_ACCOUNT_B64 = base64 of the entire serviceAccountKey.json
+  // Base64 has no quotes/spaces, so Hostinger cannot corrupt it.
+  const serviceAccountB64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
+  if (serviceAccountB64) {
+    try {
+      const json = Buffer.from(serviceAccountB64.trim(), "base64").toString("utf-8");
+      const serviceAccount: ServiceAccount = JSON.parse(json);
+      _usingDummy = false;
+      adminApp = initializeApp({ credential: cert(serviceAccount) });
+      return adminApp;
+    } catch (err: any) {
+      if (!isBuildPhase) {
+        throw new Error(`[firebase-admin] Failed to decode FIREBASE_SERVICE_ACCOUNT_B64: ${err.message}`);
+      }
+    }
+  }
+
+  // ── Method 2: Plain JSON service account ──────────────────────────────────
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (serviceAccountJson) {
     try {
-      const serviceAccount: ServiceAccount = JSON.parse(serviceAccountJson);
+      let jsonStr = serviceAccountJson.trim();
+      // Strip Hostinger's surrounding quotes if present
+      while ((jsonStr.startsWith('"') && jsonStr.endsWith('"')) ||
+             (jsonStr.startsWith("'") && jsonStr.endsWith("'"))) {
+        jsonStr = jsonStr.slice(1, -1).trim();
+      }
+      // Strip escaped-quote prefix/suffix that some hosts add
+      if (jsonStr.startsWith('\\"')) jsonStr = jsonStr.slice(2);
+      if (jsonStr.endsWith('\\"')) jsonStr = jsonStr.slice(0, -2);
+      const serviceAccount: ServiceAccount = JSON.parse(jsonStr);
       _usingDummy = false;
       adminApp = initializeApp({ credential: cert(serviceAccount) });
       return adminApp;
@@ -29,7 +54,7 @@ function getAdminApp(): App {
     }
   }
 
-  // ── Method 2: Individual env vars (fallback) ───────────────────────────────
+  // ── Method 3: Individual env vars (last resort) ────────────────────────────
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -37,8 +62,8 @@ function getAdminApp(): App {
   if (!projectId || !clientEmail || !privateKey) {
     if (!isBuildPhase) {
       throw new Error(
-        "[firebase-admin] Missing credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON " +
-          "(preferred) or FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY."
+        "[firebase-admin] Missing credentials. Set FIREBASE_SERVICE_ACCOUNT_B64 " +
+          "(preferred) or FIREBASE_SERVICE_ACCOUNT_JSON or individual env vars."
       );
     }
     console.warn("[firebase-admin] Missing env vars during build phase — using dummy config.");
@@ -47,8 +72,6 @@ function getAdminApp(): App {
     return adminApp;
   }
 
-  // Clean up the private key — strip any surrounding quotes/whitespace and
-  // unescape literal \n sequences that hosting platforms sometimes introduce.
   let formattedKey = privateKey.trim();
   while (formattedKey.startsWith('"') || formattedKey.startsWith("'")) {
     formattedKey = formattedKey.slice(1).trim();
@@ -56,7 +79,6 @@ function getAdminApp(): App {
   while (formattedKey.endsWith('"') || formattedKey.endsWith("'") || formattedKey.endsWith("\\")) {
     formattedKey = formattedKey.slice(0, -1).trim();
   }
-  // Replace literal \n with real newlines
   formattedKey = formattedKey.replace(/\\n/g, "\n").trim();
 
   _usingDummy = false;
@@ -71,7 +93,7 @@ function assertRealApp(): void {
   if (_usingDummy || app.options.projectId === "dummy-project-id") {
     throw new Error(
       "[firebase-admin] Attempted to use Firebase services with a dummy app. " +
-        "Set FIREBASE_SERVICE_ACCOUNT_JSON or individual Firebase env vars in your deployment."
+        "Set FIREBASE_SERVICE_ACCOUNT_B64 in your deployment environment variables."
     );
   }
 }
