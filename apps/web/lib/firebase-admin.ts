@@ -44,13 +44,27 @@ function getAdminApp(): App {
   }
   formattedKey = formattedKey.replace(/\\n/g, "\n");
 
-  adminApp = initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey: formattedKey,
-    }),
-  });
+  try {
+    adminApp = initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey: formattedKey,
+      }),
+    });
+  } catch (err: any) {
+    throw new Error(
+      `Failed to parse private key. Diagnostics: length=${privateKey.length}, ` +
+      `formattedLength=${formattedKey.length}, ` +
+      `startsWithDash=${formattedKey.startsWith("-")}, ` +
+      `endsWithDash=${formattedKey.endsWith("-")}, ` +
+      `hasSlashN=${formattedKey.includes("\\n")}, ` +
+      `hasRealNL=${formattedKey.includes("\n")}, ` +
+      `prefix="${formattedKey.substring(0, 25)}", ` +
+      `suffix="${formattedKey.substring(formattedKey.length - 25)}". ` +
+      `Original: ${err.message}`
+    );
+  }
   return adminApp;
 }
 
