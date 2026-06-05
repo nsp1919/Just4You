@@ -4,8 +4,8 @@ export const COLLECTIONS = {
 } as const;
 
 export const MAX_PHOTOS = 8;
-export const PRICE_INR = 299;
-export const PRICE_PAISE = 29900;
+export const PRICE_INR = 2;
+export const PRICE_PAISE = 200;
 export const VALIDITY_DAYS = 365;
 export const MAX_MESSAGE_LENGTH = 500;
 
