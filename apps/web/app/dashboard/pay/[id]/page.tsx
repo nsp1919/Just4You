@@ -70,6 +70,12 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
         // Construct external payment URL with notes and prefill fields
         const urlObj = new URL(paymentUrl);
         urlObj.searchParams.set("notes[celebrationId]", celebrationId);
+
+        // After payment Razorpay redirects back to our page
+        const returnUrl = `${window.location.origin}/dashboard/payment-return`;
+        urlObj.searchParams.set("callback_url", returnUrl);
+        urlObj.searchParams.set("redirect", "true");
+
         if (user?.email) {
           urlObj.searchParams.set("prefill[email]", user.email);
         }
