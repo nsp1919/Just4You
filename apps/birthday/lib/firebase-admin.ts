@@ -36,11 +36,11 @@ function getAdminApp(): App {
   }
 
   let formattedKey = privateKey.trim();
-  if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
-    formattedKey = formattedKey.slice(1, -1).trim();
+  while (formattedKey.startsWith('"') || formattedKey.startsWith("'")) {
+    formattedKey = formattedKey.slice(1).trim();
   }
-  if (formattedKey.startsWith("'") && formattedKey.endsWith("'")) {
-    formattedKey = formattedKey.slice(1, -1).trim();
+  while (formattedKey.endsWith('"') || formattedKey.endsWith("'")) {
+    formattedKey = formattedKey.slice(0, -1).trim();
   }
   formattedKey = formattedKey.replace(/\\n/g, "\n").trim();
 
