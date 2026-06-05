@@ -37,12 +37,12 @@ function getAdminApp(): App {
 
   let formattedKey = privateKey.trim();
   if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
-    formattedKey = formattedKey.slice(1, -1);
+    formattedKey = formattedKey.slice(1, -1).trim();
   }
   if (formattedKey.startsWith("'") && formattedKey.endsWith("'")) {
-    formattedKey = formattedKey.slice(1, -1);
+    formattedKey = formattedKey.slice(1, -1).trim();
   }
-  formattedKey = formattedKey.replace(/\\n/g, "\n");
+  formattedKey = formattedKey.replace(/\\n/g, "\n").trim();
 
   adminApp = initializeApp({
     credential: cert({
