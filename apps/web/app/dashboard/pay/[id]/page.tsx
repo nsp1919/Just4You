@@ -60,112 +60,46 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
   }, [isRedirectMode]);
 
   const handlePay = async () => {
-    const paymentUrl = process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_URL;
-    if (paymentUrl) {
-      setLoading(true);
-      setError("");
-      try {
-        localStorage.setItem("pending_celebration_id", celebrationId);
-        
-        // Construct external payment URL with notes and prefill fields
-        const urlObj = new URL(paymentUrl);
-        urlObj.searchParams.set("notes[celebrationId]", celebrationId);
-
-        // After payment Razorpay redirects back to our page
-        const returnUrl = `${window.location.origin}/dashboard/payment-return`;
-        urlObj.searchParams.set("callback_url", returnUrl);
-        urlObj.searchParams.set("redirect", "true");
-
-        if (user?.email) {
-          urlObj.searchParams.set("prefill[email]", user.email);
-        }
-        if (user?.displayName) {
-          urlObj.searchParams.set("prefill[name]", user.displayName);
-        }
-        
-        window.location.href = urlObj.toString();
-      } catch (err: any) {
-        console.error("Redirect error:", err);
-        setError("Failed to redirect to the payment gateway. Please try again.");
-        setLoading(false);
-      }
-      return;
-    }
-
-    if (!scriptReady) { setError("Payment gateway is loading, please wait a moment."); return; }
     setLoading(true);
     setError("");
-
-    // Pre-check: verify browser can reach Razorpay before opening modal
-    const reachable = await canReachRazorpay();
-    if (!reachable) {
-      setError(
-        "⚠️ Your browser can't reach Razorpay's servers. This is usually caused by:\n" +
-        "• A browser extension (uBlock, AdGuard, Privacy Badger)\n" +
-        "• A VPN or firewall blocking payment gateways\n\n" +
-        "Fix: Open this page in an Incognito window (Ctrl+Shift+N) or disable extensions temporarily."
-      );
-      setLoading(false);
-      return;
-    }
 
     try {
       const token = await user!.getIdToken();
 
-      const orderRes = await fetch("/api/payment/create-order", {
+      // Create a unique Razorpay Payment Link with celebrationId guaranteed in notes
+      const linkRes = await fetch("/api/payment/create-link", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ celebrationId }),
       });
 
-      if (!orderRes.ok) {
-        const errData = await orderRes.json().catch(() => ({}));
-        setError(errData.error ?? `Server error (${orderRes.status}). Please try again.`);
+      if (!linkRes.ok) {
+        const err = await linkRes.json().catch(() => ({}));
+        setError(err.error ?? "Failed to create payment link. Please try again.");
         setLoading(false);
         return;
       }
 
-      const { orderId, amount, currency, keyId } = await orderRes.json();
+      const { paymentUrl } = await linkRes.json();
 
-      const options = {
-        key: keyId,
-        amount,
-        currency,
-        name: "Just4You",
-        description: `${occasionLabel} Website for ${recipientName} — ₹299`,
-        image: "/logo.png",
-        order_id: orderId,
-        handler: async (response: any) => {
-          const verifyRes = await fetch("/api/payment/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ ...response, celebrationId }),
-          });
-          const result = await verifyRes.json();
-          if (result.success) {
-            onSuccess(result.slug);
-          } else {
-            setError("Payment verified but activation failed. Please contact support.");
-            setLoading(false);
-          }
-        },
-        prefill: { email: user?.email ?? "", name: user?.displayName ?? "" },
-        theme: { color: "#a855f7" },
-        modal: { ondismiss: () => setLoading(false) },
-      };
+      // Save celebrationId locally so payment-return page can poll it
+      localStorage.setItem("pending_celebration_id", celebrationId);
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on("payment.failed", (resp: any) => {
-        setError(`Payment failed: ${resp.error?.description ?? "Unknown error"}. Please try again.`);
-        setLoading(false);
-      });
-      rzp.open();
+      // Redirect to unique payment link (celebrationId is in notes — webhook will find it)
+      window.location.href = paymentUrl;
     } catch (err: any) {
       console.error("Payment error:", err);
       setError("Something went wrong. Please try again.");
       setLoading(false);
     }
   };
+
+  // Keep scriptReady for legacy non-redirect mode (unused now)
+  const isRedirectMode = true;
+
 
   return (
     <div className="glass-card p-8 text-center">
