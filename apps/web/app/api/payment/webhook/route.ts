@@ -6,6 +6,8 @@ import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
 import { VALIDITY_DAYS } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
 const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key_for_build");
 
