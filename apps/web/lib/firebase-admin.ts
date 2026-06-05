@@ -34,12 +34,21 @@ function getAdminApp(): App {
   }
 
   _usingDummy = false;
+  
+  let formattedKey = privateKey.trim();
+  if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
+    formattedKey = formattedKey.slice(1, -1);
+  }
+  if (formattedKey.startsWith("'") && formattedKey.endsWith("'")) {
+    formattedKey = formattedKey.slice(1, -1);
+  }
+  formattedKey = formattedKey.replace(/\\n/g, "\n");
+
   adminApp = initializeApp({
     credential: cert({
       projectId,
       clientEmail,
-      // Cloud secrets store newlines as literal \n — unescape them.
-      privateKey: privateKey.replace(/\\n/g, "\n"),
+      privateKey: formattedKey,
     }),
   });
   return adminApp;
