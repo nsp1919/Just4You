@@ -1,4 +1,4 @@
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
+import { initializeApp, getApps, cert, App, ServiceAccount } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
@@ -10,77 +10,68 @@ function getAdminApp(): App {
     return getApps()[0];
   }
 
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
+  // ── Method 1: Full service account JSON (RECOMMENDED for Hostinger) ──────────
+  // Set FIREBASE_SERVICE_ACCOUNT_JSON to the entire contents of your
+  // serviceAccountKey.json file. JSON.parse handles all escaping automatically.
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (serviceAccountJson) {
+    try {
+      const serviceAccount: ServiceAccount = JSON.parse(serviceAccountJson);
+      _usingDummy = false;
+      adminApp = initializeApp({ credential: cert(serviceAccount) });
+      return adminApp;
+    } catch (err: any) {
+      if (!isBuildPhase) {
+        throw new Error(`[firebase-admin] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: ${err.message}`);
+      }
+    }
+  }
+
+  // ── Method 2: Individual env vars (fallback) ───────────────────────────────
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   if (!projectId || !clientEmail || !privateKey) {
-    // Only allow a dummy initialisation during `next build` (static analysis phase).
-    // At runtime (API routes, SSR), NEXT_PHASE is not set — throw to prevent silent
-    // data corruption against "dummy-project-id". (BUG-02 fix)
-    const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
     if (!isBuildPhase) {
       throw new Error(
-        "[firebase-admin] FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or FIREBASE_PRIVATE_KEY " +
-          "are missing at runtime. Set these environment variables in your deployment."
+        "[firebase-admin] Missing credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON " +
+          "(preferred) or FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY."
       );
     }
-    console.warn(
-      "[firebase-admin] Missing env vars during build phase — using dummy config (build only)."
-    );
+    console.warn("[firebase-admin] Missing env vars during build phase — using dummy config.");
     _usingDummy = true;
     adminApp = initializeApp({ projectId: "dummy-project-id" });
     return adminApp;
   }
 
-  _usingDummy = false;
-  
+  // Clean up the private key — strip any surrounding quotes/whitespace and
+  // unescape literal \n sequences that hosting platforms sometimes introduce.
   let formattedKey = privateKey.trim();
   while (formattedKey.startsWith('"') || formattedKey.startsWith("'")) {
     formattedKey = formattedKey.slice(1).trim();
   }
-  while (formattedKey.endsWith('"') || formattedKey.endsWith("'")) {
+  while (formattedKey.endsWith('"') || formattedKey.endsWith("'") || formattedKey.endsWith("\\")) {
     formattedKey = formattedKey.slice(0, -1).trim();
   }
+  // Replace literal \n with real newlines
   formattedKey = formattedKey.replace(/\\n/g, "\n").trim();
 
-  try {
-    adminApp = initializeApp({
-      credential: cert({
-        projectId,
-        clientEmail,
-        privateKey: formattedKey,
-      }),
-    });
-  } catch (err: any) {
-    throw new Error(
-      `Failed to parse private key. Diagnostics: length=${privateKey.length}, ` +
-      `formattedLength=${formattedKey.length}, ` +
-      `startsWithDash=${formattedKey.startsWith("-")}, ` +
-      `endsWithDash=${formattedKey.endsWith("-")}, ` +
-      `hasSlashN=${formattedKey.includes("\\n")}, ` +
-      `hasRealNL=${formattedKey.includes("\n")}, ` +
-      `prefix="${formattedKey.substring(0, 25)}", ` +
-      `suffix="${formattedKey.substring(formattedKey.length - 25)}". ` +
-      `Original: ${err.message}`
-    );
-  }
+  _usingDummy = false;
+  adminApp = initializeApp({
+    credential: cert({ projectId, clientEmail, privateKey: formattedKey }),
+  });
   return adminApp;
 }
 
-/**
- * Throws if the Admin SDK was initialised with a build-time dummy project.
- * Called inside each proxy before the real SDK instance is created so that
- * any runtime call without proper credentials fails immediately with a clear
- * error instead of silently touching "dummy-project-id".
- */
 function assertRealApp(): void {
-  // Force initialisation so we can inspect the result.
   const app = getAdminApp();
   if (_usingDummy || app.options.projectId === "dummy-project-id") {
     throw new Error(
       "[firebase-admin] Attempted to use Firebase services with a dummy app. " +
-        "Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set."
+        "Set FIREBASE_SERVICE_ACCOUNT_JSON or individual Firebase env vars in your deployment."
     );
   }
 }

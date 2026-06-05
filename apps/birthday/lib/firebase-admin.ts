@@ -1,36 +1,40 @@
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
+import { initializeApp, getApps, cert, App, ServiceAccount } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 let adminApp: App;
 
-// BUG-09: The original code called getAdminApp() immediately at module load
-// ("export const adminDb = getFirestore(getAdminApp())"), which caused `next build`
-// to throw when Firebase env vars were absent in CI environments.
-//
-// Fix: apply the same lazy-proxy pattern used in apps/web/lib/firebase-admin.ts
-// so the Admin SDK is only initialised on the first actual Firestore access, not
-// at import time.
-
 function getAdminApp(): App {
   if (getApps().length > 0) return getApps()[0];
 
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
+  // ── Method 1: Full service account JSON (RECOMMENDED for Hostinger) ──────────
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (serviceAccountJson) {
+    try {
+      const serviceAccount: ServiceAccount = JSON.parse(serviceAccountJson);
+      adminApp = initializeApp({ credential: cert(serviceAccount) });
+      return adminApp;
+    } catch (err: any) {
+      if (!isBuildPhase) {
+        throw new Error(`[birthday/firebase-admin] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: ${err.message}`);
+      }
+    }
+  }
+
+  // ── Method 2: Individual env vars (fallback) ───────────────────────────────
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   if (!projectId || !clientEmail || !privateKey) {
-    // Only allow a dummy app during `next build` static analysis.
-    // At runtime (page renders, API calls), missing vars must throw.
-    const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
     if (!isBuildPhase) {
       throw new Error(
-        "[birthday/firebase-admin] FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or " +
-          "FIREBASE_PRIVATE_KEY are missing at runtime. Set these in your deployment."
+        "[birthday/firebase-admin] Missing credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON " +
+          "(preferred) or FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY."
       );
     }
-    console.warn(
-      "[birthday/firebase-admin] Missing env vars during build phase — using dummy config (build only)."
-    );
+    console.warn("[birthday/firebase-admin] Missing env vars during build — using dummy config.");
     adminApp = initializeApp({ projectId: "dummy-project-id" });
     return adminApp;
   }
@@ -39,17 +43,13 @@ function getAdminApp(): App {
   while (formattedKey.startsWith('"') || formattedKey.startsWith("'")) {
     formattedKey = formattedKey.slice(1).trim();
   }
-  while (formattedKey.endsWith('"') || formattedKey.endsWith("'")) {
+  while (formattedKey.endsWith('"') || formattedKey.endsWith("'") || formattedKey.endsWith("\\")) {
     formattedKey = formattedKey.slice(0, -1).trim();
   }
   formattedKey = formattedKey.replace(/\\n/g, "\n").trim();
 
   adminApp = initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey: formattedKey,
-    }),
+    credential: cert({ projectId, clientEmail, privateKey: formattedKey }),
   });
   return adminApp;
 }
@@ -59,14 +59,13 @@ function assertRealApp(): void {
   if (app.options.projectId === "dummy-project-id") {
     throw new Error(
       "[birthday/firebase-admin] Attempted to use Firestore with a dummy build-time app. " +
-        "Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set."
+        "Set FIREBASE_SERVICE_ACCOUNT_JSON or individual Firebase env vars in your deployment."
     );
   }
 }
 
 let _adminDb: any = null;
 
-// Lazy proxy — SDK is initialised only on first access, not at import time.
 export const adminDb = new Proxy({} as any, {
   get(target, prop, receiver) {
     if (!_adminDb) {
