@@ -3,10 +3,8 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { PRICE_PAISE, COLLECTIONS } from "@/lib/constants";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+// Force dynamic — this route uses env vars and must not be statically rendered
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,6 +39,13 @@ export async function POST(req: NextRequest) {
     if (celeb.isActive) {
       return NextResponse.json({ error: "Already paid" }, { status: 400 });
     }
+
+    // Initialize Razorpay INSIDE the handler (not at module level)
+    // so it doesn't run during Next.js build time
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID!,
+      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    });
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://just4you.buzz";
 
