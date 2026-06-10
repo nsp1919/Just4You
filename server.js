@@ -5,6 +5,9 @@ const path = require('path');
 const port = parseInt(process.env.PORT || '3000', 10);
 const hostname = '0.0.0.0';
 
+// Debug: print what port/env Hostinger is injecting
+console.log(`[server.js] process.env.PORT = "${process.env.PORT}" → binding to port ${port}`);
+
 // Resolve 'next' from the web app directory to handle npm workspace hoisting
 const nextResolved = require.resolve('next', { paths: [path.join(__dirname, 'apps/web')] });
 const next = require(nextResolved);
