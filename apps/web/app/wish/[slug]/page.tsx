@@ -2,7 +2,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import type { ComponentType } from "react";
 import GalaxyTheme from "@/components/themes/GalaxyTheme";
 import FloralTheme from "@/components/themes/FloralTheme";
@@ -103,19 +103,10 @@ export default async function WishPage({ params }: Props) {
   }
 
   // ── Increment view count (server-side, atomic, no race conditions) ──────────
-  // BUG-08: implement the cookie deduplication that was described in comments
-  // but was never actually written. We read a short-lived session cookie; if
-  // it's already set for this celebration we skip the increment entirely.
   const headersList = await headers();
-  const cookieStore = await cookies();
-  const viewCookieName = `vw_${docId}`;
   const userAgent = headersList.get("user-agent") ?? "";
-  const alreadyCounted = cookieStore.has(viewCookieName);
 
-  // Track whether we need to attach a Set-Cookie header to the response.
-  let setViewCookie = false;
-
-  if (!isBot(userAgent) && !alreadyCounted) {
+  if (!isBot(userAgent)) {
     try {
       await adminDb.collection("celebrations").doc(docId).update({
         views: FieldValue.increment(1),
@@ -126,7 +117,6 @@ export default async function WishPage({ params }: Props) {
         .doc(docId)
         .collection("viewLog")
         .add({ ts: FieldValue.serverTimestamp() });
-      setViewCookie = true;
     } catch {
       // Non-critical — don't fail the page if view counting breaks
     }
@@ -162,18 +152,8 @@ export default async function WishPage({ params }: Props) {
 
   const Theme = ThemeComponents[celeb.theme] ?? GalaxyTheme;
 
-  // If a view was counted this request, set a 1-hour cookie so subsequent
-  // reloads/back-navigations don't increment the counter again.
-  const themeJsx = <Theme celebration={celeb} />;
-  if (!setViewCookie) return themeJsx;
-
-  const { NextResponse } = await import("next/server");
-  const res = NextResponse.next();
-  res.cookies.set(viewCookieName, "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60, // 1 hour
-    path: "/",
-  });
-  return themeJsx;
+  // Return the themed page — view was already incremented above.
+  // Note: setting cookies from a Server Component page is not supported in
+  // Next.js; cookie-based dedup must be done via middleware if needed.
+  return <Theme celebration={celeb} />;
 }
