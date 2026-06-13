@@ -1,0 +1,325 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* ─── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: #07070a;
+  color: #f0f0f0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #07070a; }
+::-webkit-scrollbar-thumb { background: linear-gradient(#c084fc, #f472b6); border-radius: 3px; }
+
+/* ─── Container ──────────────────────────────────────────────── */
+.wrap {
+  width: 100%;
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 48px;
+  padding-right: 48px;
+}
+@media (max-width: 900px) { .wrap { padding-left: 24px; padding-right: 24px; } }
+
+/* ─── Typography ─────────────────────────────────────────────── */
+.serif { font-family: 'Playfair Display', serif; }
+
+/* ─── Gradient text ──────────────────────────────────────────── */
+.g-text {
+  background: linear-gradient(135deg, #c084fc 0%, #f472b6 50%, #fb923c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.g-text-gold {
+  background: linear-gradient(120deg, #fbbf24, #f59e0b, #fbbf24);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shine 2.5s linear infinite;
+}
+@keyframes shine { to { background-position: 200% center; } }
+
+/* ─── Buttons ─────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 14px 32px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.22s, box-shadow 0.22s, opacity 0.22s;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.btn-main {
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: #fff;
+}
+.btn-main::before {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transition: left 0.45s;
+}
+.btn-main:hover::before { left: 100%; }
+.btn-main:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(168,85,247,0.35); }
+.btn-ghost {
+  background: rgba(255,255,255,0.05);
+  color: #ccc;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.btn-ghost:hover { border-color: rgba(168,85,247,0.5); color: #c084fc; transform: translateY(-2px); }
+
+/* ─── Glass ────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ─── Orbs / Ambient ───────────────────────────────────────────── */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* ─── Float ────────────────────────────────────────────────────── */
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.float { animation: float 3.5s ease-in-out infinite; }
+
+/* ─── Particle ─────────────────────────────────────────────────── */
+@keyframes pf {
+  0%   { transform: translateY(100vh) rotate(0deg);   opacity: 0; }
+  8%   { opacity: 0.55; }
+  92%  { opacity: 0.55; }
+  100% { transform: translateY(-30px) rotate(720deg); opacity: 0; }
+}
+.p { position: absolute; border-radius: 50%; animation: pf linear infinite; pointer-events: none; }
+
+/* ─── Grad border ──────────────────────────────────────────────── */
+.gb { position: relative; border-radius: 22px; }
+.gb::before {
+  content: ''; position: absolute; inset: -1.5px; border-radius: 23.5px; z-index: -1;
+  background: linear-gradient(135deg, #a855f7, #ec4899, #fb923c, #a855f7);
+  background-size: 300% 300%;
+  animation: gs 4s ease infinite;
+}
+@keyframes gs { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+
+/* ─── Shimmer ──────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ─── Step line ────────────────────────────────────────────────── */
+.step-line {
+  width: 2px;
+  background: linear-gradient(180deg, #a855f7, transparent);
+  position: absolute;
+  left: 22px;
+  top: 52px;
+  bottom: 0;
+}
+
+/* ─── Mobile helpers ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hide-sm { display: none !important; }
+  .two-col { grid-template-columns: 1fr !important; }
+  .three-col { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 769px) {
+  .show-sm { display: none !important; }
+}
+
+/* ─── Login & Signup Flip Card (Uiverse.io by andrew-demchenk0) ─── */
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 4, 6, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.auth-modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.auth-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #7e7e7e;
+  cursor: pointer;
+  padding: 6px;
+  transition: color 0.2s;
+}
+.auth-close-btn:hover {
+  color: #fefefe;
+}
+
+.login {
+  width: 340px;
+  height: 420px; /* Adjusted slightly to accommodate toggles without overflow */
+  background: #18181b; /* Dark luxury slate background matching tailwind zinc-900 */
+  padding: 47px;
+  color: #fff;
+  border-radius: 17px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  font-size: 1.2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.login input[type="text"],
+.login input[type="email"],
+.login input[type="password"] {
+  opacity: 1;
+  display: block;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 13px 18px;
+  margin: 18px 0 0 0;
+  font-size: 0.8em;
+  border-radius: 100px;
+  background: #27272a;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.login input[type="text"]:focus,
+.login input[type="email"]:focus,
+.login input[type="password"]:focus {
+  background: #3f3f46;
+  animation: bounce 1s;
+  -webkit-appearance: none;
+}
+
+.login input[type=submit],
+.login input[type=button],
+.h1 {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  padding: 13px;
+  margin: 28px 0 0 0;
+  border-radius: 500px;
+  font-weight: 600;
+  animation: bounce2 1.6s;
+}
+
+.h1 {
+  padding: 0;
+  position: relative;
+  top: -24px;
+  display: block;
+  margin-bottom: -10px;
+  font-size: 1.3em;
+  text-align: center;
+}
+
+.btn {
+  background: linear-gradient(144deg, #af40ff, #5b42f3 50%, #00ddeb);
+  color: #fff;
+  padding: 14px !important;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: linear-gradient(144deg, #1e1e1e , 20%,#1e1e1e 50%,#1e1e1e );
+  color: rgb(255, 255, 255);
+  padding: 14px !important;
+  cursor: pointer;
+  transition: all 0.4s ease;
+}
+
+.login input[type=text],
+.login input[type=email] {
+  animation: bounce 1s;
+  -webkit-appearance: none;
+}
+
+.login input[type=password] {
+  animation: bounce1 1.3s;
+}
+
+.ui {
+  font-weight: bolder;
+  background: -webkit-linear-gradient(#B563FF, #535EFC, #0EC8EE);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  border-bottom: 4px solid transparent;
+  border-image: linear-gradient(0.25turn, #535EFC, #0EC8EE, #0EC8EE);
+  border-image-slice: 1;
+  display: inline;
+}
+
+@media only screen and (max-width: 600px) {
+  .login {
+    width: 90%;
+    padding: 3em 2em;
+  }
+}
+
+@keyframes bounce {
+  0% {
+    transform: translateY(-250px);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce1 {
+  0% {
+    opacity: 0;
+  }
+
+  40% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce2 {
+  0% {
+    opacity: 0;
+  }
+
+  70% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+

@@ -31,3 +31,8 @@ Thumbs.db
 
 # Firebase cache
 .firebase/
+
+# Credentials / Service Accounts
+service_account_b64.txt
+service_account_value.txt
+gen_service_account.js
