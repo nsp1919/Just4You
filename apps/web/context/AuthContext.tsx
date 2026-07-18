@@ -20,6 +20,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { COLLECTIONS } from "@/lib/constants";
+import { referralCodeFor, getStoredReferral, clearStoredReferral } from "@/lib/referral";
 
 interface AuthContextValue {
   user: User | null;
@@ -38,6 +39,11 @@ interface UserDoc {
   photoURL?: string;
   role: "user" | "admin";
   isBlocked: boolean;
+  referralCode?: string;
+  referredBy?: string;
+  referralCredits?: number;
+  referralCount?: number;
+  freeAddonCredits?: number;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -68,15 +74,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const ref = doc(db, COLLECTIONS.USERS, firebaseUser.uid);
     const snap = await getDoc(ref);
     if (!snap.exists()) {
+      // A referral code captured from ?ref= is consumed here. Guard against
+      // self-referral (a user's own code shouldn't credit themselves).
+      const ownCode = referralCodeFor(firebaseUser.uid);
+      const referredByCode = getStoredReferral();
+      const referredBy = referredByCode && referredByCode !== ownCode ? referredByCode : undefined;
+
       const data: UserDoc = {
         uid: firebaseUser.uid,
         email: firebaseUser.email!,
         name,
-        photoURL: firebaseUser.photoURL ?? undefined,
         role: firebaseUser.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? "admin" : "user",
         isBlocked: false,
+        referralCode: ownCode,
+        referralCredits: 0,
       };
+      if (firebaseUser.photoURL) data.photoURL = firebaseUser.photoURL;
+      if (referredBy) data.referredBy = referredBy;
       await setDoc(ref, { ...data, createdAt: serverTimestamp() });
+      clearStoredReferral();
       setUserDoc(data);
     }
   }

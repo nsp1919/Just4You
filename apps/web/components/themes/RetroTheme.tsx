@@ -6,7 +6,9 @@ import { getOccasionContent } from "../../lib/occasionContent";
 import StoryCardModal from "../StoryCardModal";
 import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
+import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
+import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
 
 interface Celebration {
   id?: string;
@@ -44,22 +46,27 @@ function PhotoCard({ url, caption, index }: { url: string; caption: string; inde
   const isLeft = index % 2 === 0;
   return (
     <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transform: inView ? "none" : `translateX(${isLeft ? -60 : 60}px)`, transition: `opacity 1s ease ${index * 80}ms, transform 1s ease ${index * 80}ms` }}>
-      <div className="flex-shrink-0 w-full md:w-64 h-64 md:h-72 overflow-hidden relative group"
-        style={{ boxShadow: "0 20px 60px rgba(139,90,43,0.25), 4px 4px 0 rgba(139,90,43,0.3)", border: "3px solid #8b5a2b" }}>
-        <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "sepia(25%) contrast(1.05) brightness(0.95)" }} />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(20,10,5,0.6) 0%, transparent 50%)" }} />
-        <div className="absolute bottom-2 right-2 text-xs font-mono" style={{ color: "#c9aa7a", opacity: 0.8, fontFamily: "'Special Elite', monospace" }}>
-          Memory {index + 1}
+      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 1s ease ${index * 80}ms` }}>
+      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1}>
+        <div className="film-frame relative group">
+          <div className="film-perf mb-3" />
+          <div className="h-64 md:h-72 overflow-hidden relative">
+            <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "sepia(25%) contrast(1.05) brightness(0.95)" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(20,10,5,0.6) 0%, transparent 50%)" }} />
+            <div className="absolute bottom-2 right-2 text-xs font-mono" style={{ color: "#c9aa7a", opacity: 0.8, fontFamily: "'Special Elite', monospace" }}>
+              Memory {index + 1}
+            </div>
+          </div>
+          <div className="film-perf mt-3" />
         </div>
-      </div>
-      <div className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`}>
+      </Tilt3D>
+      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={38}>
         <div className="text-5xl mb-3 opacity-40 leading-none" style={{ fontFamily: "'Special Elite', serif", color: "#c9aa7a" }}>"</div>
         <p className="text-xl md:text-2xl leading-relaxed" style={{ fontFamily: "'IM Fell English', Georgia, serif", color: "#e8d5b0", fontStyle: "italic" }}>
           {caption}
         </p>
         <div className="mt-5 w-16 h-0.5" style={{ background: "linear-gradient(to right, #8b5a2b, #c9aa7a)", marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </div>
+      </Parallax>
     </div>
   );
 }
@@ -108,13 +115,12 @@ const RETRO_CAPTIONS_BY_OCCASION: Record<string, string[]> = {
 };
 
 function SpecialCard({ emoji, text, index }: { emoji: string; text: string; index: number }) {
-  const { ref, inView } = useInView(0.15);
   return (
-    <div ref={ref as any} className="flex items-center gap-4 p-5 text-left transition-all"
-      style={{ background: "rgba(201,170,122,0.06)", border: "1px solid rgba(201,170,122,0.2)", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(20px)", transition: `all 0.65s ease ${index * 80}ms` }}>
+    <Reveal3D index={index} className="flex items-center gap-4 p-5 text-left transition-all"
+      style={{ background: "rgba(201,170,122,0.06)", border: "1px solid rgba(201,170,122,0.2)" }}>
       <span className="text-xl flex-shrink-0">{emoji}</span>
       <p className="text-lg" style={{ fontFamily: "'IM Fell English', Georgia, serif", color: "#e8d5b0", fontStyle: "italic" }}>{text}</p>
-    </div>
+    </Reveal3D>
   );
 }
 
@@ -196,10 +202,12 @@ const RETRO_CSS = `
   .sepia-text   { color:#e8d5b0; }
   .gold-text    { color:#c9aa7a; }
   .amber-text   { color:#d4914f; }
+  .name-aura-amber { position:absolute; inset:-32% -14%; z-index:0; pointer-events:none; background:radial-gradient(ellipse at center, rgba(212,145,79,0.24) 0%, rgba(201,170,122,0.14) 45%, transparent 72%); filter:blur(34px); animation:retroBob 5.5s ease-in-out infinite; }
+  .film-frame { background:#140c05; padding:14px 12px; border:1px solid #3a2512; box-shadow:0 22px 60px rgba(139,90,43,0.3), inset 0 0 0 1px rgba(201,170,122,0.08); }
+  .film-perf { height:13px; background-image:repeating-linear-gradient(90deg, #e6d3aa 0 9px, #140c05 9px 21px); border-radius:2px; opacity:0.9; }
 `;
 
 export default function RetroTheme({ celebration }: { celebration: any }) {
-  const [loaded, setLoaded] = useState(false);
   const [yesResponse, setYesResponse] = useState(false);
   const content = getOccasionContent(
     celebration.occasionType || "birthday",
@@ -218,7 +226,6 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
   };
 
   useEffect(() => {
-    setLoaded(true);
     setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.55 }, colors: content.confettiColors }), 1200);
   }, [content.confettiColors]);
 
@@ -236,12 +243,15 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
         <div className="absolute inset-6 pointer-events-none" style={{ border: "1px solid rgba(201,170,122,0.15)" }}>
           <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
         </div>
-        <div className="relative z-10 max-w-3xl" style={{ opacity: loaded ? 1 : 0, transform: loaded ? "none" : "translateY(50px)", transition: "all 1.3s cubic-bezier(0.16,1,0.3,1) 0.2s" }}>
+        <Hero3D className="relative z-10 max-w-3xl">
           <div className="text-5xl mb-5" style={{ animation: "retroBob 4s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-special text-sm tracking-[0.4em] uppercase mb-5 gold-text">{content.heroSubtitle}</p>
-          <h1 className="font-fell italic mb-7 leading-tight" style={{ fontSize: "clamp(3rem,10vw,6.5rem)", color: "#e8d5b0" }}>
-            {celebration.recipientName}
-          </h1>
+          <div className="relative inline-block mb-7">
+            <span className="name-aura-amber" />
+            <h1 className="font-fell italic leading-tight relative" style={{ fontSize: "clamp(3rem,10vw,6.5rem)", color: "#e8d5b0" }}>
+              {celebration.recipientName}
+            </h1>
+          </div>
           <div className="flex items-center justify-center gap-5 mb-7">
             <div className="h-px w-20" style={{ background: "linear-gradient(to right,transparent,#8b5a2b)" }} />
             <span className="gold-text text-lg">✦</span>
@@ -250,7 +260,7 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
           <p className="font-fell italic text-xl leading-relaxed" style={{ color: "#a07850" }}>
             Some memories are worth developing twice.
           </p>
-        </div>
+        </Hero3D>
         <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 transition-colors" style={{ color: "#8b5a2b44", animation: "retroBob 2.5s ease-in-out infinite" }}>
           <span className="font-special text-xs tracking-widest gold-text" style={{ opacity: 0.5 }}>scroll</span><ChevronDown size={20} style={{ color: "#8b5a2b" }} />
         </button>
@@ -320,6 +330,9 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
           </div>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#c9a84c" isDark={true} label="A voice note, sealed with love 📜" />
+          )}
+          {celebration.videoMessageUrl && (
+            <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#c9a84c" isDark={true} label="A moving picture, just for you 🎞️" />
           )}
         </div>
       </section>

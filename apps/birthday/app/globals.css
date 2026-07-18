@@ -2,7 +2,11 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  /* Dark brand canvas so mobile overscroll / URL-bar collapse never reveals
+     a white gap below a page. Individual theme <main>s set their own bg on top. */
+  html, body { background-color: #0c0812; }
+  html { scroll-behavior: smooth; overscroll-behavior-y: none; }
+  body { min-height: 100dvh; }
   ::selection { background: rgba(168, 85, 247, 0.3); }
 }
 

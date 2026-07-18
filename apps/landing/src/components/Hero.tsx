@@ -125,7 +125,7 @@ export default function Hero() {
               display:'flex', flexWrap:'wrap', justifyContent:'center', gap:48,
               marginTop:60, paddingTop:32, borderTop:'1px solid rgba(255,255,255,0.06)',
             }}>
-            {[['10,000+','Surprises Delivered'],['98%','Happy Customers'],['24 hrs','Fast Delivery'],['₹299','All-Inclusive']].map(([v,l]) => (
+            {[['6','Stunning Themes'],['24 hrs','Fast Delivery'],['1 Year','Hosting Included'],['₹299','All-Inclusive']].map(([v,l]) => (
               <div key={l} style={{ textAlign:'center' }}>
                 <div className="gradient-text-gold font-grotesk" style={{ fontSize:'1.6rem', fontWeight:700 }}>{v}</div>
                 <div className="font-grotesk" style={{ fontSize:'0.75rem', color:'#555', marginTop:4 }}>{l}</div>

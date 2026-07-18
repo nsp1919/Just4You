@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { PRICE_PAISE, COLLECTIONS } from "@/lib/constants";
+import { PRICE_PAISE, COLLECTIONS, computePricePaise } from "@/lib/constants";
 import Razorpay from "razorpay";
 
 // Force dynamic — this route uses env vars and must not be statically rendered
@@ -49,9 +49,14 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://just4you.buzz";
 
+    // Amount is derived from the persisted feature selection (never the client).
+    const celebFeatures: string[] = Array.isArray(celeb.selectedFeatures) ? celeb.selectedFeatures : [];
+    const amountPaise = computePricePaise(celebFeatures) || PRICE_PAISE;
+    await celebRef.update({ pricePaise: amountPaise });
+
     // Create a unique Razorpay Payment Link with celebrationId in notes
     const paymentLink = await (razorpay as any).paymentLink.create({
-      amount: PRICE_PAISE,
+      amount: amountPaise,
       currency: "INR",
       accept_partial: false,
       description: `Just4You — ${celeb.recipientName}'s ${celeb.occasionType || "birthday"} website`,

@@ -50,6 +50,11 @@ export default function AdminPage() {
     setUsers((us) => us.map((u) => u.id === id ? { ...u, isBlocked: !current } : u));
   };
 
+  const toggleGalleryApproved = async (id: string, current: boolean) => {
+    await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, id), { galleryApproved: !current });
+    setCelebrations((cs) => cs.map((c) => c.id === id ? { ...c, galleryApproved: !current } : c));
+  };
+
   if (loading || !user || !userDoc) return null;
 
   const paidCelebrations = celebrations.filter((c) => c.paymentStatus === "paid");
@@ -151,11 +156,21 @@ export default function AdminPage() {
                         {c.createdAt?.toDate?.()?.toLocaleDateString("en-IN") ?? "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => toggleBlockCelebration(c.id, c.isBlocked)}
-                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all ${c.isBlocked ? "text-green-400" : "text-red-400"}`}
-                          style={{ background: c.isBlocked ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
-                          {c.isBlocked ? <><CheckCircle size={11} /> Unblock</> : <><Ban size={11} /> Block</>}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => toggleBlockCelebration(c.id, c.isBlocked)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all ${c.isBlocked ? "text-green-400" : "text-red-400"}`}
+                            style={{ background: c.isBlocked ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
+                            {c.isBlocked ? <><CheckCircle size={11} /> Unblock</> : <><Ban size={11} /> Block</>}
+                          </button>
+                          {c.isPublicOptIn && (
+                            <button onClick={() => toggleGalleryApproved(c.id, c.galleryApproved)}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all ${c.galleryApproved ? "text-amber-300" : "text-[var(--text-muted)]"}`}
+                              style={{ background: c.galleryApproved ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.05)" }}
+                              title="Feature on the public Wall of Love">
+                              💛 {c.galleryApproved ? "Featured" : "Feature"}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

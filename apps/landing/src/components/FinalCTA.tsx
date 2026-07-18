@@ -68,7 +68,7 @@ export default function FinalCTA() {
               initial={{ opacity:0 }} animate={inView?{opacity:1}:{}} transition={{ delay:0.9,duration:0.6 }}
               className="font-grotesk"
               style={{ marginTop:28,color:'#444',fontSize:'0.82rem' }}>
-              🎉 10,000+ surprises delivered &nbsp;·&nbsp; ⚡ Ready in 24 hrs &nbsp;·&nbsp; 💛 100% happiness guarantee
+              ✨ 6 beautiful themes &nbsp;·&nbsp; ⚡ Ready in 24 hrs &nbsp;·&nbsp; 💰 100% satisfaction guarantee
             </motion.p>
           </div>
         </motion.div>

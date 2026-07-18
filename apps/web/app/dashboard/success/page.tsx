@@ -7,6 +7,7 @@ import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/constants";
+import QRCodeCard from "@/components/QRCodeCard";
 
 function SuccessContent() {
   const params = useSearchParams();
@@ -145,6 +146,11 @@ function SuccessContent() {
           style={{ background: "#25d366" }}>
           <Share2 size={18} /> Share on WhatsApp 📱
         </button>
+
+        {/* Scannable QR — print it on a card, gift tag or invite */}
+        <div className="mb-4">
+          <QRCodeCard url={birthdayUrl} />
+        </div>
 
         <Link href="/dashboard" className="btn-ghost w-full justify-center py-3">
           <Heart size={16} /> Back to Dashboard

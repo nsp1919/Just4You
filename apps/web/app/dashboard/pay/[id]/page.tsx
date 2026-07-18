@@ -5,16 +5,17 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { COLLECTIONS, PRICE_INR } from "@/lib/constants";
+import { COLLECTIONS, PRICE_INR, computePriceInr, formatInr } from "@/lib/constants";
 import { ArrowLeft, CreditCard, Camera, Sparkles } from "lucide-react";
 
 // ─── Payment component ────────────────────────────────────────────────────────
-function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasionType, onSuccess }: {
+function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasionType, priceInr, onSuccess }: {
   celebrationId: string;
   recipientName: string;
   theme: string;
   photoCount: number;
   occasionType: string;
+  priceInr: number;
   onSuccess: (slug: string) => void;
 }) {
   const { user } = useAuth();
@@ -79,7 +80,7 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
       <h2 className="text-2xl font-bold font-playfair mb-2">Almost there!</h2>
       <p className="text-[var(--text-muted)] text-sm mb-6">Pay once to make this website go live.</p>
 
-      <div className="text-6xl font-bold gradient-text mb-1">₹{PRICE_INR}</div>
+      <div className="text-6xl font-bold gradient-text mb-1">{formatInr(priceInr)}</div>
       <div className="text-xs text-[var(--text-muted)] mb-8">One-time payment • 1 year validity • Instant delivery</div>
 
       {error && (
@@ -95,7 +96,7 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
         className="btn-primary w-full justify-center py-4 text-base glow-purple disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <CreditCard size={20} />
-        {loading ? "Creating payment link..." : `✨ Unlock My Surprise Website — ₹${PRICE_INR}`}
+        {loading ? "Creating payment link..." : `✨ Unlock My Surprise Website — ${formatInr(priceInr)}`}
       </button>
 
       <div className="flex items-center justify-center gap-4 mt-4 text-xs text-[var(--text-muted)]">
@@ -187,6 +188,7 @@ export default function PayPage() {
           theme={celebration.theme}
           photoCount={celebration.photos?.length ?? 0}
           occasionType={celebration.occasionType}
+          priceInr={computePriceInr(celebration.selectedFeatures ?? [])}
           onSuccess={(slug) => router.push(`/dashboard/success?slug=${slug}`)}
         />
       </div>

@@ -7,6 +7,7 @@ import StoryCardModal from "../StoryCardModal";
 import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import ViewCounter from "../ViewCounter";
+import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
 
 interface Celebration {
   id?: string;
@@ -222,47 +223,44 @@ function PhotoCard({ url, caption, index }: { url: string; caption: string; inde
       style={{
         flexDirection: isLeft ? undefined : "row-reverse",
         opacity: inView ? 1 : 0,
-        transform: inView ? "none" : `translateX(${isLeft ? -60 : 60}px)`,
-        transition: `opacity 1s ease ${index * 80}ms, transform 1s ease ${index * 80}ms`,
+        transition: `opacity 1s ease ${index * 80}ms`,
       }}>
       {/* Photo */}
-      <div className="flex-shrink-0 w-full md:w-64 h-64 md:h-72 overflow-hidden rounded-3xl relative group"
-        style={{ boxShadow: "0 20px 60px rgba(168,85,247,0.3), 0 0 0 1px rgba(168,85,247,0.2)" }}>
-        <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-        <div className="absolute inset-0 rounded-3xl" style={{ background: "linear-gradient(to top, rgba(10,8,21,0.7) 0%, transparent 50%)" }} />
-        <div className="absolute bottom-3 right-3 text-white/50 text-xs tracking-widest" style={{ fontFamily: "Georgia, serif" }}>
-          Photo {index + 1}
+      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1}>
+        <div className="h-64 md:h-72 overflow-hidden rounded-3xl relative group"
+          style={{ boxShadow: "0 20px 60px rgba(168,85,247,0.3), 0 0 0 1px rgba(168,85,247,0.2)" }}>
+          <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+          <div className="absolute inset-0 rounded-3xl" style={{ background: "linear-gradient(to top, rgba(10,8,21,0.7) 0%, transparent 50%)" }} />
+          <div className="absolute bottom-3 right-3 text-white/50 text-xs tracking-widest" style={{ fontFamily: "Georgia, serif" }}>
+            Photo {index + 1}
+          </div>
         </div>
-      </div>
+      </Tilt3D>
       {/* Caption */}
-      <div className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`}>
+      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={38}>
         <div className="text-5xl mb-3 text-white/30" style={{ fontFamily: "serif", lineHeight: 1 }}>"</div>
         <p className="text-xl md:text-2xl leading-relaxed text-white/80 italic" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
           {caption}
         </p>
         <div className="mt-5 w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400"
           style={{ marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </div>
+      </Parallax>
     </div>
   );
 }
 
 // ─── "Why You're Special" card — extracted to avoid hook-in-loop ──────────────
 function SpecialCard({ emoji, text, index }: { emoji: string; text: string; index: number }) {
-  const { ref, inView } = useInView(0.15);
   return (
-    <div ref={ref as any}
+    <Reveal3D index={index}
       className="flex items-center gap-4 p-5 rounded-2xl text-left transition-colors hover:border-purple-500/40"
       style={{
         background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)",
         backdropFilter: "blur(12px)",
-        opacity: inView ? 1 : 0,
-        transform: inView ? "none" : "scale(0.9) translateY(20px)",
-        transition: `all 0.65s ease ${index * 80}ms`,
       }}>
       <span className="text-2xl flex-shrink-0">{emoji}</span>
       <p className="text-lg text-white/85" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{text}</p>
-    </div>
+    </Reveal3D>
   );
 }
 
@@ -335,7 +333,6 @@ const GLOBAL_CSS = `
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 export default function GalaxyTheme({ celebration }: { celebration: Celebration }) {
-  const [loaded, setLoaded] = useState(false);
   const [heartBeat, setHeartBeat] = useState(false);
   const [yesResponse, setYesResponse] = useState(false);
 
@@ -347,7 +344,6 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
   );
 
   useEffect(() => {
-    setLoaded(true);
     const t = setTimeout(() => {
       confetti({
         particleCount: 150, spread: 100, origin: { y: 0.55 },
@@ -379,8 +375,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
         <div className="nebula-purple" style={{ width: 600, height: 600, top: "5%", left: "15%" }} />
         <div className="nebula-pink" style={{ width: 500, height: 500, bottom: "5%", right: "5%" }} />
 
-        <div className="relative z-10 max-w-3xl"
-          style={{ opacity: loaded ? 1 : 0, transform: loaded ? "none" : "translateY(50px)", transition: "all 1.3s cubic-bezier(0.16,1,0.3,1) 0.2s" }}>
+        <Hero3D className="relative z-10 max-w-3xl">
           <div className="text-7xl mb-6" style={{ animation: "bgFloat2 3.5s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-cormorant text-xl md:text-2xl text-purple-300/80 tracking-[0.35em] uppercase mb-5">
             {content.heroSubtitle}
@@ -396,7 +391,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
           <p className="font-cormorant text-xl md:text-2xl italic text-white/60 leading-relaxed">
             The world became more beautiful because you are in it.
           </p>
-        </div>
+        </Hero3D>
 
         <button onClick={scrollDown}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 hover:text-white/70 transition-colors z-10"

@@ -25,8 +25,10 @@ const EMOJIS = ["❤️", "😍", "🎉", "🥹", "🙌", "💫", "🔥", "🫶"
 const WALL_CSS = `
   @keyframes reactionPop { 0%{transform:scale(0) translateY(20px);opacity:0} 60%{transform:scale(1.1) translateY(-4px)} 100%{transform:scale(1) translateY(0);opacity:1} }
   @keyframes floatHeart { 0%{transform:translateY(0) rotate(-10deg);opacity:1} 100%{transform:translateY(-80px) rotate(10deg);opacity:0} }
-  .reaction-item { animation: reactionPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+  .reaction-item { animation: reactionPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; transition: box-shadow 0.3s ease, border-color 0.3s ease; }
+  .reaction-item:hover { box-shadow: 0 14px 36px rgba(0,0,0,0.20); }
   .float-heart { animation: floatHeart 1.2s ease-out forwards; pointer-events:none; }
+  .rw-emoji-chip { transition: transform 0.2s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.2s ease, background 0.2s ease; }
 `;
 
 function FloatingHeart({ emoji, x }: { emoji: string; x: number }) {
@@ -111,14 +113,16 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
 
       <div className="max-w-3xl mx-auto">
         {/* Section header */}
-        <div className="text-center mb-12">
-          <p className="text-xs uppercase tracking-[0.35em] mb-3" style={{ color: accentColor }}>
+        <div className="text-center mb-12 relative">
+          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-6 w-72 h-40 rounded-full"
+            style={{ background: `radial-gradient(ellipse at center, ${accentColor}22, transparent 70%)`, filter: "blur(30px)" }} />
+          <p className="relative text-xs uppercase tracking-[0.35em] mb-3" style={{ color: accentColor }}>
             ✦ Reactions ✦
           </p>
-          <h2 className="text-3xl md:text-5xl font-bold mb-3" style={{ color: textColor, fontFamily: "Playfair Display, serif" }}>
+          <h2 className="relative text-3xl md:text-5xl font-bold mb-3" style={{ color: textColor, fontFamily: "Playfair Display, serif" }}>
             Leave a Reaction 💌
           </h2>
-          <p className="text-base" style={{ color: mutedColor }}>
+          <p className="relative text-base" style={{ color: mutedColor }}>
             {reactions.length > 0
               ? `${reactions.length} ${reactions.length === 1 ? "person has" : "people have"} reacted 🎉`
               : "Be the first to leave a reaction!"}
@@ -139,11 +143,12 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
                   <button
                     key={em}
                     onClick={() => setEmoji(em)}
-                    className="w-12 h-12 rounded-2xl text-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    className="rw-emoji-chip w-12 h-12 rounded-full text-2xl flex items-center justify-center hover:scale-110 active:scale-95"
                     style={{
                       background: emoji === em ? `${accentColor}30` : cardBg,
                       border: emoji === em ? `2px solid ${accentColor}` : `2px solid ${cardBorder}`,
-                      transform: emoji === em ? "scale(1.15)" : "scale(1)",
+                      transform: emoji === em ? "scale(1.18)" : "scale(1)",
+                      boxShadow: emoji === em ? `0 6px 20px ${accentColor}55` : "none",
                     }}
                   >
                     {em}
@@ -217,7 +222,7 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
                 }}
               >
                 <div className="text-3xl flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
-                  style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+                  style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", boxShadow: `inset 0 0 0 2px ${accentColor}33` }}>
                   {r.emoji}
                 </div>
                 <div className="flex-1 min-w-0">

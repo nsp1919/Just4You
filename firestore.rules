@@ -2,6 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Admins (role == 'admin' on their own user doc) may read/manage all data.
+    // Uses get() on the requester's user doc — safe because a user can always
+    // read their own document.
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // ── Celebrations ──────────────────────────────────────────────────────────
     match /celebrations/{celebrationId} {
       // PUBLIC: Anyone with the link can read an active, non-blocked celebration.
@@ -12,6 +21,9 @@ service cloud.firestore {
       // OWNER: Authenticated users can read/write their own celebrations.
       allow read, write: if request.auth != null
                          && request.auth.uid == resource.data.userId;
+
+      // ADMIN: can read and moderate (e.g. block) any celebration.
+      allow read, update: if isAdmin();
 
       // CREATE: Authenticated users can create new celebrations for themselves.
       allow create: if request.auth != null
@@ -48,9 +60,38 @@ service cloud.firestore {
 
     // ── Users ─────────────────────────────────────────────────────────────────
     match /users/{userId} {
-      // Users can read and write only their own document.
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+      // Fields that only the server (Admin SDK) may set/change. The Admin SDK
+      // bypasses these rules, so protecting them here blocks client tampering
+      // (e.g. a user granting themselves referral credits or admin role).
+      function protectedUnchanged() {
+        return !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['role', 'isBlocked', 'referralCredits', 'referralRedeemed', 'referralCount', 'freeAddonCredits']);
+      }
+
+      // Users can read only their own document.
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // ADMIN: can read every user (for the admin dashboard) and toggle a
+      // user's `isBlocked` flag. Admins still cannot grant roles or credits.
+      allow read: if isAdmin();
+      allow update: if isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isBlocked']);
+
+      // CREATE: a user may create their own doc, but cannot unblock themselves
+      // or seed non-zero referral credits. (Role assignment preserves the
+      // project's existing admin-bootstrap behavior.)
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.isBlocked == false
+                    && (!('referralCredits' in request.resource.data) || request.resource.data.referralCredits == 0)
+                    && (!('referralRedeemed' in request.resource.data) || request.resource.data.referralRedeemed == false);
+
+      // UPDATE: a user may edit their own profile but never the protected fields.
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && protectedUnchanged();
+
+      allow delete: if false;
     }
 
     // ── Admin-only: everything else blocked by default ─────────────────────

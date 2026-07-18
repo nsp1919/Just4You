@@ -6,6 +6,7 @@ import StoryCardModal from "../StoryCardModal";
 import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import ViewCounter from "../ViewCounter";
+import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
 
 interface Celebration {
   id?: string;
@@ -43,18 +44,20 @@ function PhotoCard({ url, caption, index }: { url: string; caption: string; inde
   const isLeft = index % 2 === 0;
   return (
     <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transform: inView ? "none" : `translateX(${isLeft ? -60 : 60}px)`, transition: `opacity 1s ease ${index * 80}ms, transform 1s ease ${index * 80}ms` }}>
-      <div className="flex-shrink-0 w-full md:w-64 h-64 md:h-72 overflow-hidden relative group" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-        <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(245,245,245,0.6) 0%, transparent 50%)" }} />
-      </div>
-      <div className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`}>
+      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 1s ease ${index * 80}ms` }}>
+      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1} intensity={0.6}>
+        <div className="h-64 md:h-72 overflow-hidden relative group" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+          <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(245,245,245,0.6) 0%, transparent 50%)" }} />
+        </div>
+      </Tilt3D>
+      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={30}>
         <div className="text-5xl mb-3 leading-none" style={{ fontFamily: "Georgia, serif", color: "#bbb" }}>"</div>
         <p className="text-xl md:text-2xl leading-relaxed" style={{ fontFamily: "'Lora', Georgia, serif", color: "#333", fontStyle: "italic" }}>
           {caption}
         </p>
         <div className="mt-5 w-12 h-px" style={{ background: "#333", marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </div>
+      </Parallax>
     </div>
   );
 }
@@ -71,13 +74,12 @@ const MIN_CAPTIONS = [
 ];
 
 function SpecialCard({ emoji, text, index }: { emoji: string; text: string; index: number }) {
-  const { ref, inView } = useInView(0.15);
   return (
-    <div ref={ref as any} className="flex items-start gap-4 p-5 text-left border-l-2 transition-all"
-      style={{ borderColor: "#e0e0e0", opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(20px)", transition: `all 0.65s ease ${index * 80}ms` }}>
+    <Reveal3D index={index} originX="left" className="flex items-start gap-4 p-5 text-left border-l-2 transition-all"
+      style={{ borderColor: "#e0e0e0" }}>
       <span className="text-xl flex-shrink-0 mt-1">{emoji}</span>
       <p className="text-lg leading-relaxed" style={{ fontFamily: "'Lora', Georgia, serif", color: "#444" }}>{text}</p>
-    </div>
+    </Reveal3D>
   );
 }
 
@@ -141,7 +143,6 @@ const MIN_CSS = `
 import { getOccasionContent } from "../../lib/occasionContent";
 
 export default function MinimalTheme({ celebration }: { celebration: any }) {
-  const [loaded, setLoaded] = useState(false);
   const [yesResponse, setYesResponse] = useState(false);
   const content = getOccasionContent(
     celebration.occasionType || "birthday",
@@ -160,7 +161,6 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
   };
 
   useEffect(() => {
-    setLoaded(true);
     setTimeout(() => confetti({ particleCount: 80, spread: 70, origin: { y: 0.55 }, colors: content.confettiColors }), 1200);
   }, [content.confettiColors]);
 
@@ -173,7 +173,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
         style={{ background: "#fafafa" }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center,rgba(0,0,0,0.03) 0%,transparent 70%)" }} />
-        <div className="relative z-10 max-w-3xl" style={{ opacity: loaded ? 1 : 0, transform: loaded ? "none" : "translateY(40px)", transition: "all 1.2s ease 0.2s" }}>
+        <Hero3D className="relative z-10 max-w-3xl">
           <div className="text-5xl mb-6" style={{ animation: "minFloat2 4s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-cormorant text-lg tracking-[0.4em] uppercase mb-5" style={{ color: "#aaa" }}>{content.heroSubtitle}</p>
           <h1 className="font-lora font-semibold mb-7 leading-tight" style={{ fontSize: "clamp(3rem,10vw,6.5rem)", color: "#111" }}>
@@ -187,7 +187,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
           <p className="font-cormorant text-xl italic leading-relaxed" style={{ color: "#777" }}>
             Some people make the world more beautiful simply by existing.
           </p>
-        </div>
+        </Hero3D>
         <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 transition-colors" style={{ color: "#ccc", animation: "minFloat2 2.5s ease-in-out infinite" }}>
           <span className="font-cormorant text-sm tracking-widest" style={{ color: "#bbb" }}>scroll</span><ChevronDown size={18} />
         </button>

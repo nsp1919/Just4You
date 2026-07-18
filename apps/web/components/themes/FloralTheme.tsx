@@ -6,7 +6,9 @@ import { getOccasionContent } from "../../lib/occasionContent";
 import StoryCardModal from "../StoryCardModal";
 import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
+import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
+import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
 
 interface Celebration {
   id?: string;
@@ -44,19 +46,21 @@ function PhotoCard({ url, caption, index, accent }: { url: string; caption: stri
   const isLeft = index % 2 === 0;
   return (
     <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transform: inView ? "none" : `translateX(${isLeft ? -60 : 60}px)`, transition: `opacity 1s ease ${index * 80}ms, transform 1s ease ${index * 80}ms` }}>
-      <div className="flex-shrink-0 w-full md:w-64 h-64 md:h-72 overflow-hidden rounded-3xl relative group"
-        style={{ boxShadow: `0 20px 60px ${accent}44, 0 0 0 1px ${accent}33` }}>
-        <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-        <div className="absolute inset-0 rounded-3xl" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 50%)" }} />
-      </div>
-      <div className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`}>
+      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 1s ease ${index * 80}ms` }}>
+      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1}>
+        <div className="h-64 md:h-72 overflow-hidden rounded-3xl relative group"
+          style={{ boxShadow: `0 20px 60px ${accent}44, 0 0 0 1px ${accent}33` }}>
+          <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+          <div className="absolute inset-0 rounded-3xl" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 50%)" }} />
+        </div>
+      </Tilt3D>
+      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={38}>
         <div className="text-5xl mb-3 opacity-30" style={{ fontFamily: "serif", lineHeight: 1, color: accent }}>"</div>
         <p className="text-xl md:text-2xl leading-relaxed italic" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "inherit" }}>
           {caption}
         </p>
         <div className="mt-5 w-12 h-0.5" style={{ background: `linear-gradient(to right, ${accent}, transparent)`, marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </div>
+      </Parallax>
     </div>
   );
 }
@@ -73,13 +77,12 @@ const CAPTIONS = [
 ];
 
 function SpecialCard({ emoji, text, index, accent }: { emoji: string; text: string; index: number; accent: string }) {
-  const { ref, inView } = useInView(0.15);
   return (
-    <div ref={ref as any} className="flex items-center gap-4 p-5 rounded-2xl text-left transition-all hover:scale-[1.02]"
-      style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${accent}22`, opacity: inView ? 1 : 0, transform: inView ? "none" : "scale(0.9) translateY(20px)", transition: `all 0.65s ease ${index * 80}ms` }}>
+    <Reveal3D index={index} className="flex items-center gap-4 p-5 rounded-2xl text-left transition-all hover:scale-[1.02]"
+      style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${accent}22` }}>
       <span className="text-2xl flex-shrink-0">{emoji}</span>
       <p className="text-lg" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{text}</p>
-    </div>
+    </Reveal3D>
   );
 }
 
@@ -144,10 +147,10 @@ const FLORAL_CSS = `
   .text-rose-grad  { background:linear-gradient(135deg,#c2185b 0%,#e91e63 40%,#880e4f 100%); background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; animation:shimmerRose 5s ease infinite; }
   .text-cream-grad { background:linear-gradient(135deg,#fff5f7 0%,#ffd6e0 50%,#c2185b 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .glass-floral    { background:rgba(255,255,255,0.55); border:1px solid rgba(231,84,128,0.2); backdrop-filter:blur(20px); border-radius:24px; }
+  .name-aura-rose  { position:absolute; inset:-32% -14%; z-index:0; pointer-events:none; background:radial-gradient(ellipse at center, rgba(233,30,99,0.18) 0%, rgba(255,182,193,0.16) 45%, transparent 72%); filter:blur(32px); animation:floatPetal 4.5s ease-in-out infinite; }
 `;
 
 export default function FloralTheme({ celebration }: { celebration: any }) {
-  const [loaded, setLoaded] = useState(false);
   const [yesResponse, setYesResponse] = useState(false);
   const accent = "#c2185b";
   const content = getOccasionContent(
@@ -167,7 +170,6 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
   };
 
   useEffect(() => {
-    setLoaded(true);
     setTimeout(() => confetti({ particleCount: 120, spread: 90, origin: { y: 0.55 }, colors: content.confettiColors }), 1200);
   }, [content.confettiColors]);
 
@@ -182,12 +184,15 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
         style={{ background: "linear-gradient(180deg,#fff5f8 0%,#ffe0ec 100%)" }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 30% 20%,rgba(231,84,128,0.12) 0%,transparent 60%)" }} />
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 70% 80%,rgba(194,24,91,0.08) 0%,transparent 60%)" }} />
-        <div className="relative z-10 max-w-3xl" style={{ opacity: loaded ? 1 : 0, transform: loaded ? "none" : "translateY(50px)", transition: "all 1.3s cubic-bezier(0.16,1,0.3,1) 0.2s" }}>
+        <Hero3D className="relative z-10 max-w-3xl">
           <div className="text-6xl mb-5" style={{ animation: "floatPetal 3.5s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-cormorant text-lg tracking-[0.35em] uppercase mb-4" style={{ color: "#c2185b88" }}>{content.heroSubtitle}</p>
-          <h1 className="font-greatvibes text-rose-grad mb-6 leading-tight" style={{ fontSize: "clamp(3.5rem, 11vw, 7rem)" }}>
-            {celebration.recipientName}
-          </h1>
+          <div className="relative inline-block mb-6">
+            <span className="name-aura-rose" />
+            <h1 className="font-greatvibes text-rose-grad leading-tight relative" style={{ fontSize: "clamp(3.5rem, 11vw, 7rem)" }}>
+              {celebration.recipientName}
+            </h1>
+          </div>
           <div className="flex items-center justify-center gap-5 mb-7">
             <div className="h-px w-16 bg-gradient-to-r from-transparent to-rose-300" />
             <span className="text-rose-300">🌺</span>
@@ -196,7 +201,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
           <p className="font-garamond text-xl italic leading-relaxed" style={{ color: "#6d3b57" }}>
             The world bloomed a little more because you are in it.
           </p>
-        </div>
+        </Hero3D>
         <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 transition-colors z-10" style={{ color: "#c2185b77", animation: "floatPetal 2s ease-in-out infinite" }}>
           <span className="font-cormorant text-sm tracking-widest">Scroll</span><ChevronDown size={20} />
         </button>
@@ -263,6 +268,9 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
           </div>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#c2185b" isDark={false} />
+          )}
+          {celebration.videoMessageUrl && (
+            <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#c2185b" isDark={false} />
           )}
         </div>
       </section>

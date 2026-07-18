@@ -68,15 +68,25 @@ export async function POST(req: NextRequest) {
 
     // Update celebration
     const now = Timestamp.now();
-    const expiresAt = Timestamp.fromDate(
-      new Date(Date.now() + VALIDITY_DAYS * 24 * 60 * 60 * 1000)
-    );
 
     const celebRef = adminDb.collection("celebrations").doc(celebrationId);
     const celebSnap = await celebRef.get();
     if (!celebSnap.exists || celebSnap.data()?.userId !== decoded.uid) {
       return NextResponse.json({ error: "Celebration not found" }, { status: 404 });
     }
+
+    // Hosting length depends on the purchased hosting tier (default 1 year).
+    const hostingFeatures: string[] = Array.isArray(celebSnap.data()?.selectedFeatures)
+      ? celebSnap.data()!.selectedFeatures
+      : [];
+    const hostingDays = hostingFeatures.includes("hosting_lifetime")
+      ? 36500 // ~100 years = effectively lifetime
+      : hostingFeatures.includes("hosting_3yr")
+        ? VALIDITY_DAYS * 3
+        : VALIDITY_DAYS;
+    const expiresAt = Timestamp.fromDate(
+      new Date(Date.now() + hostingDays * 24 * 60 * 60 * 1000)
+    );
 
     await celebRef.update({
       slug,
@@ -85,6 +95,43 @@ export async function POST(req: NextRequest) {
       isActive: true,
       expiresAt,
     });
+
+    // ── Finalize referral: credit the referrer on first successful payment ────
+    // Runs only once per buyer (guarded by their `referralRedeemed` flag) and
+    // only when this order actually carried a referral discount.
+    try {
+      const paidCeleb = celebSnap.data() as any;
+      const referredByCode: string | undefined = paidCeleb?.referredBy;
+      if (referredByCode && paidCeleb?.referralDiscountPaise > 0) {
+        const buyerRef = adminDb.collection("users").doc(decoded.uid);
+        const buyerSnap = await buyerRef.get();
+        if (buyerSnap.data()?.referralRedeemed !== true) {
+          await buyerRef.update({ referralRedeemed: true });
+          const referrerQuery = await adminDb
+            .collection("users")
+            .where("referralCode", "==", referredByCode)
+            .limit(1)
+            .get();
+          if (!referrerQuery.empty) {
+            const { REFERRAL_REWARD_INR, REFERRAL_MILESTONE_COUNT } = await import("@/lib/constants");
+            const referrerRef = referrerQuery.docs[0].ref;
+            const newCount = (referrerQuery.docs[0].data()?.referralCount ?? 0) + 1;
+            const update: Record<string, unknown> = {
+              referralCredits: FieldValue.increment(REFERRAL_REWARD_INR),
+              referralCount: FieldValue.increment(1),
+            };
+            // Milestone: every Nth successful referral grants a free add-on credit.
+            if (newCount % REFERRAL_MILESTONE_COUNT === 0) {
+              update.freeAddonCredits = FieldValue.increment(1);
+            }
+            await referrerRef.update(update);
+          }
+        }
+      }
+    } catch (e) {
+      // Referral crediting must never fail the payment confirmation.
+      console.error("verify-payment: referral crediting failed", e);
+    }
 
     const celebData = celebSnap.data() as any;
     const occasion = celebData.occasionType || "birthday";

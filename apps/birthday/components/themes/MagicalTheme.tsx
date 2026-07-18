@@ -7,6 +7,7 @@ import StoryCardModal from "../StoryCardModal";
 import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import ViewCounter from "../ViewCounter";
+import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
 
 interface Celebration {
   id?: string;
@@ -54,36 +55,38 @@ function PhotoCard({ url, caption, index }: { url: string; caption: string; inde
 
   return (
     <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-8 md:gap-12 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transform: inView ? "none" : `scale(0.9) translateY(40px)`, transition: `all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${index * 80}ms` }}>
+      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 0.8s ease ${index * 80}ms` }}>
       {/* Polaroid frame */}
-      <div className={`flex-shrink-0 w-full md:w-72 p-4 pb-8 rounded-3xl border-4 ${borderCol} shadow-xl transform rotate-3 hover:rotate-0 transition-transform duration-300`} style={{ fontFamily: "'Patrick Hand', cursive" }}>
-        <div className="w-full aspect-square overflow-hidden rounded-2xl bg-white mb-4">
-          <img src={url} alt={caption} className="w-full h-full object-cover" />
+      <Tilt3D className="flex-shrink-0 w-full md:w-72" direction={isLeft ? 1 : -1}>
+        <div className={`p-4 pb-8 rounded-3xl border-4 ${borderCol} shadow-xl transform rotate-3 hover:rotate-0 transition-transform duration-300`} style={{ fontFamily: "'Patrick Hand', cursive" }}>
+          <div className="w-full aspect-square overflow-hidden rounded-2xl bg-white mb-4">
+            <img src={url} alt={caption} className="w-full h-full object-cover" />
+          </div>
+          <div className="text-center text-xl text-gray-700 font-bold font-comic">
+            🌈 Slide #{index + 1}
+          </div>
         </div>
-        <div className="text-center text-xl text-gray-700 font-bold font-comic">
-          🌈 Slide #{index + 1}
-        </div>
-      </div>
-      <div className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`}>
+      </Tilt3D>
+      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={34}>
         <p className="text-2xl leading-relaxed text-slate-700 font-bold font-comic" style={{ fontFamily: "'Patrick Hand', cursive" }}>
           {caption}
         </p>
-      </div>
+      </Parallax>
     </div>
   );
 }
 
 function SpecialCard({ emoji, text, index }: { emoji: string; text: string; index: number }) {
-  const { ref, inView } = useInView(0.15);
   const rotations = ["rotate-1", "-rotate-1", "rotate-2", "-rotate-2"];
   const rotation = rotations[index % rotations.length];
-  
+
   return (
-    <div ref={ref as any} className={`flex items-start gap-4 p-5 text-left bg-white border-2 border-amber-200 rounded-2xl shadow-md ${rotation} hover:scale-105 transition-all duration-300`}
-      style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(20px)", transition: `all 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${index * 80}ms` }}>
-      <span className="text-3xl flex-shrink-0">{emoji}</span>
-      <p className="text-xl leading-relaxed text-slate-700 font-semibold" style={{ fontFamily: "'Patrick Hand', cursive" }}>{text}</p>
-    </div>
+    <Reveal3D index={index}>
+      <div className={`flex items-start gap-4 p-5 text-left bg-white border-2 border-amber-200 rounded-2xl shadow-md ${rotation} hover:scale-105 transition-all duration-300`}>
+        <span className="text-3xl flex-shrink-0">{emoji}</span>
+        <p className="text-xl leading-relaxed text-slate-700 font-semibold" style={{ fontFamily: "'Patrick Hand', cursive" }}>{text}</p>
+      </div>
+    </Reveal3D>
   );
 }
 
@@ -140,7 +143,6 @@ const KIDS_CSS = `
 `;
 
 export default function MagicalTheme({ celebration }: { celebration: Celebration }) {
-  const [loaded, setLoaded] = useState(false);
   const [yesResponse, setYesResponse] = useState(false);
   const content = getOccasionContent(
     celebration.occasionType || "kids-birthday",
@@ -153,7 +155,6 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
   const messageLines: string[] = (celebration.message || "").split(/\n+/).filter(Boolean);
 
   useEffect(() => {
-    setLoaded(true);
     const triggerConfetti = () => {
       confetti({ particleCount: 100, spread: 80, origin: { y: 0.55 }, colors: content.confettiColors });
     };
@@ -173,7 +174,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
 
       {/* ── Scene 1: Welcome Header */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <div className="relative z-10 max-w-3xl" style={{ opacity: loaded ? 1 : 0, transform: loaded ? "none" : "translateY(50px)", transition: "all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s" }}>
+        <Hero3D className="relative z-10 max-w-3xl">
           <div className="text-8xl mb-6 inline-block" style={{ animation: "kidBounce 3.5s ease-in-out infinite" }}>
             {content.heroEmoji}
           </div>
@@ -186,7 +187,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
           <p className="text-3xl font-hand text-slate-600 max-w-xl mx-auto italic">
             "Bringing magic, balloons, and candy-colored smiles to your world! 💫"
           </p>
-        </div>
+        </Hero3D>
         <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-rose-400 hover:text-rose-500 transition-colors z-10" style={{ animation: "kidBounce 2s ease-in-out infinite" }}>
           <span className="font-comic text-sm tracking-widest">SCROLL</span><ChevronDown size={24} />
         </button>

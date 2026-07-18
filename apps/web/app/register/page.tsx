@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle, Check } from "lucide-react";
+import { captureReferralFromUrl, getStoredReferral } from "@/lib/referral";
+import { REFERRAL_DISCOUNT_INR } from "@/lib/constants";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -14,6 +16,7 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [referral, setReferral] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -22,6 +25,8 @@ export default function RegisterPage() {
       const emailParam = params.get("email");
       if (nameParam) setName(nameParam);
       if (emailParam) setEmail(emailParam);
+      captureReferralFromUrl();
+      setReferral(getStoredReferral());
     }
   }, []);
 
@@ -73,8 +78,8 @@ export default function RegisterPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #07070a;
-          font-family: 'Space Grotesk', sans-serif;
+          background: radial-gradient(120% 120% at 50% 0%, #201430 0%, #18101e 45%, #0f0913 100%);
+          font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           position: relative;
           overflow: hidden;
           padding: 20px 0;
@@ -86,9 +91,11 @@ export default function RegisterPage() {
           position: absolute;
           inset: 0;
           background-image:
-            linear-gradient(rgba(168, 85, 247, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(168, 85, 247, 0.02) 1px, transparent 1px);
-          background-size: 60px 60px;
+            linear-gradient(rgba(255, 224, 196, 0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 224, 196, 0.025) 1px, transparent 1px);
+          background-size: 64px 64px;
+          -webkit-mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 75%);
+          mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 75%);
           pointer-events: none;
         }
 
@@ -98,7 +105,7 @@ export default function RegisterPage() {
           position: absolute;
           width: 500px;
           height: 500px;
-          background: radial-gradient(circle, rgba(168,85,247,0.08), transparent 70%);
+          background: radial-gradient(circle, rgba(255,138,92,0.12), transparent 70%);
           border-radius: 50%;
           top: 50%;
           left: 50%;
@@ -110,14 +117,16 @@ export default function RegisterPage() {
         .login {
           width: 360px;
           height: auto;
-          background: #18181b;
+          background: linear-gradient(180deg, rgba(38,24,48,0.92), rgba(24,16,30,0.92));
+          -webkit-backdrop-filter: blur(20px);
+          backdrop-filter: blur(20px);
           padding: 40px 36px;
-          color: #fff;
-          border-radius: 17px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          color: #fff5ec;
+          border-radius: 22px;
+          border: 1px solid rgba(255,224,196,0.12);
+          box-shadow: 0 30px 70px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
           font-size: 1.2rem;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           display: flex;
           flex-direction: column;
           position: relative;
@@ -129,23 +138,24 @@ export default function RegisterPage() {
         .login input[type="password"] {
           opacity: 1;
           display: block;
-          border: none;
+          border: 1px solid rgba(255,224,196,0.1);
           outline: none;
           width: 100%;
-          padding: 12px 18px;
-          margin: 16px 0 0 0;
+          padding: 13px 18px;
+          margin: 14px 0 0 0;
           font-size: 0.8em;
-          border-radius: 100px;
-          background: #27272a;
-          color: #fff;
-          transition: background 0.2s;
+          border-radius: 14px;
+          background: rgba(255,240,228,0.04);
+          color: #fff5ec;
+          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
         }
 
         .login input[type="text"]:focus,
         .login input[type="email"]:focus,
         .login input[type="password"]:focus {
-          background: #3f3f46;
-          animation: bounce 1s;
+          border-color: rgba(255,138,92,0.55);
+          background: rgba(255,240,228,0.06);
+          box-shadow: 0 0 0 4px rgba(255,111,156,0.12);
           -webkit-appearance: none;
         }
 
@@ -170,27 +180,29 @@ export default function RegisterPage() {
           margin-bottom: -4px;
           font-size: 1.3em;
           text-align: center;
+          font-family: var(--font-playfair), Georgia, serif;
         }
 
         .btn {
-          background: linear-gradient(144deg, #af40ff, #5b42f3 50%, #00ddeb);
-          color: #fff;
+          background: linear-gradient(135deg, #ffb877, #ff8a5c 45%, #ff5f93);
+          background-size: 160% 160%;
+          color: #2a1512;
           padding: 13px !important;
           font-size: 0.95rem;
+          font-weight: 700;
           cursor: pointer;
-          transition: all 0.2s;
+          box-shadow: 0 14px 30px -10px rgba(255,95,147,0.55);
+          transition: transform 0.18s ease, box-shadow 0.25s ease, background-position 0.5s ease;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Space Grotesk', sans-serif;
+          font-family: inherit;
         }
 
         .btn:hover:not(:disabled) {
-          background: linear-gradient(144deg, #1e1e1e , 20%,#1e1e1e 50%,#1e1e1e );
-          color: rgb(255, 255, 255);
-          padding: 13px !important;
-          cursor: pointer;
-          transition: all 0.4s ease;
+          background-position: 100% 50%;
+          transform: translateY(-2px);
+          box-shadow: 0 18px 38px -10px rgba(255,95,147,0.7);
         }
 
         .btn:disabled {
@@ -210,12 +222,10 @@ export default function RegisterPage() {
 
         .ui {
           font-weight: bolder;
-          background: -webkit-linear-gradient(#B563FF, #535EFC, #0EC8EE);
+          background: linear-gradient(90deg, #ff9e4f, #ff6f9c);
           -webkit-background-clip: text;
+          background-clip: text;
           -webkit-text-fill-color: transparent;
-          border-bottom: 4px solid transparent;
-          border-image: linear-gradient(0.25turn, #535EFC, #0EC8EE, #0EC8EE);
-          border-image-slice: 1;
           display: inline;
         }
 
@@ -269,7 +279,7 @@ export default function RegisterPage() {
           line-height: 1.5;
         }
         .checkbox-text a {
-          color: #B563FF;
+          color: #ff9e4f;
           text-decoration: none;
         }
         .checkbox-text a:hover { opacity: 0.8; }
@@ -335,6 +345,24 @@ export default function RegisterPage() {
             Sign Up to <span className="ui">Just4You</span>
           </span>
 
+          {referral && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "10px 14px",
+                borderRadius: 12,
+                background: "rgba(34,197,94,0.12)",
+                border: "1px solid rgba(34,197,94,0.35)",
+                color: "#4ade80",
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                textAlign: "center",
+              }}
+            >
+              🎁 A friend invited you — get ₹{REFERRAL_DISCOUNT_INR} off your first surprise!
+            </div>
+          )}
+
           {error && (
             <div className="auth-error">
               <AlertCircle size={14} />
@@ -398,9 +426,9 @@ export default function RegisterPage() {
                 onClick={() => setAgreed(!agreed)}
                 style={{
                   background: agreed
-                    ? "linear-gradient(135deg, #af40ff, #5b42f3)"
+                    ? "linear-gradient(135deg, #ff8a5c, #ff5f93)"
                     : "rgba(255,255,255,0.04)",
-                  border: agreed ? "none" : "1.5px solid #3f3f46",
+                  border: agreed ? "none" : "1.5px solid rgba(255,224,196,0.2)",
                 }}
               >
                 {agreed && <Check size={11} color="#fff" strokeWidth={3} />}
@@ -424,8 +452,8 @@ export default function RegisterPage() {
           </form>
 
           <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.72rem' }}>
-            <span style={{ color: '#7e7e7e' }}>Already have an account? </span>
-            <Link href="/login" style={{ color: '#B563FF', fontWeight: 600, textDecoration: 'underline' }}>
+            <span style={{ color: '#8f8098' }}>Already have an account? </span>
+            <Link href="/login" style={{ color: '#ff9e4f', fontWeight: 700, textDecoration: 'underline' }}>
               Log in
             </Link>
           </div>

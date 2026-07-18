@@ -12,6 +12,7 @@ import RetroTheme from "@/components/themes/RetroTheme";
 import MagicalTheme from "@/components/themes/MagicalTheme";
 import ExpiredPage from "@/components/ExpiredPage";
 import CountdownPage from "@/components/CountdownPage";
+import BrandFooter from "@/components/BrandFooter";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -73,13 +74,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      images: celeb.photos?.[0] ? [{ url: celeb.photos[0], width: 1200, height: 630 }] : [],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
-      images: celeb.photos?.[0] ? [celeb.photos[0]] : [],
+      description,
     },
   };
 }
@@ -107,16 +107,48 @@ export default async function WishPage({ params }: Props) {
   const userAgent = headersList.get("user-agent") ?? "";
 
   if (!isBot(userAgent)) {
+    // Capture lightweight, privacy-friendly context for creator analytics.
+    const ua = userAgent.toLowerCase();
+    const device = /mobile|iphone|android|ipad/.test(ua)
+      ? "mobile"
+      : /tablet/.test(ua)
+        ? "tablet"
+        : "desktop";
+    const referer = headersList.get("referer") || "";
+    let refSource = "direct";
+    if (referer) {
+      try {
+        const host = new URL(referer).hostname.replace(/^www\./, "");
+        refSource = /wa\.me|whatsapp/.test(host)
+          ? "whatsapp"
+          : /instagram/.test(host)
+            ? "instagram"
+            : /facebook|fb\./.test(host)
+              ? "facebook"
+              : host;
+      } catch {
+        refSource = "other";
+      }
+    }
+    const city = headersList.get("x-vercel-ip-city") || "";
+    const country = headersList.get("x-vercel-ip-country") || "";
+
     try {
       await adminDb.collection("celebrations").doc(docId).update({
         views: FieldValue.increment(1),
       });
-      // Also write a view log entry for analytics sparklines
+      // Write an enriched view log entry for analytics.
       await adminDb
         .collection("celebrations")
         .doc(docId)
         .collection("viewLog")
-        .add({ ts: FieldValue.serverTimestamp() });
+        .add({
+          ts: FieldValue.serverTimestamp(),
+          device,
+          ref: refSource,
+          city: city ? decodeURIComponent(city) : "",
+          country,
+        });
     } catch {
       // Non-critical — don't fail the page if view counting breaks
     }
@@ -155,5 +187,10 @@ export default async function WishPage({ params }: Props) {
   // Return the themed page — view was already incremented above.
   // Note: setting cookies from a Server Component page is not supported in
   // Next.js; cookie-based dedup must be done via middleware if needed.
-  return <Theme celebration={celeb} />;
+  return (
+    <>
+      <Theme celebration={celeb} />
+      <BrandFooter slug={slug} />
+    </>
+  );
 }

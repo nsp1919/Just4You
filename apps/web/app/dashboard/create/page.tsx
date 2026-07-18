@@ -4,10 +4,113 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION } from "@/lib/constants";
-import type { Theme, OccasionType } from "@/lib/constants";
+import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
+import type { Theme, OccasionType, FeatureId } from "@/lib/constants";
+import { loadCartFeatures } from "@/lib/cart";
 import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause } from "lucide-react";
 import Link from "next/link";
+import type { ComponentType } from "react";
+import GalaxyTheme from "@/components/themes/GalaxyTheme";
+import FloralTheme from "@/components/themes/FloralTheme";
+import NeonTheme from "@/components/themes/NeonTheme";
+import MinimalTheme from "@/components/themes/MinimalTheme";
+import RetroTheme from "@/components/themes/RetroTheme";
+import MagicalTheme from "@/components/themes/MagicalTheme";
+import { trackEvent } from "@/lib/analytics";
+
+const PREVIEW_THEME_COMPONENTS: Record<string, ComponentType<any>> = {
+  galaxy: GalaxyTheme,
+  floral: FloralTheme,
+  neon: NeonTheme,
+  minimal: MinimalTheme,
+  retro: RetroTheme,
+  magical: MagicalTheme,
+};
+
+// ─── Live Preview Modal ───────────────────────────────────────────────────────
+// Renders the ACTUAL selected theme full-screen with the user's real content,
+// overlaid with a watermark, so buyers experience their finished page before
+// paying — the single biggest purchase trigger.
+function LivePreviewModal({
+  data,
+  photos,
+  musicData,
+  occasionType,
+  onClose,
+}: {
+  data: any;
+  photos: string[];
+  musicData: any;
+  occasionType: OccasionType;
+  onClose: () => void;
+}) {
+  const ThemeComp = PREVIEW_THEME_COMPONENTS[data.theme] ?? GalaxyTheme;
+
+  const oneYear = new Date();
+  oneYear.setFullYear(oneYear.getFullYear() + 1);
+
+  const previewCelebration = {
+    id: "preview",
+    recipientName: data.recipientName || "Your Loved One",
+    birthdayDate: data.birthdayDate || "2000-01-01",
+    eventDate: data.birthdayDate || "2000-01-01",
+    message: data.message || "Your heartfelt message will appear here 💌",
+    theme: data.theme,
+    photos: photos.length ? photos : [],
+    occasionType,
+    relation: data.relation,
+    relationCustom: data.relationCustom,
+    musicType: musicData?.musicType === "voice" ? "none" : musicData?.musicType ?? "none",
+    musicPresetId: musicData?.musicPresetId,
+    musicUploadUrl: musicData?.musicUploadUrl,
+    voiceMessageUrl: musicData?.musicType === "voice" ? musicData?.voiceMessageUrl : "",
+    videoMessageUrl: musicData?.videoMessageUrl || "",
+    expiresAt: oneYear.toISOString(),
+    views: 0,
+  };
+
+  useEffect(() => {
+    trackEvent("preview_viewed", { theme: data.theme, occasionType });
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [data.theme, occasionType]);
+
+  return (
+    <div className="fixed inset-0 z-[300] bg-black overflow-y-auto">
+      {/* Watermark ribbon */}
+      <div
+        className="fixed top-0 left-0 right-0 z-[310] flex items-center justify-between px-4 py-2.5 text-sm"
+        style={{ background: "rgba(10,6,18,0.92)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+      >
+        <span className="font-semibold text-white flex items-center gap-2">
+          <span className="px-2 py-0.5 rounded-full text-[0.7rem] font-bold" style={{ background: "linear-gradient(135deg,#ff8a5c,#ff5f93)" }}>
+            LIVE PREVIEW
+          </span>
+          <span className="hidden sm:inline text-white/60">This is exactly what they&apos;ll see</span>
+        </span>
+        <button onClick={onClose} className="flex items-center gap-1.5 text-white/80 hover:text-white font-medium">
+          <X size={16} /> Close
+        </button>
+      </div>
+
+      {/* Diagonal watermark overlay so screenshots are discouraged pre-payment */}
+      <div className="pointer-events-none fixed inset-0 z-[305] flex items-center justify-center overflow-hidden">
+        <div
+          className="text-white/[0.06] font-black whitespace-nowrap select-none"
+          style={{ fontSize: "6rem", transform: "rotate(-30deg)", letterSpacing: "0.1em" }}
+        >
+          JUST4YOU.BUZZ · PREVIEW · JUST4YOU.BUZZ
+        </div>
+      </div>
+
+      <div className="pt-11">
+        <ThemeComp celebration={previewCelebration} />
+      </div>
+    </div>
+  );
+}
 
 // ─── Step indicator ──────────────────────────────────────────────────────────
 function StepBar({ step }: { step: number }) {
@@ -64,9 +167,36 @@ function StepOccasion({ selected, onSelect }: { selected: OccasionType; onSelect
 }
 
 // ─── Step 1: Details ─────────────────────────────────────────────────────────
-function Step1({ data, onChange, occasionType }: { data: any; onChange: (d: any) => void; occasionType: OccasionType }) {
+function Step1({ data, onChange, occasionType, features }: { data: any; onChange: (d: any) => void; occasionType: OccasionType; features: string[] }) {
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
   const relations = RELATION_BY_OCCASION[occasionType] ?? RELATION_BY_OCCASION.birthday;
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+
+  const generateAI = async () => {
+    setAiLoading(true);
+    setAiSuggestions([]);
+    trackEvent("ai_message_requested", { occasionType });
+    try {
+      const res = await fetch("/api/ai/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          occasionType,
+          relation: data.relation,
+          recipientName: data.recipientName,
+          memories: data.message,
+        }),
+      });
+      const json = await res.json();
+      setAiSuggestions(Array.isArray(json.messages) ? json.messages : []);
+    } catch {
+      // ignore — user can still type their own
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 step-enter">
@@ -129,9 +259,20 @@ function Step1({ data, onChange, occasionType }: { data: any; onChange: (d: any)
       )}
 
       <div>
-        <label className="block text-sm font-medium mb-2">
-          Your Personal Message *
-          <span className="ml-2 text-xs text-[var(--text-muted)]">{data.message.length}/{MAX_MESSAGE_LENGTH}</span>
+        <label className="flex items-center justify-between text-sm font-medium mb-2">
+          <span>
+            Your Personal Message *
+            <span className="ml-2 text-xs text-[var(--text-muted)]">{data.message.length}/{MAX_MESSAGE_LENGTH}</span>
+          </span>
+          <button
+            type="button"
+            onClick={generateAI}
+            disabled={aiLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:brightness-110 disabled:opacity-50"
+            style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.25), rgba(236,72,153,0.2))", border: "1px solid rgba(168,85,247,0.4)", color: "#e9d5ff" }}
+          >
+            {aiLoading ? "Writing…" : "✨ Write with AI"}
+          </button>
         </label>
         <textarea
           id="birthday-message"
@@ -141,29 +282,60 @@ function Step1({ data, onChange, occasionType }: { data: any; onChange: (d: any)
           rows={5}
           className="input-field resize-none leading-relaxed"
         />
+        {aiSuggestions.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-[var(--text-muted)]">Tap a draft to use it — then edit freely:</p>
+            {aiSuggestions.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => { onChange({ ...data, message: s.slice(0, MAX_MESSAGE_LENGTH) }); setAiSuggestions([]); }}
+                className="w-full text-left p-3 rounded-xl text-sm leading-relaxed transition-all hover:brightness-125"
+                style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)", color: "var(--text-primary)" }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ── Countdown toggle ── */}
-      <div className="flex items-start gap-3 p-4 rounded-2xl glass border border-purple-500/20">
-        {/* BUG-15 fix: accentColor inline ensures the purple tint renders even when
-             the Tailwind `accent-purple-500` utility is purged from the production bundle. */}
-        <input
-          id="countdown-toggle"
-          type="checkbox"
-          checked={data.countdownEnabled ?? false}
-          onChange={(e) => onChange({ ...data, countdownEnabled: e.target.checked })}
-          className="mt-0.5 w-4 h-4 rounded accent-purple-500 cursor-pointer flex-shrink-0"
-          style={{ accentColor: "#a855f7" }}
-        />
-        <div>
-          <label htmlFor="countdown-toggle" className="block text-sm font-semibold cursor-pointer">
-            🔒 Lock until event date (Countdown Mode)
-          </label>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Visitors see an animated countdown — the surprise unlocks automatically on the day!
-          </p>
+      {/* ── Countdown toggle (Countdown Reveal add-on) ── */}
+      {features.includes("countdown") ? (
+        <div className="flex items-start gap-3 p-4 rounded-2xl glass border border-purple-500/20">
+          {/* BUG-15 fix: accentColor inline ensures the purple tint renders even when
+               the Tailwind `accent-purple-500` utility is purged from the production bundle. */}
+          <input
+            id="countdown-toggle"
+            type="checkbox"
+            checked={data.countdownEnabled ?? false}
+            onChange={(e) => onChange({ ...data, countdownEnabled: e.target.checked })}
+            className="mt-0.5 w-4 h-4 rounded accent-purple-500 cursor-pointer flex-shrink-0"
+            style={{ accentColor: "#a855f7" }}
+          />
+          <div>
+            <label htmlFor="countdown-toggle" className="block text-sm font-semibold cursor-pointer">
+              🔒 Lock until event date (Countdown Mode)
+            </label>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Visitors see an animated countdown — the surprise unlocks automatically on the day!
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <Link
+          href="/pricing"
+          className="flex items-start gap-3 p-4 rounded-2xl glass border border-white/10 opacity-80 hover:opacity-100 transition-opacity"
+        >
+          <span className="text-lg">⏳</span>
+          <div>
+            <span className="block text-sm font-semibold">Countdown Reveal — not in your package</span>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Add the Countdown Reveal feature to lock the page until the big day. Tap to edit your package.
+            </p>
+          </div>
+        </Link>
+      )}
 
       <div>
         <label className="block text-sm font-medium mb-4">Choose a Theme *</label>
@@ -195,14 +367,82 @@ function Step1({ data, onChange, occasionType }: { data: any; onChange: (d: any)
           ))}
         </div>
       </div>
+
+      {/* ── Wall of Love opt-in ── */}
+      <div className="flex items-start gap-3 p-4 rounded-2xl glass border border-purple-500/20">
+        <input
+          id="gallery-optin"
+          type="checkbox"
+          checked={data.isPublicOptIn ?? false}
+          onChange={(e) => onChange({ ...data, isPublicOptIn: e.target.checked })}
+          className="mt-0.5 w-4 h-4 rounded accent-purple-500 cursor-pointer flex-shrink-0"
+          style={{ accentColor: "#a855f7" }}
+        />
+        <div>
+          <label htmlFor="gallery-optin" className="block text-sm font-semibold cursor-pointer">
+            💛 Feature on our public Wall of Love (optional)
+          </label>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+            Let others discover your creation for inspiration. We review before anything goes public — you can opt out anytime.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Scheduled delivery (add-on) ── */}
+      {features.includes("scheduled_delivery") && (
+        <div className="p-4 rounded-2xl glass border border-purple-500/20 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">⏰ Scheduled Delivery</div>
+          <p className="text-xs text-[var(--text-muted)]">We'll email the surprise to your recipient at the exact moment you pick.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-[var(--text-muted)] mb-1">Deliver at</label>
+              <input
+                type="datetime-local"
+                value={data.scheduledDeliveryAt || ""}
+                onChange={(e) => onChange({ ...data, scheduledDeliveryAt: e.target.value })}
+                className="input-field text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[var(--text-muted)] mb-1">Recipient's email</label>
+              <input
+                type="email"
+                value={data.recipientEmail || ""}
+                onChange={(e) => onChange({ ...data, recipientEmail: e.target.value })}
+                placeholder="them@example.com"
+                className="input-field text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Custom link (add-on) ── */}
+      {features.includes("custom_link") && (
+        <div className="p-4 rounded-2xl glass border border-purple-500/20 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">🔗 Custom Link</div>
+          <p className="text-xs text-[var(--text-muted)]">Pick a memorable link instead of a random code.</p>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-[var(--text-muted)]">just4you.buzz/p/</span>
+            <input
+              type="text"
+              value={data.customLink || ""}
+              onChange={(e) => onChange({ ...data, customLink: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 40) })}
+              placeholder="priya-birthday"
+              className="input-field text-sm flex-1"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Step 2: Photos ───────────────────────────────────────────────────────────
-function Step2({ photos, onPhotos }: { photos: string[]; onPhotos: (p: string[]) => void }) {
+function Step2({ photos, onPhotos, features }: { photos: string[]; onPhotos: (p: string[]) => void; features: string[] }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number[]>([]);
+  const photoLimit = photoLimitFor(features);
 
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -228,7 +468,7 @@ function Step2({ photos, onPhotos }: { photos: string[]; onPhotos: (p: string[])
   };
 
   const handleFiles = async (files: FileList) => {
-    const remaining = MAX_PHOTOS - photos.length;
+    const remaining = photoLimit - photos.length;
     const toUpload = Array.from(files).slice(0, remaining);
     if (toUpload.length === 0) return;
 
@@ -261,13 +501,18 @@ function Step2({ photos, onPhotos }: { photos: string[]; onPhotos: (p: string[])
   return (
     <div className="space-y-6 step-enter">
       <div className="text-sm text-[var(--text-muted)]">
-        Upload up to <strong className="text-white">{MAX_PHOTOS} photos</strong>. They'll appear in a beautiful animated slideshow.
-        <span className="ml-2 font-semibold" style={{ color: photos.length >= MAX_PHOTOS ? "#22c55e" : "#a855f7" }}>
-          {photos.length}/{MAX_PHOTOS} uploaded
+        Upload up to <strong className="text-white">{photoLimit} photos</strong>. They'll appear in a beautiful animated slideshow.
+        <span className="ml-2 font-semibold" style={{ color: photos.length >= photoLimit ? "#22c55e" : "#a855f7" }}>
+          {photos.length}/{photoLimit} uploaded
         </span>
+        {!features.includes("extra_photos") && (
+          <Link href="/pricing" className="ml-2 text-purple-400 hover:text-purple-300 font-semibold">
+            Need more? Add Extra Photos →
+          </Link>
+        )}
       </div>
 
-      {photos.length < MAX_PHOTOS && (
+      {photos.length < photoLimit && (
         <label
           id="photo-upload-area"
           className="block border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300"
@@ -340,7 +585,7 @@ function Step2({ photos, onPhotos }: { photos: string[]; onPhotos: (p: string[])
 }
 
 // ─── Step 3: Music + Voice ────────────────────────────────────────────────────
-function Step3({ musicData, onChange }: { musicData: any; onChange: (d: any) => void }) {
+function Step3({ musicData, onChange, features }: { musicData: any; onChange: (d: any) => void; features: string[] }) {
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -436,6 +681,37 @@ function Step3({ musicData, onChange }: { musicData: any; onChange: (d: any) => 
     }
   };
 
+  // Video message upload (reuses Cloudinary's video endpoint).
+  const [videoUploading, setVideoUploading] = useState(false);
+  const uploadVideo = async (file: File) => {
+    if (file.size > 60 * 1024 * 1024) {
+      setAudioError("Please choose a video under 60MB.");
+      return;
+    }
+    setVideoUploading(true);
+    setAudioError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET || process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+      formData.append("resource_type", "video");
+      formData.append("folder", "birthdayglow/video");
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
+        { method: "POST", body: formData }
+      );
+      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+      const data = await res.json();
+      if (!data.secure_url) throw new Error(data.error?.message ?? "No URL returned from Cloudinary.");
+      onChange({ ...musicData, videoMessageUrl: data.secure_url });
+    } catch (err: any) {
+      console.error("Video upload failed:", err);
+      setAudioError(err.message ?? "Upload failed. Please try again.");
+    } finally {
+      setVideoUploading(false);
+    }
+  };
+
   // BUG-05: stopRecording defined first so the interval callback can reference
   // it via a stable ref — avoids calling a stale closure from inside setState.
   const stopRecording = () => {
@@ -494,21 +770,29 @@ function Step3({ musicData, onChange }: { musicData: any; onChange: (d: any) => 
       {/* Music tabs */}
       <div className="flex gap-2 flex-wrap">
         {[
-          { id: "none", label: "🔇 No Music" },
-          { id: "preset", label: "🎵 Preset" },
-          { id: "upload", label: "📤 Upload Song" },
-          { id: "voice", label: "🎤 Voice Message" },
+          { id: "none", label: "🔇 No Music", locked: false },
+          { id: "preset", label: "🎵 Preset", locked: false },
+          { id: "upload", label: "📤 Upload Song", locked: !features.includes("custom_music") },
+          { id: "voice", label: "🎤 Voice Message", locked: !features.includes("voice_message") },
+          { id: "video", label: "🎥 Video", locked: !features.includes("video_message") },
         ].map((tab) => (
           <button
             key={tab.id}
             type="button"
             id={`music-${tab.id}`}
-            onClick={() => onChange({ ...musicData, musicType: tab.id })}
+            onClick={() => {
+              if (tab.locked) {
+                window.location.href = "/pricing";
+                return;
+              }
+              onChange({ ...musicData, musicType: tab.id });
+            }}
+            title={tab.locked ? "Add this feature to your package" : undefined}
             className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all min-w-fit ${musicData.musicType === tab.id ? "border text-white" : "glass text-[var(--text-muted)]"
-              }`}
+              } ${tab.locked ? "opacity-50" : ""}`}
             style={musicData.musicType === tab.id ? { background: "rgba(168,85,247,0.2)", borderColor: "rgba(168,85,247,0.5)" } : {}}
           >
-            {tab.label}
+            {tab.locked ? `🔒 ${tab.label}` : tab.label}
           </button>
         ))}
       </div>
@@ -651,18 +935,52 @@ function Step3({ musicData, onChange }: { musicData: any; onChange: (d: any) => 
           )}
         </div>
       )}
+
+      {musicData.musicType === "video" && (
+        <div className="space-y-4">
+          {musicData.videoMessageUrl ? (
+            <div className="rounded-2xl overflow-hidden border border-purple-500/30">
+              <video src={musicData.videoMessageUrl} controls playsInline className="w-full" style={{ maxHeight: 320, background: "#000" }} />
+              <div className="p-3 text-center">
+                <button onClick={() => onChange({ ...musicData, videoMessageUrl: "" })} className="text-xs text-red-400 hover:underline">
+                  Remove & upload another
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="block border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer" style={{ borderColor: "rgba(168,85,247,0.3)", background: "rgba(168,85,247,0.04)" }}>
+              <input type="file" accept="video/*" className="sr-only"
+                onChange={(e) => e.target.files?.[0] && uploadVideo(e.target.files[0])}
+                disabled={videoUploading} />
+              <div className="text-4xl mb-2">🎥</div>
+              <div className="font-semibold text-sm">{videoUploading ? "Uploading…" : "Upload a video message"}</div>
+              <div className="text-xs text-[var(--text-muted)] mt-1">MP4 / MOV up to 60MB — it plays inside their surprise page.</div>
+            </label>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Step 4: Preview ──────────────────────────────────────────────────────────
-function Step4({ data, photos, occasionType }: { data: any; photos: string[]; occasionType: OccasionType }) {
+function Step4({ data, photos, occasionType, features, priceInr }: { data: any; photos: string[]; occasionType: OccasionType; features: string[]; priceInr: number }) {
   const theme = THEMES.find((t) => t.id === data.theme) ?? THEMES[0];
   const track = PRESET_TRACKS.find((t) => t.id === data.musicData?.musicPresetId);
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
+  const [showLivePreview, setShowLivePreview] = useState(false);
 
   return (
     <div className="space-y-6 step-enter">
+      {showLivePreview && (
+        <LivePreviewModal
+          data={data}
+          photos={photos}
+          musicData={data.musicData}
+          occasionType={occasionType}
+          onClose={() => setShowLivePreview(false)}
+        />
+      )}
       <div className="text-sm text-[var(--text-muted)]">Here's a preview of your {occasion.label} website:</div>
       <div className={`rounded-3xl overflow-hidden p-8 text-center relative min-h-64 flex flex-col items-center justify-center gap-4`}
         style={{
@@ -687,7 +1005,7 @@ function Step4({ data, photos, occasionType }: { data: any; photos: string[]; oc
         {[
           { label: "Occasion", value: occasion.label },
           { label: "Theme", value: theme.label },
-          { label: "Photos", value: `${photos.length}/${MAX_PHOTOS}` },
+          { label: "Photos", value: `${photos.length}/${photoLimitFor(features)}` },
           {
             label: "Music", value:
               data.musicData?.musicType === "preset" ? (track?.label ?? "Selected") :
@@ -702,18 +1020,45 @@ function Step4({ data, photos, occasionType }: { data: any; photos: string[]; oc
           </div>
         ))}
       </div>
+
+      {/* Package total */}
+      <div className="rounded-2xl p-5 glass border border-purple-500/20 flex items-center justify-between">
+        <div>
+          <div className="text-sm font-semibold">
+            {features.length === 0 ? "Base website" : `Base + ${features.length} add-on${features.length > 1 ? "s" : ""}`}
+          </div>
+          <div className="text-xs text-[var(--text-muted)] mt-0.5">
+            {features.length > 0
+              ? FEATURE_ADDONS.filter((a) => features.includes(a.id)).map((a) => a.label).join(" · ")
+              : BASE_PACKAGE.label}
+          </div>
+        </div>
+        <div className="text-2xl font-bold gradient-text">{formatInr(priceInr)}</div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowLivePreview(true)}
+        className="btn-primary w-full justify-center py-3.5"
+      >
+        <Play size={16} /> Preview the full experience
+      </button>
+      <p className="text-center text-xs text-[var(--text-muted)]">
+        See your finished website exactly as your loved one will — before you pay.
+      </p>
     </div>
   );
 }
 
 // ─── Step 5: Payment ─────────────────────────────────────────────────────────
-function Step5({ celebrationId, onSuccess, occasionType }: { celebrationId: string; onSuccess: (slug: string) => void; occasionType: OccasionType }) {
+function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrationId: string; onSuccess: (slug: string) => void; occasionType: OccasionType; priceInr: number }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userDoc } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [scriptReady, setScriptReady] = useState(false);
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
+  const referralEligible = !!userDoc?.referredBy && userDoc?.referralCredits !== undefined && !(userDoc as any)?.referralRedeemed;
 
   const isRedirectMode = !!process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_URL;
 
@@ -798,7 +1143,7 @@ function Step5({ celebrationId, onSuccess, occasionType }: { celebrationId: stri
         amount,
         currency,
         name: "Just4You",
-        description: `${occasion.label} Website — ₹299`,
+        description: `${occasion.label} Website — ${formatInr(priceInr)}`,
         image: "/logo.png",
         order_id: orderId,
         handler: async (response: any) => {
@@ -841,8 +1186,16 @@ function Step5({ celebrationId, onSuccess, occasionType }: { celebrationId: stri
         <div className="text-5xl mb-3">🎉</div>
         <h2 className="text-2xl font-bold font-playfair mb-2">Almost there!</h2>
         <p className="text-[var(--text-muted)] text-sm mb-6">Pay once to activate your {occasion.label.toLowerCase()} website forever.</p>
-        <div className="text-5xl font-bold gradient-text mb-2">₹299</div>
+        <div className="text-5xl font-bold gradient-text mb-2">{formatInr(priceInr)}</div>
         <div className="text-xs text-[var(--text-muted)] mb-8">One-time payment • 1 year validity • Instant delivery</div>
+        {referralEligible && (
+          <div
+            className="text-sm font-semibold p-3 rounded-xl mb-6"
+            style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)", color: "#4ade80" }}
+          >
+            🎁 Your ₹100 referral discount will be applied automatically at checkout.
+          </div>
+        )}
         {error && (
           <div className="text-sm text-red-400 p-3 rounded-xl mb-4" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
             {error}
@@ -855,7 +1208,7 @@ function Step5({ celebrationId, onSuccess, occasionType }: { celebrationId: stri
           className="btn-primary w-full justify-center py-4 text-base glow-purple disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <CreditCard size={20} />
-          {!isRedirectMode && !scriptReady ? "Loading payment..." : loading ? "Opening payment..." : "Pay ₹299 & Go Live!"}
+          {!isRedirectMode && !scriptReady ? "Loading payment..." : loading ? "Opening payment..." : `Pay ${formatInr(priceInr)} & Go Live!`}
         </button>
         <div className="flex items-center justify-center gap-4 mt-4 text-xs text-[var(--text-muted)]">
           <span>🔒 Secured by Razorpay</span>
@@ -882,10 +1235,25 @@ export default function CreatePage() {
     relation: "",
     relationCustom: "",
     countdownEnabled: false,
+    isPublicOptIn: false,
+    scheduledDeliveryAt: "",
+    recipientEmail: "",
+    customLink: "",
   });
   const [photos, setPhotos] = useState<string[]>([]);
-  const [musicData, setMusicData] = useState({ musicType: "preset", musicPresetId: "t1", musicUploadUrl: "", voiceMessageUrl: "" });
+  const [musicData, setMusicData] = useState({ musicType: "preset", musicPresetId: "t1", musicUploadUrl: "", voiceMessageUrl: "", videoMessageUrl: "" });
   const [saving, setSaving] = useState(false);
+  // Paid features chosen on the /pricing cart. Drives feature gating + price.
+  const [features, setFeatures] = useState<FeatureId[]>([]);
+
+  // Funnel: mark the start of a create session once per mount.
+  useEffect(() => {
+    trackEvent("create_started");
+    setFeatures(loadCartFeatures());
+  }, []);
+
+  const hasFeature = (id: FeatureId) => features.includes(id);
+  const priceInr = computePriceInr(features);
 
   const canProceed = (() => {
     if (step === 0) return !!occasionType;
@@ -905,6 +1273,7 @@ export default function CreatePage() {
       if (musicData.musicType === "preset") return !!musicData.musicPresetId;
       if (musicData.musicType === "upload") return !!musicData.musicUploadUrl;
       if (musicData.musicType === "voice") return !!musicData.voiceMessageUrl;
+      if (musicData.musicType === "video") return !!musicData.videoMessageUrl;
       return false;
     }
     return true;
@@ -926,11 +1295,28 @@ export default function CreatePage() {
           relationCustom: formData.relation === "custom" ? formData.relationCustom : "",
           occasionType,
           photos,
-          countdownEnabled: formData.countdownEnabled ?? false,
-          // Spread music fields (musicType, musicPresetId, musicUploadUrl)
-          ...(musicData.musicType !== "voice" ? musicData : { musicType: "none" }),
-          // Voice message URL (separate from background music)
+          countdownEnabled: hasFeature("countdown") ? (formData.countdownEnabled ?? false) : false,
+          // Wall of Love: creator opt-in; admin approves before it appears publicly.
+          isPublicOptIn: formData.isPublicOptIn ?? false,
+          galleryApproved: false,
+          // Scheduled delivery (only when the add-on is purchased).
+          scheduledDeliveryAt: hasFeature("scheduled_delivery") && formData.scheduledDeliveryAt
+            ? new Date(formData.scheduledDeliveryAt).toISOString()
+            : null,
+          recipientEmail: hasFeature("scheduled_delivery") ? (formData.recipientEmail || "") : "",
+          deliveredAt: null,
+          // Custom memorable link (only when the add-on is purchased).
+          vanitySlug: hasFeature("custom_link") && formData.customLink ? formData.customLink : "",
+          // Spread music fields; voice & video are separate media, so a
+          // voice/video selection disables background music.
+          ...(musicData.musicType === "voice" || musicData.musicType === "video" ? { musicType: "none", musicPresetId: "", musicUploadUrl: "" } : musicData),
+          // Voice / video message URLs (separate from background music)
           voiceMessageUrl: musicData.musicType === "voice" ? (musicData.voiceMessageUrl ?? "") : "",
+          videoMessageUrl: musicData.videoMessageUrl ?? "",
+          // Selected paid features + a display copy of the price. The charged
+          // amount is always recomputed server-side from selectedFeatures.
+          selectedFeatures: features,
+          pricePaise: computePricePaise(features),
           paymentStatus: "pending",
           isActive: false,
           isBlocked: false,
@@ -942,6 +1328,7 @@ export default function CreatePage() {
         });
         setCelebrationId(docRef.id);
         setStep(5);
+        trackEvent("checkout_started", { occasionType, theme: formData.theme });
       } catch (err) {
         console.error("Firestore save error:", err);
         alert("Failed to save celebration. Please try again.");
@@ -949,6 +1336,7 @@ export default function CreatePage() {
         setSaving(false);
       }
     } else {
+      trackEvent("create_step_completed", { step });
       setStep((s) => s + 1);
     }
   };
@@ -974,6 +1362,22 @@ export default function CreatePage() {
       </div>
 
       <div className="max-w-2xl mx-auto">
+        {/* Package summary — reflects the cart chosen on /pricing */}
+        <div className="mb-6 flex items-center justify-between rounded-2xl px-5 py-3.5 glass border border-purple-500/20">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-semibold">Your package:</span>
+            <span className="text-[var(--text-muted)]">
+              {features.length === 0
+                ? "Base website"
+                : `Base + ${features.length} extra${features.length > 1 ? "s" : ""}`}
+            </span>
+            <span className="font-bold gradient-text ml-1">{formatInr(priceInr)}</span>
+          </div>
+          <Link href="/pricing" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
+            Edit package
+          </Link>
+        </div>
+
         <StepBar step={step} />
 
         <div className="glass-card p-8">
@@ -982,15 +1386,19 @@ export default function CreatePage() {
             const defaultT = OCCASIONS.find(occ => occ.id === o)?.defaultTheme || "galaxy";
             setFormData(f => ({ ...f, theme: defaultT, relation: "" }));
           }} />}
-          {step === 1 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} />}
-          {step === 2 && <Step2 photos={photos} onPhotos={setPhotos} />}
-          {step === 3 && <Step3 musicData={musicData} onChange={setMusicData} />}
-          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} />}
+          {step === 1 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} features={features} />}
+          {step === 2 && <Step2 photos={photos} onPhotos={setPhotos} features={features} />}
+          {step === 3 && <Step3 musicData={musicData} onChange={setMusicData} features={features} />}
+          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={features} priceInr={priceInr} />}
           {step === 5 && celebrationId && (
             <Step5
               celebrationId={celebrationId}
-              onSuccess={(slug) => router.push(`/dashboard/success?slug=${slug}`)}
+              onSuccess={(slug) => {
+                trackEvent("purchase_completed", { slug, occasionType });
+                router.push(`/dashboard/success?slug=${slug}`);
+              }}
               occasionType={occasionType}
+              priceInr={priceInr}
             />
           )}
 

@@ -3,13 +3,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -50,8 +51,9 @@ export default function LoginPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #07070a;
-          font-family: 'Space Grotesk', sans-serif;
+          padding: 24px;
+          background: radial-gradient(120% 120% at 50% 0%, #201430 0%, #18101e 45%, #0f0913 100%);
+          font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           position: relative;
           overflow: hidden;
         }
@@ -62,150 +64,215 @@ export default function LoginPage() {
           position: absolute;
           inset: 0;
           background-image:
-            linear-gradient(rgba(168, 85, 247, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(168, 85, 247, 0.02) 1px, transparent 1px);
-          background-size: 60px 60px;
+            linear-gradient(rgba(255, 224, 196, 0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 224, 196, 0.025) 1px, transparent 1px);
+          background-size: 64px 64px;
+          -webkit-mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 75%);
+          mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 75%);
           pointer-events: none;
         }
 
-        /* Ambient Orbs */
-        .auth-page::after {
-          content: '';
+        /* Warm ambient orbs */
+        .auth-orb {
           position: absolute;
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(168,85,247,0.08), transparent 70%);
           border-radius: 50%;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: 0;
+          filter: blur(10px);
           pointer-events: none;
+          z-index: 0;
+        }
+        .auth-orb.a {
+          width: 460px; height: 460px;
+          background: radial-gradient(circle, rgba(255,138,92,0.16), transparent 68%);
+          top: -120px; left: -100px;
+          animation: floatOrb 14s ease-in-out infinite;
+        }
+        .auth-orb.b {
+          width: 420px; height: 420px;
+          background: radial-gradient(circle, rgba(255,95,147,0.15), transparent 68%);
+          bottom: -140px; right: -110px;
+          animation: floatOrb 18s ease-in-out infinite reverse;
         }
 
+        @keyframes floatOrb {
+          0%, 100% { transform: translate(0, 0); }
+          50%      { transform: translate(30px, 40px); }
+        }
+
+        /* ── Card ── */
         .login {
-          width: 340px;
-          height: 420px;
-          background: #18181b;
-          padding: 47px;
-          color: #fff;
-          border-radius: 17px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-          font-size: 1.2rem;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          width: 100%;
+          max-width: 400px;
+          background: linear-gradient(180deg, rgba(38,24,48,0.92), rgba(24,16,30,0.92));
+          -webkit-backdrop-filter: blur(20px);
+          backdrop-filter: blur(20px);
+          padding: 44px 40px 36px;
+          color: #fff5ec;
+          border-radius: 26px;
+          border: 1px solid rgba(255,224,196,0.12);
+          box-shadow: 0 30px 70px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
           display: flex;
           flex-direction: column;
           position: relative;
           z-index: 1;
+          animation: cardIn 0.6s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
-        .login input[type="text"],
-        .login input[type="email"],
-        .login input[type="password"] {
-          opacity: 1;
-          display: block;
-          border: none;
-          outline: none;
-          width: 100%;
-          padding: 13px 18px;
-          margin: 18px 0 0 0;
-          font-size: 0.8em;
-          border-radius: 100px;
-          background: #27272a;
-          color: #fff;
-          transition: background 0.2s;
+        @keyframes cardIn {
+          0%   { opacity: 0; transform: translateY(24px) scale(0.98); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .login input[type="text"]:focus,
-        .login input[type="email"]:focus,
-        .login input[type="password"]:focus {
-          background: #3f3f46;
-          animation: bounce 1s;
-          -webkit-appearance: none;
-        }
-
-        .login input[type=submit],
-        .login button[type=submit],
-        .h1 {
-          border: 0;
-          outline: 0;
-          width: 100%;
-          padding: 13px;
-          margin: 28px 0 0 0;
-          border-radius: 500px;
-          font-weight: 600;
-          animation: bounce2 1.6s;
+        /* Brand mark */
+        .brand-badge {
+          width: 52px; height: 52px;
+          border-radius: 15px;
+          background: linear-gradient(135deg, #ff8a5c, #ff5f93);
+          display: flex; align-items: center; justify-content: center;
+          margin: 0 auto 20px;
+          box-shadow: 0 12px 28px -8px rgba(255,95,147,0.6);
         }
 
         .h1 {
-          padding: 0;
-          position: relative;
-          top: -24px;
           display: block;
-          margin-bottom: -10px;
-          font-size: 1.3em;
           text-align: center;
-        }
-
-        .btn {
-          background: linear-gradient(144deg, #af40ff, #5b42f3 50%, #00ddeb);
-          color: #fff;
-          padding: 14px !important;
-          font-size: 0.9em;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Space Grotesk', sans-serif;
-        }
-
-        .btn:hover:not(:disabled) {
-          background: linear-gradient(144deg, #1e1e1e , 20%,#1e1e1e 50%,#1e1e1e );
-          color: rgb(255, 255, 255);
-          padding: 14px !important;
-          cursor: pointer;
-          transition: all 0.4s ease;
-        }
-
-        .btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .login input[type=text],
-        .login input[type=email] {
-          animation: bounce 1s;
-          -webkit-appearance: none;
-        }
-
-        .login input[type=password] {
-          animation: bounce1 1.3s;
+          font-family: var(--font-playfair), Georgia, serif;
+          font-size: 1.65rem;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          color: #fff5ec;
         }
 
         .ui {
-          font-weight: bolder;
-          background: -webkit-linear-gradient(#B563FF, #535EFC, #0EC8EE);
+          background: linear-gradient(90deg, #ff9e4f, #ff6f9c);
           -webkit-background-clip: text;
+          background-clip: text;
           -webkit-text-fill-color: transparent;
-          border-bottom: 4px solid transparent;
-          border-image: linear-gradient(0.25turn, #535EFC, #0EC8EE, #0EC8EE);
-          border-image-slice: 1;
-          display: inline;
+          font-weight: 800;
         }
 
+        .subtitle {
+          text-align: center;
+          font-size: 0.86rem;
+          color: #b9a6be;
+          margin: 10px 0 26px;
+          line-height: 1.55;
+        }
+
+        /* ── Fields ── */
+        .field {
+          position: relative;
+          margin-top: 14px;
+        }
+        .field .field-icon {
+          position: absolute;
+          left: 18px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #8f8098;
+          pointer-events: none;
+          transition: color 0.2s;
+        }
+        .login input[type="email"],
+        .login input[type="password"],
+        .login input[type="text"] {
+          display: block;
+          border: 1px solid rgba(255,224,196,0.1);
+          outline: none;
+          width: 100%;
+          padding: 15px 18px 15px 48px;
+          font-size: 0.92rem;
+          border-radius: 14px;
+          background: rgba(255,240,228,0.04);
+          color: #fff5ec;
+          font-family: inherit;
+          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+        .login input::placeholder { color: #8f8098; }
+
+        .login input[type="email"]:focus,
+        .login input[type="password"]:focus,
+        .login input[type="text"]:focus {
+          border-color: rgba(255,138,92,0.55);
+          background: rgba(255,240,228,0.06);
+          box-shadow: 0 0 0 4px rgba(255,111,156,0.12);
+        }
+        .field:focus-within .field-icon { color: #ff9e4f; }
+
+        .pw-toggle {
+          position: absolute;
+          right: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: #8f8098;
+          cursor: pointer;
+          padding: 6px;
+          display: flex;
+          border-radius: 8px;
+          transition: color 0.2s;
+        }
+        .pw-toggle:hover { color: #ffb877; }
+
+        /* ── Submit ── */
+        .btn {
+          border: 0;
+          outline: 0;
+          width: 100%;
+          margin-top: 22px;
+          padding: 15px;
+          border-radius: 14px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          letter-spacing: 0.01em;
+          color: #2a1512;
+          background: linear-gradient(135deg, #ffb877, #ff8a5c 45%, #ff5f93);
+          background-size: 160% 160%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-family: inherit;
+          box-shadow: 0 14px 30px -10px rgba(255,95,147,0.55);
+          transition: transform 0.18s ease, box-shadow 0.25s ease, background-position 0.5s ease;
+        }
+        .btn:hover:not(:disabled) {
+          background-position: 100% 50%;
+          transform: translateY(-2px);
+          box-shadow: 0 18px 38px -10px rgba(255,95,147,0.7);
+        }
+        .btn:active:not(:disabled) { transform: translateY(0); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ── Footer switch ── */
+        .switch-row {
+          margin-top: 26px;
+          padding-top: 22px;
+          border-top: 1px solid rgba(255,224,196,0.08);
+          text-align: center;
+          font-size: 0.82rem;
+          color: #8f8098;
+        }
+        .switch-row a {
+          color: #ff9e4f;
+          font-weight: 700;
+          text-decoration: none;
+        }
+        .switch-row a:hover { text-decoration: underline; }
+
+        /* ── Error ── */
         .auth-error {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          border-radius: 8px;
-          margin-top: 10px;
-          font-size: 0.72rem;
-          color: #f87171;
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.2);
+          gap: 8px;
+          padding: 10px 14px;
+          border-radius: 12px;
+          margin-bottom: 4px;
+          font-size: 0.78rem;
+          color: #ffb4b4;
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.28);
           animation: shake 0.4s ease;
         }
 
@@ -215,87 +282,81 @@ export default function LoginPage() {
           40%, 80%  { transform: translateX(4px); }
         }
 
-        @media only screen and (max-width: 600px) {
-          .login {
-            width: 90%;
-            padding: 3em 2em;
-          }
-        }
-
-        @keyframes bounce {
-          0% {
-            transform: translateY(-250px);
-            opacity: 0;
-          }
-        }
-
-        @keyframes bounce1 {
-          0% {
-            opacity: 0;
-          }
-          40% {
-            transform: translateY(-100px);
-            opacity: 0;
-          }
-        }
-
-        @keyframes bounce2 {
-          0% {
-            opacity: 0;
-          }
-          70% {
-            transform: translateY(-20px);
-            opacity: 0;
-          }
+        @media only screen and (max-width: 480px) {
+          .login { padding: 36px 24px 30px; }
         }
       `}</style>
 
       <main className="auth-page">
-        <div className="login">
-          <span className="h1">
-            Log In to <span className="ui">Just4You</span>
-          </span>
+        <div className="auth-orb a" />
+        <div className="auth-orb b" />
 
-          {error && (
-            <div className="auth-error">
-              <AlertCircle size={14} />
-              <span style={{ marginLeft: 6 }}>{error}</span>
-            </div>
-          )}
+        <div className="login">
+          <div className="brand-badge">
+            <Sparkles size={22} color="#fff" />
+          </div>
+
+          <span className="h1">
+            Welcome back to <span className="ui">Just4You</span>
+          </span>
+          <p className="subtitle">
+            Sign in to pick up where you left off and craft your next surprise.
+          </p>
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
+            {error && (
+              <div className="auth-error">
+                <AlertCircle size={15} />
+                <span>{error}</span>
+              </div>
+            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn"
-              style={{ marginTop: 24 }}
-            >
-              {loading ? "Signing In..." : "Let's go!"}
+            <div className="field">
+              <Mail size={17} className="field-icon" />
+              <input
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="field">
+              <Lock size={17} className="field-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="pw-toggle"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn">
+              {loading ? (
+                "Signing you in…"
+              ) : (
+                <>
+                  Sign In <ArrowRight size={17} />
+                </>
+              )}
             </button>
           </form>
 
-          <div style={{ marginTop: 'auto', paddingTop: '20px', textAlign: 'center', fontSize: '0.72rem' }}>
-            <span style={{ color: '#7e7e7e' }}>Don't have an account? </span>
-            <Link href="/register" style={{ color: '#B563FF', fontWeight: 600, textDecoration: 'underline' }}>
-              Sign up
-            </Link>
+          <div className="switch-row">
+            New to Just4You?{" "}
+            <Link href="/register">Create an account</Link>
           </div>
         </div>
       </main>

@@ -9,6 +9,204 @@ export const PRICE_PAISE = 200;
 export const VALIDITY_DAYS = 365;
 export const MAX_MESSAGE_LENGTH = 500;
 
+// ─── Feature-based pricing (à la carte cart) ─────────────────────────────────
+// Every website starts from a base package; users add paid features to a cart
+// and the total is computed from their selection. Pricing is ALWAYS recomputed
+// server-side from the persisted feature list — the client total is display-only.
+
+export type FeatureId =
+  | "extra_photos"
+  | "custom_music"
+  | "voice_message"
+  | "video_message"
+  | "countdown"
+  | "rush_delivery"
+  | "hosting_3yr"
+  | "hosting_lifetime"
+  | "advanced_analytics"
+  | "scheduled_delivery"
+  | "custom_link";
+
+export interface FeatureAddon {
+  id: FeatureId;
+  label: string;
+  description: string;
+  priceInr: number;
+  icon: string;
+}
+
+export const BASE_PACKAGE = {
+  id: "base",
+  label: "Base Website",
+  priceInr: 149,
+  includes: [
+    "1 premium animated theme",
+    "Up to 5 photos",
+    "A preset music track",
+    "Guest wishes & reactions wall",
+    "Shareable link (WhatsApp / Instagram)",
+    "Mobile-friendly on all devices",
+    "Secure hosting for 1 full year",
+  ],
+} as const;
+
+export const FEATURE_ADDONS: FeatureAddon[] = [
+  {
+    id: "extra_photos",
+    label: "Extra Photos",
+    description: "Increase your gallery from 5 to 25 photos.",
+    priceInr: 79,
+    icon: "📸",
+  },
+  {
+    id: "custom_music",
+    label: "Upload Your Own Song",
+    description: "Set the page to their favourite track instead of a preset.",
+    priceInr: 49,
+    icon: "🎵",
+  },
+  {
+    id: "voice_message",
+    label: "Personal Voice Message",
+    description: "Record a heartfelt voice note that plays on their page.",
+    priceInr: 79,
+    icon: "🎤",
+  },
+  {
+    id: "video_message",
+    label: "Video Message",
+    description: "Add a personal video that plays inside their surprise page.",
+    priceInr: 129,
+    icon: "🎥",
+  },
+  {
+    id: "countdown",
+    label: "Countdown Reveal",
+    description: "Lock the page with an animated countdown until the big day.",
+    priceInr: 49,
+    icon: "⏳",
+  },
+  {
+    id: "rush_delivery",
+    label: "Rush 6-Hour Delivery",
+    description: "Skip the queue — your website goes live within 6 hours.",
+    priceInr: 99,
+    icon: "⚡",
+  },
+  {
+    id: "hosting_3yr",
+    label: "3-Year Hosting",
+    description: "Keep the website live for 3 full years instead of 1.",
+    priceInr: 149,
+    icon: "🗓️",
+  },
+  {
+    id: "hosting_lifetime",
+    label: "Lifetime Hosting",
+    description: "Keep this keepsake online forever — never expires.",
+    priceInr: 299,
+    icon: "♾️",
+  },
+  {
+    id: "advanced_analytics",
+    label: "Advanced Analytics",
+    description: "See who opened it, when, from where and on what device.",
+    priceInr: 49,
+    icon: "📊",
+  },
+  {
+    id: "scheduled_delivery",
+    label: "Scheduled Delivery",
+    description: "We email the surprise to your recipient at the exact date & time you choose.",
+    priceInr: 49,
+    icon: "⏰",
+  },
+  {
+    id: "custom_link",
+    label: "Custom Link",
+    description: "A memorable link like just4you.buzz/p/priya-birthday instead of a random code.",
+    priceInr: 79,
+    icon: "🔗",
+  },
+];
+
+// Hosting tiers are mutually exclusive in the cart (pick at most one).
+export const HOSTING_FEATURE_IDS: FeatureId[] = ["hosting_3yr", "hosting_lifetime"];
+
+/** Hosting length in years for a feature set. Number of years, or "lifetime". */
+export function hostingYearsFor(features: string[] = []): number | "lifetime" {
+  if (features.includes("hosting_lifetime")) return "lifetime";
+  if (features.includes("hosting_3yr")) return 3;
+  return 1;
+}
+
+// Convenience presets that pre-select a set of add-ons. Prices are still the
+// plain sum of base + selected add-ons (no hidden math) so the cart is honest.
+export interface Bundle {
+  id: string;
+  label: string;
+  tagline: string;
+  addons: FeatureId[];
+  badge?: string;
+}
+
+export const BUNDLES: Bundle[] = [
+  {
+    id: "lite",
+    label: "Lite",
+    tagline: "The essentials to delight someone.",
+    addons: [],
+  },
+  {
+    id: "classic",
+    label: "Classic",
+    tagline: "Our most-loved mix of memories & music.",
+    addons: ["extra_photos", "custom_music", "countdown"],
+    badge: "Most Popular",
+  },
+  {
+    id: "grand",
+    label: "Grand",
+    tagline: "Everything, for an unforgettable surprise.",
+    addons: ["extra_photos", "custom_music", "voice_message", "countdown", "rush_delivery"],
+    badge: "Best Value",
+  },
+];
+
+export const BASE_PHOTO_LIMIT = 5;
+export const EXTRA_PHOTO_LIMIT = 25;
+
+/** Photo upload allowance based on the purchased features. */
+export function photoLimitFor(features: string[] = []): number {
+  return features.includes("extra_photos") ? EXTRA_PHOTO_LIMIT : BASE_PHOTO_LIMIT;
+}
+
+/** Total price in rupees for a set of selected add-on feature ids. */
+export function computePriceInr(features: string[] = []): number {
+  const addons = FEATURE_ADDONS.filter((a) => features.includes(a.id)).reduce(
+    (sum, a) => sum + a.priceInr,
+    0
+  );
+  return BASE_PACKAGE.priceInr + addons;
+}
+
+/** Server-authoritative total in paise for a set of selected feature ids. */
+export function computePricePaise(features: string[] = []): number {
+  return computePriceInr(features) * 100;
+}
+
+/** Format a rupee amount for display. */
+export function formatInr(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
+// ─── Referral program ────────────────────────────────────────────────────────
+// Give ₹100, get ₹100: the new user saves on their first surprise and the
+// referrer earns a credit once that surprise is paid for.
+export const REFERRAL_DISCOUNT_INR = 100; // discount for the referred (new) user
+export const REFERRAL_REWARD_INR = 100; // credit earned by the referrer
+export const REFERRAL_MILESTONE_COUNT = 3; // every N referrals → a free add-on credit
+
 export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical";
 
 export const THEMES = [

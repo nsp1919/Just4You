@@ -92,9 +92,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Slug generation collision" }, { status: 500 });
       }
 
-      // Update Firestore document details
+      // Update Firestore document details — hosting length depends on tier.
+      const hostingFeatures: string[] = Array.isArray(celebData?.selectedFeatures)
+        ? celebData.selectedFeatures
+        : [];
+      const hostingDays = hostingFeatures.includes("hosting_lifetime")
+        ? 36500
+        : hostingFeatures.includes("hosting_3yr")
+          ? VALIDITY_DAYS * 3
+          : VALIDITY_DAYS;
       const expiresAt = Timestamp.fromDate(
-        new Date(Date.now() + VALIDITY_DAYS * 24 * 60 * 60 * 1000)
+        new Date(Date.now() + hostingDays * 24 * 60 * 60 * 1000)
       );
 
       await celebRef.update({

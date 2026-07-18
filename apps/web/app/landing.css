@@ -1,0 +1,363 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* ─── Design Tokens — "Candlelit" warm celebration system ─────── */
+:root {
+  --bg:          #18101e;  /* velvet plum night      */
+  --bg-2:        #201430;  /* deep mulberry (raised) */
+  --bg-deep:     #0f0913;  /* footer / deepest       */
+  --ink:         #fff5ec;  /* warm ivory (headings)  */
+  --ink-soft:    #efe1d6;  /* soft ivory             */
+  --muted:       #b9a6be;  /* warm mauve (body)      */
+  --muted-2:     #8f8098;  /* dim mauve              */
+  --muted-3:     #6a5d73;  /* faint mauve            */
+  --amber:       #ff9e4f;  /* candle amber           */
+  --rose:        #ff6f9c;  /* rose petal             */
+  --coral:       #ff8a5c;  /* sunset coral           */
+  --gold:        #ffcf7a;  /* marigold gold          */
+  --line:        rgba(255, 224, 196, 0.09);  /* warm hairline   */
+  --card:        rgba(255, 240, 228, 0.03);  /* warm glass      */
+  --card-border: rgba(255, 224, 196, 0.09);
+  --grad:        linear-gradient(120deg, #ffc978 0%, #ff8fae 48%, #ff9e4f 100%);
+  --grad-btn:    linear-gradient(135deg, #ff8a5c 0%, #ff5f93 100%);
+  --grad-gold:   linear-gradient(120deg, #ffd98a, #f0a93c, #ffe6b0);
+  --font-body:   'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display:'Fraunces', 'Playfair Display', serif;
+}
+
+/* ─── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink-soft);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: rgba(255, 143, 174, 0.28); color: #fff; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: linear-gradient(var(--amber), var(--rose)); border-radius: 3px; }
+
+/* ─── Focus & motion a11y ───────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Container ──────────────────────────────────────────────── */
+.wrap {
+  width: 100%;
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 48px;
+  padding-right: 48px;
+}
+@media (max-width: 900px) { .wrap { padding-left: 24px; padding-right: 24px; } }
+
+/* ─── Typography ─────────────────────────────────────────────── */
+.serif { font-family: var(--font-display); font-optical-sizing: auto; }
+
+/* ─── Gradient text ──────────────────────────────────────────── */
+.g-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.g-text-gold {
+  background: var(--grad-gold);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shine 2.5s linear infinite;
+}
+@keyframes shine { to { background-position: 200% center; } }
+
+/* ─── Buttons ─────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 14px 32px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.22s, box-shadow 0.22s, opacity 0.22s;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.btn-main {
+  background: var(--grad-btn);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(255, 95, 140, 0.28);
+}
+.btn-main::before {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: left 0.45s;
+}
+.btn-main:hover::before { left: 100%; }
+.btn-main:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(255, 95, 140, 0.42); }
+.btn-ghost {
+  background: rgba(255, 240, 228, 0.05);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+}
+.btn-ghost:hover { border-color: rgba(255, 158, 79, 0.55); color: var(--gold); transform: translateY(-2px); }
+
+/* ─── Glass ────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 240, 228, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+}
+
+/* ─── Orbs / Ambient ───────────────────────────────────────────── */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* ─── Float ────────────────────────────────────────────────────── */
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.float { animation: float 3.5s ease-in-out infinite; }
+
+/* ─── Particle ─────────────────────────────────────────────────── */
+@keyframes pf {
+  0%   { transform: translateY(100vh) rotate(0deg);   opacity: 0; }
+  8%   { opacity: 0.55; }
+  92%  { opacity: 0.55; }
+  100% { transform: translateY(-30px) rotate(720deg); opacity: 0; }
+}
+.p { position: absolute; border-radius: 50%; animation: pf linear infinite; pointer-events: none; }
+
+/* ─── Grad border ──────────────────────────────────────────────── */
+.gb { position: relative; border-radius: 22px; }
+.gb::before {
+  content: ''; position: absolute; inset: -1.5px; border-radius: 23.5px; z-index: -1;
+  background: linear-gradient(135deg, #ff8a5c, #ff5f93, #ffcf7a, #ff8a5c);
+  background-size: 300% 300%;
+  animation: gs 4s ease infinite;
+}
+@keyframes gs { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+
+/* ─── Shimmer ──────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ─── Step line ────────────────────────────────────────────────── */
+.step-line {
+  width: 2px;
+  background: linear-gradient(180deg, #a855f7, transparent);
+  position: absolute;
+  left: 22px;
+  top: 52px;
+  bottom: 0;
+}
+
+/* ─── Mobile helpers ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hide-sm { display: none !important; }
+  .two-col { grid-template-columns: 1fr !important; }
+  .three-col { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 769px) {
+  .show-sm { display: none !important; }
+}
+
+/* ─── Login & Signup Flip Card (Uiverse.io by andrew-demchenk0) ─── */
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 4, 6, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.auth-modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.auth-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #7e7e7e;
+  cursor: pointer;
+  padding: 6px;
+  transition: color 0.2s;
+}
+.auth-close-btn:hover {
+  color: #fefefe;
+}
+
+.login {
+  width: 340px;
+  height: 420px; /* Adjusted slightly to accommodate toggles without overflow */
+  background: #221630; /* warm plum slate to match the Candlelit system */
+  padding: 47px;
+  color: #fff;
+  border-radius: 17px;
+  border: 1px solid rgba(255, 224, 196, 0.1);
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.55);
+  font-size: 1.2rem;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.login input[type="text"],
+.login input[type="email"],
+.login input[type="password"] {
+  opacity: 1;
+  display: block;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 13px 18px;
+  margin: 18px 0 0 0;
+  font-size: 0.8em;
+  border-radius: 100px;
+  background: #2c1e3a;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.login input[type="text"]:focus,
+.login input[type="email"]:focus,
+.login input[type="password"]:focus {
+  background: #3a2a4a;
+  animation: bounce 1s;
+  -webkit-appearance: none;
+}
+
+.login input[type=submit],
+.login input[type=button],
+.h1 {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  padding: 13px;
+  margin: 28px 0 0 0;
+  border-radius: 500px;
+  font-weight: 600;
+  animation: bounce2 1.6s;
+}
+
+.h1 {
+  padding: 0;
+  position: relative;
+  top: -24px;
+  display: block;
+  margin-bottom: -10px;
+  font-size: 1.3em;
+  text-align: center;
+}
+
+.login .btn {
+  background: var(--grad-btn);
+  color: #fff;
+  padding: 14px !important;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.login .btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 12px 32px rgba(255, 95, 140, 0.4);
+  color: rgb(255, 255, 255);
+  padding: 14px !important;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login input[type=text],
+.login input[type=email] {
+  animation: bounce 1s;
+  -webkit-appearance: none;
+}
+
+.login input[type=password] {
+  animation: bounce1 1.3s;
+}
+
+.ui {
+  font-weight: bolder;
+  background: -webkit-linear-gradient(#ffcf7a, #ff8fae, #ff9e4f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  border-bottom: 4px solid transparent;
+  border-image: linear-gradient(0.25turn, #ff8fae, #ffcf7a, #ff9e4f);
+  border-image-slice: 1;
+  display: inline;
+}
+
+@media only screen and (max-width: 600px) {
+  .login {
+    width: 90%;
+    padding: 3em 2em;
+  }
+}
+
+@keyframes bounce {
+  0% {
+    transform: translateY(-250px);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce1 {
+  0% {
+    opacity: 0;
+  }
+
+  40% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce2 {
+  0% {
+    opacity: 0;
+  }
+
+  70% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
