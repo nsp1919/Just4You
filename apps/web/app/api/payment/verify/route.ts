@@ -143,11 +143,16 @@ export async function POST(req: NextRequest) {
     const whatsappMsg = encodeURIComponent(`${occasionEmoji} I created a beautiful ${occasionLabel.toLowerCase()} surprise website for you!\n\nVisit: ${birthdayUrl}`);
     const whatsappUrl = `https://wa.me/?text=${whatsappMsg}`;
 
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL!,
-      to: decoded.email!,
-      subject: `🎉 Your Just4You website is ready! — ${celebData.recipientName}'s ${occasionLabel}`,
-      html: `
+    // The payment is already recorded — never let a missing address or a Resend
+    // failure turn a successful activation into a 500. Email is best-effort.
+    const recipientEmail = decoded.email;
+    if (recipientEmail) {
+      try {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL!,
+          to: recipientEmail,
+          subject: `🎉 Your Just4You website is ready! — ${celebData.recipientName}'s ${occasionLabel}`,
+          html: `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /><title>Your Just4You Website is Live!</title></head>
@@ -185,7 +190,12 @@ export async function POST(req: NextRequest) {
 </body>
 </html>
       `,
-    });
+        });
+      } catch (emailError) {
+        // Best-effort: log and continue — activation already succeeded.
+        console.error("verify-payment: confirmation email failed", emailError);
+      }
+    }
 
     return NextResponse.json({ success: true, slug, url: birthdayUrl });
   } catch (error: any) {

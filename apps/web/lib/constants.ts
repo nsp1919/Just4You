@@ -4,8 +4,10 @@ export const COLLECTIONS = {
 } as const;
 
 export const MAX_PHOTOS = 8;
-export const PRICE_INR = 2;
-export const PRICE_PAISE = 200;
+// Fallback base price used only if a feature-based total can't be computed.
+// Must mirror BASE_PACKAGE.priceInr so a fallback never undercharges.
+export const PRICE_INR = 149;
+export const PRICE_PAISE = 14900;
 export const VALIDITY_DAYS = 365;
 export const MAX_MESSAGE_LENGTH = 500;
 

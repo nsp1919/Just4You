@@ -13,10 +13,14 @@ service cloud.firestore {
 
     // ── Celebrations ──────────────────────────────────────────────────────────
     match /celebrations/{celebrationId} {
-      // PUBLIC: Anyone with the link can read an active, non-blocked celebration.
-      // This is required for the birthday website viewer (apps/birthday).
-      allow read: if resource.data.isActive == true
-                  && resource.data.isBlocked == false;
+      // PUBLIC: Anyone with the link can read a single active, non-blocked
+      // celebration BY DOCUMENT ID only. We intentionally use `get` (not `read`)
+      // so this does NOT grant `list` — otherwise anyone could enumerate the
+      // whole collection and harvest every recipient's email, photos, voice/
+      // video URLs and payment IDs. The public wish viewers fetch via the
+      // Admin SDK server-side, so they are unaffected by this restriction.
+      allow get: if resource.data.isActive == true
+                 && resource.data.isBlocked == false;
 
       // OWNER: Authenticated users can read/write their own celebrations.
       allow read, write: if request.auth != null

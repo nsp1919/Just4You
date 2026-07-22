@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebase-admin";
 
 // AI message writer. Generates heartfelt draft messages for a celebration.
 // Uses Google Gemini when GEMINI_API_KEY is configured; otherwise falls back
@@ -90,6 +91,19 @@ Return ONLY the 3 messages separated by the delimiter "|||". No numbering, no pr
 }
 
 export async function POST(req: NextRequest) {
+  // Require a valid Firebase auth token. This endpoint can proxy a paid Gemini
+  // API once GEMINI_API_KEY is set, so leaving it open would allow anonymous
+  // cost-abuse / DoS. Authenticated users only.
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    await adminAuth.verifyIdToken(authHeader.slice(7));
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let body: Body = {};
   try {
     body = await req.json();

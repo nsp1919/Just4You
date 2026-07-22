@@ -36,3 +36,8 @@ Thumbs.db
 service_account_b64.txt
 service_account_value.txt
 gen_service_account.js
+
+# Build archives and folders
+just4you-hostinger/
+just4you-hostinger.tar.gz
+

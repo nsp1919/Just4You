@@ -1,148 +1,210 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
-import { VALIDITY_DAYS } from "@/lib/constants";
+import {
+  COLLECTIONS,
+  VALIDITY_DAYS,
+  REFERRAL_REWARD_INR,
+  REFERRAL_MILESTONE_COUNT,
+} from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
+// Razorpay signs the exact raw bytes it POSTs — the Node runtime lets us read
+// the untouched body via req.text() so the HMAC matches.
+export const runtime = "nodejs";
 
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
 const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key_for_build");
 
-export async function POST(req: NextRequest) {
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    console.error("verify-webhook: RAZORPAY_WEBHOOK_SECRET is not configured.");
-    return NextResponse.json(
-      { error: "Webhook signature secret is not configured." },
-      { status: 500 }
-    );
+const LOG = "razorpay-webhook";
+
+/**
+ * Constant-time comparison of two hex signatures. Prevents timing side-channels
+ * that a naive `===` on the secret-derived digest could leak.
+ */
+function signaturesMatch(expected: string, received: string): boolean {
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(received, "hex");
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+/**
+ * Razorpay places our `notes` on different entities depending on the event.
+ * Pull the celebrationId + payment id from whichever entity is present.
+ */
+function extractContext(event: string, payload: any): {
+  celebrationId?: string;
+  paymentId?: string;
+  customerEmail?: string;
+} {
+  const payment = payload?.payment?.entity;
+  const link = payload?.payment_link?.entity;
+  const order = payload?.order?.entity;
+
+  const celebrationId =
+    payment?.notes?.celebrationId ??
+    link?.notes?.celebrationId ??
+    order?.notes?.celebrationId;
+
+  return {
+    celebrationId,
+    paymentId: payment?.id,
+    customerEmail: payment?.email,
+  };
+}
+
+/**
+ * Idempotent fulfillment for a successfully-paid celebration:
+ * generate a slug, activate the site, credit any referral, and email the buyer.
+ * Safe to call more than once — repeated events short-circuit on the paid flag.
+ */
+async function fulfillCelebration(
+  celebrationId: string,
+  paymentId: string | undefined,
+  customerEmail: string | undefined,
+): Promise<void> {
+  const celebRef = adminDb.collection(COLLECTIONS.CELEBRATIONS).doc(celebrationId);
+  const celebSnap = await celebRef.get();
+
+  if (!celebSnap.exists) {
+    console.error(`[${LOG}] Celebration ${celebrationId} not found — ignoring.`);
+    return;
   }
 
+  const celebData = celebSnap.data() as any;
+
+  // Idempotency guard: a captured payment can be delivered multiple times.
+  if (celebData.paymentStatus === "paid" && celebData.isActive) {
+    console.log(`[${LOG}] Celebration ${celebrationId} already fulfilled — skipping.`);
+    return;
+  }
+
+  // Unique slug with collision retry (up to 5 attempts).
+  let slug = "";
+  const MAX_SLUG_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+    const candidate = nanoid();
+    const existing = await adminDb
+      .collection(COLLECTIONS.CELEBRATIONS)
+      .where("slug", "==", candidate)
+      .get();
+    if (existing.empty) {
+      slug = candidate;
+      break;
+    }
+    console.warn(`[${LOG}] Slug collision on attempt ${attempt + 1}: "${candidate}"`);
+  }
+  if (!slug) {
+    // Throw so the caller returns 5xx and Razorpay retries the delivery.
+    throw new Error(`Failed to generate a unique slug for ${celebrationId}`);
+  }
+
+  // Hosting length depends on the purchased tier (default 1 year).
+  const hostingFeatures: string[] = Array.isArray(celebData?.selectedFeatures)
+    ? celebData.selectedFeatures
+    : [];
+  const hostingDays = hostingFeatures.includes("hosting_lifetime")
+    ? 36500
+    : hostingFeatures.includes("hosting_3yr")
+      ? VALIDITY_DAYS * 3
+      : VALIDITY_DAYS;
+  const expiresAt = Timestamp.fromDate(
+    new Date(Date.now() + hostingDays * 24 * 60 * 60 * 1000)
+  );
+
+  await celebRef.update({
+    slug,
+    ...(paymentId ? { razorpayPaymentId: paymentId } : {}),
+    paymentStatus: "paid",
+    isActive: true,
+    expiresAt,
+  });
+  console.log(`[${LOG}] Celebration ${celebrationId} activated with slug: ${slug}`);
+
+  // ── Referral crediting (mirrors verify/route.ts) ──────────────────────────
+  // The redirect / payment-link flow may complete only via this webhook, so the
+  // referrer must be credited here too. Runs once per buyer and only when this
+  // order actually carried a referral discount. Never fails fulfillment.
   try {
-    const rawBody = await req.text();
-    const signature = req.headers.get("x-razorpay-signature");
-
-    if (!signature) {
-      console.warn("verify-webhook: Missing x-razorpay-signature header.");
-      return NextResponse.json({ error: "Missing signature" }, { status: 400 });
-    }
-
-    // Verify signature using the secret configured in Razorpay Dashboard
-    const expectedSignature = crypto
-      .createHmac("sha256", webhookSecret)
-      .update(rawBody)
-      .digest("hex");
-
-    if (expectedSignature !== signature) {
-      console.warn("verify-webhook: Signature verification failed.");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-    }
-
-    const body = JSON.parse(rawBody);
-
-    // We specifically want to process payment.captured event
-    if (body.event === "payment.captured") {
-      const payment = body.payload.payment.entity;
-      const celebrationId = payment.notes?.celebrationId;
-
-      if (!celebrationId) {
-        console.warn("verify-webhook: payment.captured event received, but missing notes.celebrationId.");
-        return NextResponse.json({ success: true, message: "No celebrationId note found" });
-      }
-
-      console.log(`verify-webhook: Processing successful payment for celebration ${celebrationId}`);
-
-      const celebRef = adminDb.collection("celebrations").doc(celebrationId);
-      const celebSnap = await celebRef.get();
-
-      if (!celebSnap.exists) {
-        console.error(`verify-webhook: Celebration ${celebrationId} not found in database.`);
-        return NextResponse.json({ error: "Celebration not found" }, { status: 404 });
-      }
-
-      const celebData = celebSnap.data() as any;
-
-      // Avoid double-processing if already paid
-      if (celebData.paymentStatus === "paid" && celebData.isActive) {
-        console.log(`verify-webhook: Celebration ${celebrationId} is already marked as paid.`);
-        return NextResponse.json({ success: true, message: "Already processed" });
-      }
-
-      // Generate unique slug with collision check (up to 5 attempts)
-      let slug = "";
-      const MAX_SLUG_ATTEMPTS = 5;
-      for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
-        const candidate = nanoid();
-        const existing = await adminDb
-          .collection("celebrations")
-          .where("slug", "==", candidate)
+    const referredByCode: string | undefined = celebData?.referredBy;
+    if (celebData.userId && referredByCode && celebData?.referralDiscountPaise > 0) {
+      const buyerRef = adminDb.collection(COLLECTIONS.USERS).doc(celebData.userId);
+      const buyerSnap = await buyerRef.get();
+      if (buyerSnap.data()?.referralRedeemed !== true) {
+        await buyerRef.update({ referralRedeemed: true });
+        const referrerQuery = await adminDb
+          .collection(COLLECTIONS.USERS)
+          .where("referralCode", "==", referredByCode)
+          .limit(1)
           .get();
-        if (existing.empty) {
-          slug = candidate;
-          break;
-        }
-        console.warn(`verify-webhook: Slug collision on attempt ${attempt + 1}: "${candidate}"`);
-      }
-
-      if (!slug) {
-        console.error("verify-webhook: Failed to generate a unique slug after 5 attempts.");
-        return NextResponse.json({ error: "Slug generation collision" }, { status: 500 });
-      }
-
-      // Update Firestore document details — hosting length depends on tier.
-      const hostingFeatures: string[] = Array.isArray(celebData?.selectedFeatures)
-        ? celebData.selectedFeatures
-        : [];
-      const hostingDays = hostingFeatures.includes("hosting_lifetime")
-        ? 36500
-        : hostingFeatures.includes("hosting_3yr")
-          ? VALIDITY_DAYS * 3
-          : VALIDITY_DAYS;
-      const expiresAt = Timestamp.fromDate(
-        new Date(Date.now() + hostingDays * 24 * 60 * 60 * 1000)
-      );
-
-      await celebRef.update({
-        slug,
-        razorpayPaymentId: payment.id,
-        paymentStatus: "paid",
-        isActive: true,
-        expiresAt,
-      });
-
-      console.log(`verify-webhook: Celebration ${celebrationId} updated successfully with slug: ${slug}`);
-
-      // Attempt to retrieve user's email via adminAuth using the userId
-      let userEmail = payment.email; // fallback to customer email from payment payload
-      try {
-        if (celebData.userId) {
-          const userRecord = await adminAuth.getUser(celebData.userId);
-          if (userRecord.email) {
-            userEmail = userRecord.email;
+        if (!referrerQuery.empty) {
+          const referrerDoc = referrerQuery.docs[0];
+          const newCount = (referrerDoc.data()?.referralCount ?? 0) + 1;
+          const update: Record<string, unknown> = {
+            referralCredits: FieldValue.increment(REFERRAL_REWARD_INR),
+            referralCount: FieldValue.increment(1),
+          };
+          if (newCount % REFERRAL_MILESTONE_COUNT === 0) {
+            update.freeAddonCredits = FieldValue.increment(1);
           }
+          await referrerDoc.ref.update(update);
         }
-      } catch (authError) {
-        console.error(`verify-webhook: Failed to retrieve user email for userId ${celebData.userId}:`, authError);
       }
+    }
+  } catch (e) {
+    console.error(`[${LOG}] Referral crediting failed for ${celebrationId}:`, e);
+  }
 
-      if (userEmail) {
-        const occasion = celebData.occasionType || "birthday";
-        const occasionEmoji = occasion === "anniversary" ? "💍" : occasion === "proposal" ? "💌" : occasion === "kids-birthday" ? "🧸" : "🎂";
-        const occasionLabel = occasion === "anniversary" ? "Anniversary" : occasion === "proposal" ? "Proposal" : occasion === "kids-birthday" ? "Kids Birthday" : "Birthday";
+  // ── Confirmation email (best-effort) ──────────────────────────────────────
+  let userEmail = customerEmail;
+  try {
+    if (celebData.userId) {
+      const userRecord = await adminAuth.getUser(celebData.userId);
+      if (userRecord.email) userEmail = userRecord.email;
+    }
+  } catch (authError) {
+    console.error(`[${LOG}] Could not resolve email for userId ${celebData.userId}:`, authError);
+  }
 
-        const birthdayUrl = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}`;
-        const whatsappMsg = encodeURIComponent(`${occasionEmoji} I created a beautiful ${occasionLabel.toLowerCase()} surprise website for you!\n\nVisit: ${birthdayUrl}`);
-        const whatsappUrl = `https://wa.me/?text=${whatsappMsg}`;
+  if (userEmail) {
+    try {
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL!,
+        to: userEmail,
+        ...buildConfirmationEmail(celebData, slug, expiresAt),
+      });
+      console.log(`[${LOG}] Confirmation email dispatched to ${userEmail}`);
+    } catch (emailError) {
+      console.error(`[${LOG}] Failed to send confirmation email:`, emailError);
+    }
+  }
+}
 
-        try {
-          await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL!,
-            to: userEmail,
-            subject: `🎉 Your Just4You website is ready! — ${celebData.recipientName}'s ${occasionLabel}`,
-            html: `
+/** Builds the subject + HTML for the "your website is live" email. */
+function buildConfirmationEmail(
+  celebData: any,
+  slug: string,
+  expiresAt: Timestamp,
+): { subject: string; html: string } {
+  const occasion = celebData.occasionType || "birthday";
+  const occasionEmoji =
+    occasion === "anniversary" ? "💍" : occasion === "proposal" ? "💌" : occasion === "kids-birthday" ? "🧸" : "🎂";
+  const occasionLabel =
+    occasion === "anniversary" ? "Anniversary" : occasion === "proposal" ? "Proposal" : occasion === "kids-birthday" ? "Kids Birthday" : "Birthday";
+
+  const birthdayUrl = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}`;
+  const whatsappMsg = encodeURIComponent(
+    `${occasionEmoji} I created a beautiful ${occasionLabel.toLowerCase()} surprise website for you!\n\nVisit: ${birthdayUrl}`
+  );
+  const whatsappUrl = `https://wa.me/?text=${whatsappMsg}`;
+
+  return {
+    subject: `🎉 Your Just4You website is ready! — ${celebData.recipientName}'s ${occasionLabel}`,
+    html: `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /><title>Your Just4You Website is Live!</title></head>
@@ -179,18 +241,93 @@ export async function POST(req: NextRequest) {
   </div>
 </body>
 </html>
-            `,
-          });
-          console.log(`verify-webhook: Resend email successfully dispatched to ${userEmail}`);
-        } catch (emailError) {
-          console.error("verify-webhook: Failed to send confirmation email via Resend:", emailError);
-        }
-      }
-    }
+    `,
+  };
+}
 
-    return NextResponse.json({ success: true });
+export async function POST(req: NextRequest) {
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error(`[${LOG}] RAZORPAY_WEBHOOK_SECRET is not configured.`);
+    return NextResponse.json(
+      { error: "Webhook secret is not configured." },
+      { status: 500 }
+    );
+  }
+
+  // Read the raw body FIRST — the signature is computed over the exact bytes.
+  const rawBody = await req.text();
+  const signature = req.headers.get("x-razorpay-signature");
+
+  if (!signature) {
+    console.warn(`[${LOG}] Missing x-razorpay-signature header.`);
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  }
+
+  const expectedSignature = crypto
+    .createHmac("sha256", webhookSecret)
+    .update(rawBody)
+    .digest("hex");
+
+  if (!signaturesMatch(expectedSignature, signature)) {
+    console.warn(`[${LOG}] Signature verification failed.`);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  let body: any;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    console.warn(`[${LOG}] Body is not valid JSON.`);
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const event: string = body?.event ?? "";
+  const { celebrationId, paymentId, customerEmail } = extractContext(event, body?.payload);
+
+  try {
+    switch (event) {
+      // A payment was captured — either from an order (Checkout) or a Payment Link.
+      case "payment.captured":
+      case "order.paid":
+      case "payment_link.paid": {
+        if (!celebrationId) {
+          console.warn(`[${LOG}] "${event}" received without notes.celebrationId — acknowledging.`);
+          return NextResponse.json({ success: true, message: "No celebrationId note" });
+        }
+        console.log(`[${LOG}] Handling "${event}" for celebration ${celebrationId}`);
+        await fulfillCelebration(celebrationId, paymentId, customerEmail);
+        return NextResponse.json({ success: true });
+      }
+
+      // Payment failed — record it so the dashboard can surface a retry.
+      case "payment.failed": {
+        if (celebrationId) {
+          try {
+            await adminDb
+              .collection(COLLECTIONS.CELEBRATIONS)
+              .doc(celebrationId)
+              .update({
+                paymentStatus: "failed",
+                lastPaymentError:
+                  body?.payload?.payment?.entity?.error_description ?? "Payment failed",
+              });
+          } catch (e) {
+            console.error(`[${LOG}] Could not record failure for ${celebrationId}:`, e);
+          }
+        }
+        console.log(`[${LOG}] Recorded payment.failed for ${celebrationId ?? "unknown"}`);
+        return NextResponse.json({ success: true });
+      }
+
+      default:
+        // Acknowledge unhandled events so Razorpay doesn't keep retrying them.
+        console.log(`[${LOG}] Ignoring unhandled event "${event}".`);
+        return NextResponse.json({ success: true, message: "Event ignored" });
+    }
   } catch (error: any) {
-    console.error("verify-webhook error:", error);
+    // Return 5xx so Razorpay retries — fulfillment is idempotent, so retries are safe.
+    console.error(`[${LOG}] Error handling "${event}":`, error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

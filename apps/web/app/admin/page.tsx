@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import {
   collection, query, orderBy, getDocs, updateDoc, doc, where, Timestamp
 } from "firebase/firestore";
-import { COLLECTIONS } from "@/lib/constants";
+import { COLLECTIONS, computePriceInr } from "@/lib/constants";
 import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield } from "lucide-react";
 import Link from "next/link";
 
@@ -58,12 +58,21 @@ export default function AdminPage() {
   if (loading || !user || !userDoc) return null;
 
   const paidCelebrations = celebrations.filter((c) => c.paymentStatus === "paid");
-  const totalRevenue = paidCelebrations.length * 299;
+  // Revenue is the sum of each order's actual price: prefer the persisted
+  // `pricePaise`, fall back to recomputing from the selected features, and
+  // finally to the base package price for very old records.
+  const revenueInr = (c: any): number => {
+    if (typeof c.pricePaise === "number" && c.pricePaise > 0) return c.pricePaise / 100;
+    return computePriceInr(Array.isArray(c.selectedFeatures) ? c.selectedFeatures : []);
+  };
+  const totalRevenue = paidCelebrations.reduce((sum, c) => sum + revenueInr(c), 0);
   const today = new Date();
-  const todayRevenue = paidCelebrations.filter((c) => {
-    const d = c.createdAt?.toDate?.();
-    return d && d.toDateString() === today.toDateString();
-  }).length * 299;
+  const todayRevenue = paidCelebrations
+    .filter((c) => {
+      const d = c.createdAt?.toDate?.();
+      return d && d.toDateString() === today.toDateString();
+    })
+    .reduce((sum, c) => sum + revenueInr(c), 0);
 
   const filteredCelebrations = celebrations.filter((c) =>
     c.recipientName?.toLowerCase().includes(search.toLowerCase()) ||

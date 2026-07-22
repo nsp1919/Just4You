@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
 import type { Theme, OccasionType, FeatureId } from "@/lib/constants";
 import { loadCartFeatures } from "@/lib/cart";
@@ -179,9 +179,17 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
     setAiSuggestions([]);
     trackEvent("ai_message_requested", { occasionType });
     try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        setAiLoading(false);
+        return;
+      }
       const res = await fetch("/api/ai/message", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           occasionType,
           relation: data.relation,

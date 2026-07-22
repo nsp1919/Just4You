@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
@@ -9,12 +10,21 @@ const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
 // Admin-only endpoint to manually activate a celebration after confirmed payment
 // Usage: POST /api/admin/activate-celebration
 // Body: { celebrationId, razorpayPaymentId, adminSecret }
+// Constant-time secret comparison to avoid leaking the secret via timing.
+function secretsMatch(provided: unknown, expected: string | undefined): boolean {
+  if (!expected || typeof provided !== "string") return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { celebrationId, razorpayPaymentId, adminSecret } = await req.json();
 
     // Simple secret check to prevent unauthorized use
-    if (adminSecret !== process.env.ADMIN_SECRET) {
+    if (!secretsMatch(adminSecret, process.env.ADMIN_SECRET)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -77,6 +87,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("Admin activate error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
