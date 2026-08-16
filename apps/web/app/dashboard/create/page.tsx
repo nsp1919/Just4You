@@ -2,12 +2,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
 import type { Theme, OccasionType, FeatureId } from "@/lib/constants";
 import { loadCartFeatures } from "@/lib/cart";
-import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause } from "lucide-react";
+import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import GalaxyTheme from "@/components/themes/GalaxyTheme";
@@ -105,7 +105,10 @@ function LivePreviewModal({
         </div>
       </div>
 
-      <div className="pt-11">
+      <div
+        className="pt-11 select-none"
+        style={{ filter: "blur(5px)", transform: "scale(1.01)", transformOrigin: "top center" }}
+      >
         <ThemeComp celebration={previewCelebration} />
       </div>
     </div>
@@ -113,21 +116,35 @@ function LivePreviewModal({
 }
 
 // ─── Step indicator ──────────────────────────────────────────────────────────
-function StepBar({ step }: { step: number }) {
+function StepBar({ step, onStepChange }: { step: number; onStepChange: (step: number) => void }) {
   const steps = ["Occasion", "Details", "Photos", "Music", "Preview", "Pay"];
   return (
     <div className="flex items-center justify-center gap-1 mb-10">
-      {steps.map((s, i) => (
-        <div key={i} className="flex items-center gap-1">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${i < step ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-              i === step ? "border text-white" : "text-[var(--text-muted)] border border-transparent"
-            }`}
-            style={i === step ? { background: "rgba(168,85,247,0.2)", borderColor: "rgba(168,85,247,0.5)" } : {}}>
-            {i < step ? <Check size={11} /> : <span className="w-4 text-center">{i + 1}</span>}
-            <span className="hidden sm:inline">{s}</span>
-          </div>
-          {i < steps.length - 1 && (
-            <div className="w-4 h-px" style={{ background: i < step ? "#22c55e" : "rgba(255,255,255,0.1)" }} />
+      {steps.map((label, index) => (
+        <div key={label} className="flex items-center gap-1">
+          {index < step ? (
+            <button
+              type="button"
+              onClick={() => onStepChange(index)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:border-green-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400/70"
+              aria-label={`Go back to ${label}`}
+              title={`Edit ${label}`}
+            >
+              <Check size={11} />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ) : (
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${index === step ? "border text-white" : "text-[var(--text-muted)] border border-transparent"}`}
+              style={index === step ? { background: "rgba(168,85,247,0.2)", borderColor: "rgba(168,85,247,0.5)" } : {}}
+              aria-current={index === step ? "step" : undefined}
+            >
+              <span className="w-4 text-center">{index + 1}</span>
+              <span className="hidden sm:inline">{label}</span>
+            </div>
+          )}
+          {index < steps.length - 1 && (
+            <div className="w-4 h-px" style={{ background: index < step ? "#22c55e" : "rgba(255,255,255,0.1)" }} />
           )}
         </div>
       ))}
@@ -1051,28 +1068,75 @@ function Step4({ data, photos, occasionType, features, priceInr }: { data: any; 
       >
         <Play size={16} /> Preview the full experience
       </button>
-      <p className="text-center text-xs text-[var(--text-muted)]">
-        See your finished website exactly as your loved one will — before you pay.
-      </p>
+      <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-center text-sm text-amber-200">
+        <EyeOff size={16} className="shrink-0" />
+        <span><strong>Preview notice:</strong> The full preview is intentionally blurred. Your activated website will be completely clear.</span>
+      </div>
     </div>
   );
 }
 
 // ─── Step 5: Payment ─────────────────────────────────────────────────────────
+interface CheckoutPreview {
+  basePaise: number;
+  amountPaise: number;
+  referralDiscountPaise: number;
+  walletAppliedInr: number;
+  freeAddonFeatureId: string | null;
+  freeAddonDiscountPaise: number;
+}
+
 function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrationId: string; onSuccess: (slug: string) => void; occasionType: OccasionType; priceInr: number }) {
   const router = useRouter();
-  const { user, userDoc } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [scriptReady, setScriptReady] = useState(false);
+  const [benefitPreview, setBenefitPreview] = useState<CheckoutPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const [previewError, setPreviewError] = useState("");
+  const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
-  const referralEligible = !!userDoc?.referredBy && userDoc?.referralCredits !== undefined && !(userDoc as any)?.referralRedeemed;
 
   const isRedirectMode = !!process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_URL;
+  const finalAmountInr = Math.round((benefitPreview?.amountPaise ?? priceInr * 100) / 100);
+  const totalBenefitPaise = benefitPreview
+    ? Math.max(0, benefitPreview.basePaise - benefitPreview.amountPaise)
+    : 0;
+  const hasAutomaticBenefits = totalBenefitPaise > 0;
+  const freeAddonLabel = FEATURE_ADDONS.find((addon) => addon.id === benefitPreview?.freeAddonFeatureId)?.label;
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const loadPreview = async () => {
+      setPreviewLoading(true);
+      setPreviewError("");
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch("/api/payment/benefits-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ celebrationId }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error ?? "Unable to calculate referral benefits.");
+        if (!cancelled) setBenefitPreview(result as CheckoutPreview);
+      } catch (previewFailure: any) {
+        if (!cancelled) setPreviewError(previewFailure?.message ?? "Unable to calculate referral benefits.");
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+
+    void loadPreview();
+    return () => { cancelled = true; };
+  }, [celebrationId, previewRetryKey, user]);
 
   // Load Razorpay checkout script dynamically (JSX <script> tag doesn't execute reliably)
   useEffect(() => {
@@ -1090,34 +1154,12 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
   }, [isRedirectMode]);
 
   const handlePay = async () => {
-    const paymentUrl = process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_URL;
-    if (paymentUrl) {
-      setLoading(true);
-      setError("");
-      try {
-        localStorage.setItem("pending_celebration_id", celebrationId);
-        
-        // Construct external payment URL with notes and prefill fields
-        const urlObj = new URL(paymentUrl);
-        urlObj.searchParams.set("notes[celebrationId]", celebrationId);
-        if (user?.email) {
-          urlObj.searchParams.set("prefill[email]", user.email);
-        }
-        if (user?.displayName) {
-          urlObj.searchParams.set("prefill[name]", user.displayName);
-        }
-        
-        window.location.href = urlObj.toString();
-      } catch (err: any) {
-        console.error("Redirect error:", err);
-        setError("Failed to redirect to the payment gateway. Please try again.");
-        setLoading(false);
-      }
+    if (!isRedirectMode && !scriptReady) {
+      setError("Payment gateway is still loading. Please wait a moment and try again.");
       return;
     }
-
-    if (!scriptReady) {
-      setError("Payment gateway is still loading. Please wait a moment and try again.");
+    if (!benefitPreview) {
+      setError("Referral benefits are still being calculated. Please try again.");
       return;
     }
     setLoading(true);
@@ -1128,8 +1170,8 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
     try {
       const token = await user!.getIdToken();
 
-      // Create Razorpay order
-      const orderRes = await fetch("/api/payment/create-order", {
+      const checkoutEndpoint = isRedirectMode ? "/api/payment/create-link" : "/api/payment/create-order";
+      const orderRes = await fetch(checkoutEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ celebrationId }),
@@ -1143,7 +1185,30 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
         return;
       }
 
-      const { orderId, amount, currency, keyId } = await orderRes.json();
+      const checkout = await orderRes.json();
+      const confirmedPreview: CheckoutPreview = {
+        basePaise: benefitPreview.basePaise,
+        amountPaise: checkout.amount,
+        referralDiscountPaise: checkout.referralDiscountPaise ?? 0,
+        walletAppliedInr: checkout.walletAppliedInr ?? checkout.referralCreditAppliedInr ?? 0,
+        freeAddonFeatureId: checkout.freeAddonFeatureId ?? null,
+        freeAddonDiscountPaise: checkout.freeAddonDiscountPaise ?? 0,
+      };
+      setBenefitPreview(confirmedPreview);
+
+      if (checkout.amount !== benefitPreview.amountPaise) {
+        setError("Your referral balance changed. Please review the updated amount and tap Pay again.");
+        setLoading(false);
+        return;
+      }
+
+      if (isRedirectMode) {
+        localStorage.setItem("pending_celebration_id", celebrationId);
+        window.location.href = checkout.paymentUrl;
+        return;
+      }
+
+      const { orderId, amount, currency, keyId } = checkout;
 
       // Open Razorpay checkout modal
       const options = {
@@ -1151,7 +1216,7 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
         amount,
         currency,
         name: "Just4You",
-        description: `${occasion.label} Website — ${formatInr(priceInr)}`,
+        description: `${occasion.label} Website — ${formatInr(Math.round(amount / 100))}`,
         image: "/logo.png",
         order_id: orderId,
         handler: async (response: any) => {
@@ -1193,17 +1258,58 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
       <div className="glass-card p-6 text-center">
         <div className="text-5xl mb-3">🎉</div>
         <h2 className="text-2xl font-bold font-playfair mb-2">Almost there!</h2>
-        <p className="text-[var(--text-muted)] text-sm mb-6">Pay once to activate your {occasion.label.toLowerCase()} website forever.</p>
-        <div className="text-5xl font-bold gradient-text mb-2">{formatInr(priceInr)}</div>
-        <div className="text-xs text-[var(--text-muted)] mb-8">One-time payment • 1 year validity • Instant delivery</div>
-        {referralEligible && (
-          <div
-            className="text-sm font-semibold p-3 rounded-xl mb-6"
-            style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)", color: "#4ade80" }}
-          >
-            🎁 Your ₹100 referral discount will be applied automatically at checkout.
+        <p className="text-[var(--text-muted)] text-sm mb-6">Review your referral benefits before activating your {occasion.label.toLowerCase()} website.</p>
+
+        {previewLoading && (
+          <div className="text-sm p-4 rounded-xl mb-6 text-[var(--text-muted)] border border-white/10 bg-white/[0.03]">
+            Calculating your referral benefits...
           </div>
         )}
+        {!previewLoading && previewError && (
+          <div className="text-sm text-red-300 p-4 rounded-xl mb-6 border border-red-500/20 bg-red-500/10">
+            <p>{previewError}</p>
+            <button type="button" className="mt-2 font-semibold underline" onClick={() => setPreviewRetryKey((key) => key + 1)}>
+              Try again
+            </button>
+          </div>
+        )}
+        {!previewLoading && benefitPreview && (
+          <div className="rounded-2xl p-5 mb-6 text-left border border-purple-500/20 bg-white/[0.03]">
+            <div className="flex items-center justify-between text-sm text-[var(--text-muted)]">
+              <span>Package total</span>
+              <span>{formatInr(Math.round(benefitPreview.basePaise / 100))}</span>
+            </div>
+            {benefitPreview.referralDiscountPaise > 0 && (
+              <div className="flex items-center justify-between text-sm mt-3 text-green-400">
+                <span>Friend referral discount</span>
+                <span>-{formatInr(Math.round(benefitPreview.referralDiscountPaise / 100))}</span>
+              </div>
+            )}
+            {benefitPreview.walletAppliedInr > 0 && (
+              <div className="flex items-center justify-between text-sm mt-3 text-green-400">
+                <span>Wallet balance used</span>
+                <span>-{formatInr(benefitPreview.walletAppliedInr)}</span>
+              </div>
+            )}
+            {benefitPreview.freeAddonDiscountPaise > 0 && (
+              <div className="flex items-center justify-between gap-4 text-sm mt-3 text-green-400">
+                <span>Free add-on credit{freeAddonLabel ? ` (${freeAddonLabel})` : ""}</span>
+                <span className="shrink-0">-{formatInr(Math.round(benefitPreview.freeAddonDiscountPaise / 100))}</span>
+              </div>
+            )}
+            {hasAutomaticBenefits && (
+              <div className="flex items-center justify-between text-sm font-semibold mt-4 pt-4 border-t border-white/10 text-green-400">
+                <span>Total savings</span>
+                <span>-{formatInr(Math.round(totalBenefitPaise / 100))}</span>
+              </div>
+            )}
+            <div className="flex items-end justify-between gap-4 mt-4 pt-4 border-t border-white/10">
+              <span className="font-semibold">Online amount to pay</span>
+              <span className="text-3xl font-bold gradient-text">{formatInr(finalAmountInr)}</span>
+            </div>
+          </div>
+        )}
+        <div className="text-xs text-[var(--text-muted)] mb-6">One-time payment • 1 year validity • Instant delivery</div>
         {error && (
           <div className="text-sm text-red-400 p-3 rounded-xl mb-4" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
             {error}
@@ -1212,11 +1318,11 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
         <button
           id="pay-button"
           onClick={handlePay}
-          disabled={loading || (!isRedirectMode && !scriptReady)}
+          disabled={loading || previewLoading || !benefitPreview || (!isRedirectMode && !scriptReady)}
           className="btn-primary w-full justify-center py-4 text-base glow-purple disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <CreditCard size={20} />
-          {!isRedirectMode && !scriptReady ? "Loading payment..." : loading ? "Opening payment..." : `Pay ${formatInr(priceInr)} & Go Live!`}
+          {previewLoading ? "Calculating benefits..." : !isRedirectMode && !scriptReady ? "Loading payment..." : loading ? "Opening payment..." : `Pay ${formatInr(finalAmountInr)} & Go Live!`}
         </button>
         <div className="flex items-center justify-center gap-4 mt-4 text-xs text-[var(--text-muted)]">
           <span>🔒 Secured by Razorpay</span>
@@ -1292,8 +1398,7 @@ export default function CreatePage() {
       // Save celebration to Firestore before payment
       setSaving(true);
       try {
-        const docRef = await addDoc(collection(db, COLLECTIONS.CELEBRATIONS), {
-          userId: user!.uid,
+        const draftData = {
           recipientName: formData.recipientName,
           birthdayDate: formData.birthdayDate, // deprecated backward compatibility
           eventDate: formData.birthdayDate, // dynamic eventDate field
@@ -1325,16 +1430,25 @@ export default function CreatePage() {
           // amount is always recomputed server-side from selectedFeatures.
           selectedFeatures: features,
           pricePaise: computePricePaise(features),
-          paymentStatus: "pending",
-          isActive: false,
-          isBlocked: false,
-          views: 0,
-          razorpayOrderId: "",
-          slug: "",
-          createdAt: serverTimestamp(),
-          expiresAt: null,
-        });
-        setCelebrationId(docRef.id);
+        };
+
+        if (celebrationId) {
+          await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, celebrationId), draftData);
+        } else {
+          const docRef = await addDoc(collection(db, COLLECTIONS.CELEBRATIONS), {
+            ...draftData,
+            userId: user!.uid,
+            paymentStatus: "pending",
+            isActive: false,
+            isBlocked: false,
+            views: 0,
+            razorpayOrderId: "",
+            slug: "",
+            createdAt: serverTimestamp(),
+            expiresAt: null,
+          });
+          setCelebrationId(docRef.id);
+        }
         setStep(5);
         trackEvent("checkout_started", { occasionType, theme: formData.theme });
       } catch (err) {
@@ -1386,7 +1500,7 @@ export default function CreatePage() {
           </Link>
         </div>
 
-        <StepBar step={step} />
+        <StepBar step={step} onStepChange={setStep} />
 
         <div className="glass-card p-8">
           {step === 0 && <StepOccasion selected={occasionType} onSelect={(o) => {

@@ -3,12 +3,12 @@
   Builds the Just4You monorepo and assembles a clean, ready-to-upload
   deployment package for Hostinger Node.js hosting.
 
-  Output: just4you-hostinger.zip  (in the repo root)
+  Output: just4you-hostinger.tar.gz  (in the repo root)
 
   What it does:
     1. Builds the web + birthday apps (turbo run build)
     2. Stages only the files Hostinger needs (no node_modules, no caches)
-    3. Zips the staging folder
+    3. Creates a Linux-safe tar.gz archive of the staging folder
 
   On Hostinger you then: upload + extract, run `npm install`, and set the
   startup file to server.js (main domain) / server_wish.js (subdomain).
@@ -68,9 +68,10 @@ foreach ($f in $rootFiles) {
 }
 
 # robocopy exit codes 0-7 indicate success; >=8 is an error.
-function Copy-Tree($srcDir, $destDir, [string[]]$excludeDirs) {
+function Copy-Tree($srcDir, $destDir, [string[]]$excludeDirs, [string[]]$excludeFiles) {
     $args = @($srcDir, $destDir, "/E", "/NFL", "/NDL", "/NJH", "/NJS", "/NP")
     if ($excludeDirs.Count -gt 0) { $args += "/XD"; $args += $excludeDirs }
+  if ($excludeFiles.Count -gt 0) { $args += "/XF"; $args += $excludeFiles }
     robocopy @args | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed ($srcDir) exit=$LASTEXITCODE" }
     $global:LASTEXITCODE = 0
@@ -82,29 +83,29 @@ Copy-Tree (Join-Path $root "apps\web") (Join-Path $stage "apps\web") @(
     (Join-Path $root "apps\web\.turbo"),
     (Join-Path $root "apps\web\.next\cache"),
     (Join-Path $root "apps\web\.next\dev")
-)
+) @(".env.local", ".env.*.local")
 Write-Host "    + apps/web"
 
-# apps/birthday — keep .next build but drop node_modules and dev/build caches
-# (.next/dev is Turbopack's dev-mode cache — hundreds of MB, not used in prod)
+# apps/birthday - keep .next build but drop node_modules and dev/build caches
+# (.next/dev is Turbopack's dev-mode cache - hundreds of MB, not used in prod)
 Copy-Tree (Join-Path $root "apps\birthday") (Join-Path $stage "apps\birthday") @(
     (Join-Path $root "apps\birthday\node_modules"),
     (Join-Path $root "apps\birthday\.turbo"),
     (Join-Path $root "apps\birthday\.next\cache"),
     (Join-Path $root "apps\birthday\.next\dev")
-)
+) @(".env.local", ".env.*.local")
 Write-Host "    + apps/birthday"
 
-# packages/shared — needed for the workspace symlink / install
+# packages/shared - needed for the workspace symlink / install
 Copy-Tree (Join-Path $root "packages\shared") (Join-Path $stage "packages\shared") @(
     (Join-Path $root "packages\shared\node_modules"),
     (Join-Path $root "packages\shared\.turbo")
-)
+) @()
 Write-Host "    + packages/shared"
 
 # Short plaintext deploy guide inside the package
 $readme = @"
-Just4You — Hostinger deployment package
+Just4You - Hostinger deployment package
 ========================================
 
 Two Node.js apps to deploy:
@@ -118,14 +119,14 @@ Steps (Hostinger hPanel -> Advanced -> Node.js):
         Startup file      = server.js
         Node version      = 20 or newer
   3. Click "Run npm install" (installs all workspace dependencies).
-  4. Set Environment Variables (from apps/web/.env.local) in the Node.js
-     app manager, OR upload your apps/web/.env.local file.
+  4. Set Environment Variables in hPanel's Node.js app settings.
+     Local .env files are intentionally excluded from this package.
   5. Start the application.
   6. For the birthday/wish pages, create a SECOND Node.js Application on the
      subdomain with Startup file = server_wish.js (same steps).
 
 Notes:
-  - node_modules is intentionally excluded — Hostinger installs it.
+  - node_modules is intentionally excluded - Hostinger installs it.
   - The .next production build IS included, so no build step is needed on
     the server.
   - Set the same RAZORPAY_WEBHOOK_SECRET here and in the Razorpay Dashboard
@@ -136,7 +137,7 @@ Set-Content -Path (Join-Path $stage "DEPLOY-HOSTINGER.txt") -Value $readme -Enco
 Write-Host "    + DEPLOY-HOSTINGER.txt"
 
 # ---------------------------------------------------------------------------
-# 3. Archive (tar.gz — Linux-safe, preserves directory structure)
+# 3. Archive (tar.gz - Linux-safe, preserves directory structure)
 # ---------------------------------------------------------------------------
 Write-Host "==> Creating tar.gz..." -ForegroundColor Cyan
 if (Test-Path $tgz) { Remove-Item $tgz -Force }

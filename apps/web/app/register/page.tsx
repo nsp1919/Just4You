@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle, Check } from "lucide-react";
-import { captureReferralFromUrl, getStoredReferral } from "@/lib/referral";
-import { REFERRAL_DISCOUNT_INR } from "@/lib/constants";
+import { captureReferralFromUrl, clearStoredReferral, getStoredReferral } from "@/lib/referral";
+import { REFERRAL_JOIN_WALLET_BONUS_INR } from "@/lib/constants";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -26,7 +26,16 @@ export default function RegisterPage() {
       if (nameParam) setName(nameParam);
       if (emailParam) setEmail(emailParam);
       captureReferralFromUrl();
-      setReferral(getStoredReferral());
+      const storedReferral = getStoredReferral();
+      if (storedReferral) {
+        fetch(`/api/user/profile?code=${encodeURIComponent(storedReferral)}`)
+          .then((response) => response.json())
+          .then(({ valid }) => {
+            if (valid) setReferral(storedReferral);
+            else clearStoredReferral();
+          })
+          .catch(() => clearStoredReferral());
+      }
     }
   }, []);
 
@@ -359,7 +368,7 @@ export default function RegisterPage() {
                 textAlign: "center",
               }}
             >
-              🎁 A friend invited you — get ₹{REFERRAL_DISCOUNT_INR} off your first surprise!
+              🎁 A friend invited you — ₹{REFERRAL_JOIN_WALLET_BONUS_INR} will be added to your wallet!
             </div>
           )}
 

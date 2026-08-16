@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { PRICE_PAISE, REFERRAL_DISCOUNT_INR, computePricePaise } from "@/lib/constants";
+import { reserveCheckoutBenefits, releaseCheckoutBenefits } from "@/lib/referral-server";
 
 export async function POST(req: NextRequest) {
   // Guard missing credentials at route entry — same principle as verify/route.ts BUG-01 fix.
@@ -48,71 +48,58 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Referral discount (server-authoritative) ──────────────────────────────
-    // A referred user gets ₹REFERRAL_DISCOUNT_INR off their FIRST paid surprise.
-    // Eligibility is validated here (never trusted from the client) to prevent
-    // abuse: the user must have a `referredBy`, must not have redeemed before,
-    // and must not already own a paid celebration.
-    //
-    // The base amount is derived from the persisted feature selection, never a
-    // client-supplied price.
     const celebFeatures: string[] = Array.isArray(celebSnap.data()?.selectedFeatures)
       ? celebSnap.data()!.selectedFeatures
       : [];
-    const basePaise = computePricePaise(celebFeatures) || PRICE_PAISE;
-    let amountPaise = basePaise;
-    let referralDiscountPaise = 0;
-    let referredBy: string | undefined;
+    const existingReservation = celebSnap.data()?.referralBenefitsStatus === "reserved";
+    if (existingReservation && celebSnap.data()?.razorpayOrderId) {
+      return NextResponse.json({
+        orderId: celebSnap.data()!.razorpayOrderId,
+        amount: celebSnap.data()!.chargedPaise,
+        currency: "INR",
+        referralDiscountPaise: celebSnap.data()!.referralDiscountPaise ?? 0,
+        walletAppliedInr: celebSnap.data()!.walletAppliedInr ?? celebSnap.data()!.referralCreditAppliedInr ?? 0,
+        freeAddonFeatureId: celebSnap.data()!.freeAddonFeatureId ?? null,
+        freeAddonDiscountPaise: celebSnap.data()!.freeAddonDiscountPaise ?? 0,
+        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      });
+    }
+    let benefits;
     try {
-      const userSnap = await adminDb.collection("users").doc(decoded.uid).get();
-      const userData = userSnap.data();
-      referredBy = userData?.referredBy;
-      const alreadyRedeemed = userData?.referralRedeemed === true;
-
-      if (referredBy && !alreadyRedeemed) {
-        const paidSnap = await adminDb
-          .collection("celebrations")
-          .where("userId", "==", decoded.uid)
-          .where("paymentStatus", "==", "paid")
-          .limit(1)
-          .get();
-        if (paidSnap.empty) {
-          const discount = REFERRAL_DISCOUNT_INR * 100;
-          // Clamp so the charged amount never drops below Razorpay's ₹1 minimum.
-          referralDiscountPaise = Math.min(discount, Math.max(0, basePaise - 100));
-          amountPaise = basePaise - referralDiscountPaise;
-        }
-      }
-    } catch (e) {
-      console.error("create-order: referral eligibility check failed", e);
-      // Fail safe to full price rather than blocking the purchase.
-      amountPaise = basePaise;
-      referralDiscountPaise = 0;
+      benefits = await reserveCheckoutBenefits(decoded.uid, celebrationId, celebFeatures);
+    } catch (error: any) {
+      const status = error?.message === "CHECKOUT_ALREADY_PENDING" ? 409 : 400;
+      return NextResponse.json({ error: "Unable to reserve checkout benefits. Please retry shortly." }, { status });
     }
 
-    // Create Razorpay order
-    const order = await razorpay.orders.create({
-      amount: amountPaise,
-      currency: "INR",
-      receipt: `bg_${celebrationId.slice(0, 10)}_${Date.now()}`,
-      notes: {
-        celebrationId,
-        userId: decoded.uid,
-      },
-    });
+    let order;
+    try {
+      order = await razorpay.orders.create({
+        amount: benefits.amountPaise,
+        currency: "INR",
+        receipt: `bg_${celebrationId.slice(0, 10)}_${Date.now()}`,
+        notes: { celebrationId, userId: decoded.uid },
+      });
+    } catch (error) {
+      await releaseCheckoutBenefits(celebrationId, benefits.reservationId);
+      throw error;
+    }
 
-    // Store order ID (and any applied referral discount) on the celebration doc
-    await celebRef.update({
-      razorpayOrderId: order.id,
-      pricePaise: basePaise,
-      ...(referralDiscountPaise > 0 ? { referralDiscountPaise, referredBy: referredBy ?? "" } : {}),
-    });
+    try {
+      await celebRef.update({ razorpayOrderId: order.id });
+    } catch (error) {
+      await releaseCheckoutBenefits(celebrationId, benefits.reservationId);
+      throw error;
+    }
 
     return NextResponse.json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      referralDiscountPaise,
+      referralDiscountPaise: benefits.referralDiscountPaise,
+      walletAppliedInr: benefits.walletAppliedInr,
+      freeAddonFeatureId: benefits.freeAddonFeatureId,
+      freeAddonDiscountPaise: benefits.freeAddonDiscountPaise,
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     });
   } catch (error: any) {

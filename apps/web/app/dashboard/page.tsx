@@ -213,7 +213,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Refer & Earn */}
-        {user && <ReferralCard uid={user.uid} credits={userDoc?.referralCredits ?? 0} referralCount={(userDoc as any)?.referralCount ?? 0} />}
+        {user && (
+          <ReferralCard
+            uid={user.uid}
+            walletBalance={userDoc?.walletBalance ?? userDoc?.referralCredits ?? 0}
+            referralCount={userDoc?.referralCount ?? 0}
+            freeAddonCredits={userDoc?.freeAddonCredits ?? 0}
+          />
+        )}
 
         {/* Section header */}
         <div className="flex items-center gap-3 mb-6">

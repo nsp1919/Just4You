@@ -1,16 +1,13 @@
 "use client";
 
+import { normalizeReferralCode, referralCodeFor } from "@/lib/referral-code";
+
+export { normalizeReferralCode, referralCodeFor } from "@/lib/referral-code";
+
 // Referral helpers — deterministic, storage-light. A user's referral code is
 // derived from their Firebase UID so it never needs a separate lookup/write.
 
 const REF_STORAGE_KEY = "j4y_ref";
-
-/** Build a short, shareable referral code from a Firebase UID. */
-export function referralCodeFor(uid: string): string {
-  // Uppercase alphanumerics from the uid, prefixed for brand recognition.
-  const clean = uid.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  return `J4Y${clean.slice(0, 6)}`;
-}
 
 /** Full share URL a user can send to friends. */
 export function referralLinkFor(uid: string): string {
@@ -28,8 +25,8 @@ export function referralLinkFor(uid: string): string {
 export function captureReferralFromUrl(): void {
   if (typeof window === "undefined") return;
   try {
-    const code = new URLSearchParams(window.location.search).get("ref");
-    if (code) localStorage.setItem(REF_STORAGE_KEY, code.trim().toUpperCase());
+    const code = normalizeReferralCode(new URLSearchParams(window.location.search).get("ref"));
+    if (code) localStorage.setItem(REF_STORAGE_KEY, code);
   } catch {
     // ignore storage/URL access issues
   }

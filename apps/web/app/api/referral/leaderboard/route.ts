@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
-// Public referral leaderboard — top referrers by earned credits, with names
+// Public referral leaderboard — top referrers by successful referrals, with names
 // masked for privacy (first name + last initial). Read via the Admin SDK so it
 // works despite the per-user Firestore read rules.
 
@@ -20,17 +20,17 @@ export async function GET() {
   try {
     const snap = await adminDb
       .collection("users")
-      .where("referralCredits", ">", 0)
-      .orderBy("referralCredits", "desc")
+      .where("referralCount", ">", 0)
+      .orderBy("referralCount", "desc")
       .limit(10)
       .get();
 
     const leaders = snap.docs.map((d, i) => {
-      const u = d.data() as { name?: string; referralCredits?: number; referralCount?: number };
+      const u = d.data() as { name?: string; walletBalance?: number; referralCredits?: number; referralCount?: number };
       return {
         rank: i + 1,
         name: maskName(u.name),
-        credits: u.referralCredits ?? 0,
+        walletBalance: u.walletBalance ?? u.referralCredits ?? 0,
         referrals: u.referralCount ?? 0,
       };
     });

@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
-import {
-  COLLECTIONS,
-  VALIDITY_DAYS,
-  REFERRAL_REWARD_INR,
-  REFERRAL_MILESTONE_COUNT,
-} from "@/lib/constants";
+import { COLLECTIONS, VALIDITY_DAYS } from "@/lib/constants";
+import { settlePaidReferralBenefits } from "@/lib/referral-server";
 
 export const dynamic = "force-dynamic";
 // Razorpay signs the exact raw bytes it POSTs — the Node runtime lets us read
@@ -79,6 +75,7 @@ async function fulfillCelebration(
 
   // Idempotency guard: a captured payment can be delivered multiple times.
   if (celebData.paymentStatus === "paid" && celebData.isActive) {
+    await settlePaidReferralBenefits(celebrationId);
     console.log(`[${LOG}] Celebration ${celebrationId} already fulfilled — skipping.`);
     return;
   }
@@ -125,38 +122,10 @@ async function fulfillCelebration(
   });
   console.log(`[${LOG}] Celebration ${celebrationId} activated with slug: ${slug}`);
 
-  // ── Referral crediting (mirrors verify/route.ts) ──────────────────────────
-  // The redirect / payment-link flow may complete only via this webhook, so the
-  // referrer must be credited here too. Runs once per buyer and only when this
-  // order actually carried a referral discount. Never fails fulfillment.
   try {
-    const referredByCode: string | undefined = celebData?.referredBy;
-    if (celebData.userId && referredByCode && celebData?.referralDiscountPaise > 0) {
-      const buyerRef = adminDb.collection(COLLECTIONS.USERS).doc(celebData.userId);
-      const buyerSnap = await buyerRef.get();
-      if (buyerSnap.data()?.referralRedeemed !== true) {
-        await buyerRef.update({ referralRedeemed: true });
-        const referrerQuery = await adminDb
-          .collection(COLLECTIONS.USERS)
-          .where("referralCode", "==", referredByCode)
-          .limit(1)
-          .get();
-        if (!referrerQuery.empty) {
-          const referrerDoc = referrerQuery.docs[0];
-          const newCount = (referrerDoc.data()?.referralCount ?? 0) + 1;
-          const update: Record<string, unknown> = {
-            referralCredits: FieldValue.increment(REFERRAL_REWARD_INR),
-            referralCount: FieldValue.increment(1),
-          };
-          if (newCount % REFERRAL_MILESTONE_COUNT === 0) {
-            update.freeAddonCredits = FieldValue.increment(1);
-          }
-          await referrerDoc.ref.update(update);
-        }
-      }
-    }
+    await settlePaidReferralBenefits(celebrationId);
   } catch (e) {
-    console.error(`[${LOG}] Referral crediting failed for ${celebrationId}:`, e);
+    console.error(`[${LOG}] Referral settlement failed for ${celebrationId}:`, e);
   }
 
   // ── Confirmation email (best-effort) ──────────────────────────────────────

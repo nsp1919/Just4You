@@ -20,6 +20,7 @@ interface Celebration {
   musicPresetId?: string;
   musicUploadUrl?: string;
   voiceMessageUrl?: string;
+  videoMessageUrl?: string;
   occasionType?: any;
   relation?: any;
   relationCustom?: any;

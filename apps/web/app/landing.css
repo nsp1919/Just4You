@@ -149,6 +149,61 @@ body {
 }
 .p { position: absolute; border-radius: 50%; animation: pf linear infinite; pointer-events: none; }
 
+/* ─── Hero story reel ────────────────────────────────────────── */
+.hero-headline-finish {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: nowrap;
+}
+.hero-headline-spark {
+  display: inline-block;
+  color: var(--gold);
+  transform-origin: center;
+}
+.hero-story-reel {
+  width: min(100%, 760px);
+  margin-bottom: 52px;
+  overflow: hidden;
+  border-block: 1px solid rgba(255, 224, 196, 0.1);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.hero-story-track {
+  display: flex;
+  width: max-content;
+  padding: 14px 0;
+  will-change: transform;
+}
+.hero-story-moment {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 17px;
+  color: var(--muted);
+}
+.hero-story-moment > span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgba(255, 158, 79, 0.22);
+  border-radius: 50%;
+  color: var(--amber);
+  background: rgba(255, 158, 79, 0.07);
+}
+.hero-story-moment strong {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.hero-story-arrow { color: var(--muted-3); }
+@media (prefers-reduced-motion: reduce) {
+  .hero-story-track { transform: none !important; }
+}
+
 /* ─── Grad border ──────────────────────────────────────────────── */
 .gb { position: relative; border-radius: 22px; }
 .gb::before {
@@ -163,6 +218,111 @@ body {
 @keyframes shimmer {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+/* ─── Custom website studio ─────────────────────────────────── */
+.custom-studio {
+  position: relative;
+  overflow: hidden;
+  padding: 128px 0;
+  background:
+    linear-gradient(125deg, rgba(255, 158, 79, 0.08), transparent 34%),
+    linear-gradient(300deg, rgba(48, 189, 187, 0.08), transparent 40%),
+    #120c18;
+}
+.custom-studio-rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--amber), #30bdbb, transparent);
+  transform-origin: left;
+  animation: studio-rule 4.5s ease-in-out infinite;
+}
+@keyframes studio-rule {
+  0%, 100% { transform: scaleX(0.28); opacity: 0.45; }
+  50% { transform: scaleX(1); opacity: 1; }
+}
+.custom-studio-grid {
+  max-width: 1060px;
+  text-align: center;
+}
+.custom-studio-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 22px;
+  color: #70d8d1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.custom-studio-title {
+  max-width: 570px;
+  margin-inline: auto;
+  color: var(--ink);
+  font-size: clamp(2.35rem, 5vw, 4.2rem);
+  font-weight: 700;
+  line-height: 1.06;
+}
+.custom-studio-copy {
+  max-width: 590px;
+  margin-inline: auto;
+  margin-top: 26px;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.8;
+}
+.custom-service-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 36px 0 38px;
+}
+.custom-service-item {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 28px 22px;
+  border: 1px solid rgba(255, 245, 236, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 245, 236, 0.025);
+}
+.custom-service-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(112, 216, 209, 0.25);
+  border-radius: 8px;
+  color: #70d8d1;
+  background: rgba(48, 189, 187, 0.07);
+}
+.custom-service-item strong,
+.custom-service-item small { display: block; }
+.custom-service-item strong {
+  margin: 1px 0 5px;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.custom-service-item small {
+  color: var(--muted-2);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+.custom-email-cta { padding: 16px 28px; }
+@media (max-width: 980px) {
+  .custom-service-list { grid-template-columns: 1fr; }
+  .custom-service-item { min-height: 0; }
+}
+@media (max-width: 560px) {
+  .custom-studio { padding: 96px 0; }
+  .custom-email-cta { width: 100%; justify-content: center; font-size: 0.82rem; }
+  .hero-story-reel { margin-bottom: 42px; }
 }
 
 /* ─── Step line ────────────────────────────────────────────────── */

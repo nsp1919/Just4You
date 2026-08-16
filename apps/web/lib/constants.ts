@@ -203,10 +203,10 @@ export function formatInr(amount: number): string {
 }
 
 // ─── Referral program ────────────────────────────────────────────────────────
-// Give ₹100, get ₹100: the new user saves on their first surprise and the
-// referrer earns a credit once that surprise is paid for.
-export const REFERRAL_DISCOUNT_INR = 100; // discount for the referred (new) user
-export const REFERRAL_REWARD_INR = 100; // credit earned by the referrer
+// A referred user receives ₹50 in their wallet when they join. The referrer
+// receives ₹100 in their wallet after that user's first successful purchase.
+export const REFERRAL_JOIN_WALLET_BONUS_INR = 50;
+export const REFERRAL_REWARD_INR = 100;
 export const REFERRAL_MILESTONE_COUNT = 3; // every N referrals → a free add-on credit
 
 export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical";

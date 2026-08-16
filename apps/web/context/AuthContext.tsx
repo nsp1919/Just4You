@@ -17,10 +17,10 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { COLLECTIONS } from "@/lib/constants";
-import { referralCodeFor, getStoredReferral, clearStoredReferral } from "@/lib/referral";
+import { getStoredReferral, clearStoredReferral } from "@/lib/referral";
 
 interface AuthContextValue {
   user: User | null;
@@ -41,9 +41,13 @@ interface UserDoc {
   isBlocked: boolean;
   referralCode?: string;
   referredBy?: string;
+  walletBalance?: number;
+  referralJoinBonusGranted?: boolean;
+  /** Legacy balance migrated into walletBalance on profile initialization. */
   referralCredits?: number;
   referralCount?: number;
   freeAddonCredits?: number;
+  referralRedeemed?: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -54,46 +58,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribeProfile: (() => void) | undefined;
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      unsubscribeProfile?.();
+      unsubscribeProfile = undefined;
       setUser(firebaseUser);
       if (firebaseUser) {
-        const ref = doc(db, COLLECTIONS.USERS, firebaseUser.uid);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          setUserDoc(snap.data() as UserDoc);
+        try {
+          await createUserDoc(firebaseUser, firebaseUser.displayName ?? "");
+          unsubscribeProfile = onSnapshot(
+            doc(db, COLLECTIONS.USERS, firebaseUser.uid),
+            (snapshot) => {
+              if (snapshot.exists()) setUserDoc(snapshot.data() as UserDoc);
+            },
+            (error) => console.error("Failed to sync user wallet:", error),
+          );
+        } catch (error) {
+          console.error("Failed to initialize user profile:", error);
+          setUserDoc(null);
         }
       } else {
         setUserDoc(null);
       }
       setLoading(false);
     });
-    return unsub;
+    return () => {
+      unsub();
+      unsubscribeProfile?.();
+    };
   }, []);
 
   async function createUserDoc(firebaseUser: User, name: string) {
-    const ref = doc(db, COLLECTIONS.USERS, firebaseUser.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      // A referral code captured from ?ref= is consumed here. Guard against
-      // self-referral (a user's own code shouldn't credit themselves).
-      const ownCode = referralCodeFor(firebaseUser.uid);
-      const referredByCode = getStoredReferral();
-      const referredBy = referredByCode && referredByCode !== ownCode ? referredByCode : undefined;
-
-      const data: UserDoc = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email!,
-        name,
-        role: firebaseUser.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? "admin" : "user",
-        isBlocked: false,
-        referralCode: ownCode,
-        referralCredits: 0,
-      };
-      if (firebaseUser.photoURL) data.photoURL = firebaseUser.photoURL;
-      if (referredBy) data.referredBy = referredBy;
-      await setDoc(ref, { ...data, createdAt: serverTimestamp() });
+    const token = await firebaseUser.getIdToken();
+    const response = await fetch("/api/user/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ name, referralCode: getStoredReferral() }),
+    });
+    if (!response.ok) throw new Error("Profile initialization failed");
+    const result = await response.json();
+    if (result.profile) {
       clearStoredReferral();
-      setUserDoc(data);
+      setUserDoc(result.profile as UserDoc);
     }
   }
 

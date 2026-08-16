@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
+import { motion, useInView, useReducedMotion, AnimatePresence } from 'framer-motion'
 import "./landing.css"
 import {
   Sparkles, ArrowRight, Play, Check, Star, ChevronLeft, ChevronRight,
   Quote, Music2, Images, Lock, Clock, MessageCircle, Gift, Zap, Shield, Share2,
-  Menu, X, Heart, Camera, Mail
+  Menu, X, Heart, Camera, Mail, Globe2, Palette, Code2, Rocket
 } from 'lucide-react'
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
@@ -43,7 +43,7 @@ const HOW_IT_WORKS = [
   { n: '01', title: 'Choose Your Occasion', desc: 'Select from Birthday, Anniversary, Proposal, Kids Birthday, Graduation, or create a fully custom celebration website.', emoji: '🎯' },
   { n: '02', title: 'Fill In The Details', desc: 'Add the recipient\'s name, your heartfelt personal message, pick a beautiful visual theme & set the celebration date.', emoji: '✍️' },
   { n: '03', title: 'Upload Photos & Music', desc: 'Add up to 8 photos, choose a preset music track or upload your own song, even record a personal voice message.', emoji: '📸' },
-  { n: '04', title: 'Secure Check & Go Live', desc: 'Complete secure payments. Your beautiful surprise website is ready within 24 hours — sometimes instantly!', emoji: '✅' },
+  { n: '04', title: 'Secure Check & Go Live', desc: 'Complete secure payment and go live instantly with selected themes, or choose a handcrafted delivery option.', emoji: '✅' },
 ]
 
 const FEATURES = [
@@ -53,7 +53,7 @@ const FEATURES = [
   { icon: MessageCircle, title: 'Guest Wishes Section', desc: 'Allow friends & family to leave messages on the surprise page.', color: '#ff7d6b' },
   { icon: Lock, title: 'Password Protected', desc: 'Ensure absolute privacy with optional passcode protection.', color: '#f7a83a' },
   { icon: Gift, title: '6 Premium Themes', desc: 'Pick the theme that matches their vibe perfectly.', color: '#fb923c' },
-  { icon: Zap, title: 'Ready in 24 Hours', desc: 'Express delivery ensuring your site goes live on schedule.', color: '#ff9e4f' },
+  { icon: Zap, title: 'Instant Delivery Available', desc: 'Launch selected ready-to-go themes instantly, with express delivery for custom touches.', color: '#ff9e4f' },
   { icon: Share2, title: 'Easy Sharing', desc: 'Get one beautiful link to share via WhatsApp, Instagram, or email.', color: '#ff6f9c' },
   { icon: Shield, title: 'Hosted 1 Full Year', desc: 'Secure hosting active for 365 days of celebration.', color: '#ffbe3d' },
 ]
@@ -209,6 +209,7 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
     { label: 'How It Works', href: '#how' },
     { label: 'Occasions',    href: '#occasions' },
     { label: 'Features',     href: '#features' },
+    { label: 'Custom Sites', href: '#custom-websites' },
     { label: 'Pricing',      href: '#pricing' },
     { label: 'Testimonials', href: '#testimonials' },
   ]
@@ -297,6 +298,7 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
 /* ─── HERO ──────────────────────────────────────────────────────────────────── */
 function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
   const [currentOcc, setCurrentOcc] = useState(0)
+  const shouldReduceMotion = useReducedMotion()
   // Particles use Math.random(), so generate them only on the client (after
   // mount) to avoid a server/client hydration mismatch.
   const [particles, setParticles] = useState<typeof PARTICLES>([])
@@ -305,6 +307,14 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
     const t = setInterval(() => setCurrentOcc(c => (c + 1) % OCCASIONS.length), 3000)
     return () => clearInterval(t)
   }, [])
+
+  const storyMoments = [
+    { Icon: Images, label: 'Favorite photos' },
+    { Icon: Music2, label: 'Their song' },
+    { Icon: Clock, label: 'Midnight reveal' },
+    { Icon: Heart, label: 'Your message' },
+    { Icon: Zap, label: 'Instantly live' },
+  ]
 
   return (
     <section style={{
@@ -350,7 +360,7 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
                 initial={{ opacity:0,y:6 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0,y:-6 }}
                 transition={{ duration:0.35 }}
                 style={{ fontWeight:600,fontSize:'0.9rem',color:'#ffb877',fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:'0.02em' }}>
-                {OCCASIONS[currentOcc].title}
+                Instant delivery available · {OCCASIONS[currentOcc].title}
               </motion.span>
             </AnimatePresence>
             <Sparkles size={14} style={{ color:'#ffb877' }} />
@@ -362,7 +372,12 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
             style={{ fontSize:'clamp(2.5rem, 6.5vw, 4.8rem)',fontWeight:900,lineHeight:1.15,letterSpacing:'-0.03em',
               color:'#fff5ec',marginBottom:24 }}>
             Make Every Celebration <br />
-            <span className="g-text">Unforgettable. ✨</span>
+            <span className="hero-headline-finish">
+              <span className="g-text">Unforgettable.</span>
+              <motion.span className="hero-headline-spark" aria-hidden="true"
+                animate={shouldReduceMotion?undefined:{ rotate:[-8,8,-8],scale:[1,1.14,1] }}
+                transition={shouldReduceMotion?undefined:{ duration:2.8,repeat:Infinity,ease:'easeInOut' }}>✨</motion.span>
+            </span>
           </motion.h1>
 
           {/* Subheading */}
@@ -370,13 +385,13 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
             initial={{ opacity:0,y:22 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.55,duration:0.7 }}
             style={{ fontSize:'1.15rem',lineHeight:1.8,color:'#b9a6be',
               maxWidth:620,margin:'0 auto 48px',fontWeight:400,letterSpacing:'0.01em' }}>
-            We hand-craft beautiful, personalized surprise websites for your loved ones — filled with photos, music, timelines & heartfelt messages they'll treasure forever.
+            Create a personalized surprise website with photos, music, timelines and heartfelt messages. Pick an instant-delivery theme or make every detail your own.
           </motion.p>
 
           {/* CTAs */}
           <motion.div
             initial={{ opacity:0,y:22 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.7,duration:0.7 }}
-            style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center',alignItems:'center',marginBottom:64 }}>
+            style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center',alignItems:'center',marginBottom:42 }}>
             <button onClick={onOpenAuth} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>
               Create My Surprise Website <ArrowRight size={18} />
             </button>
@@ -389,12 +404,28 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
             </a>
           </motion.div>
 
+          <motion.div className="hero-story-reel"
+            initial={shouldReduceMotion?false:{ opacity:0,y:18 }} animate={{ opacity:1,y:0 }}
+            transition={{ delay:0.82,duration:0.7 }} aria-label="Your surprise website story">
+            <motion.div className="hero-story-track"
+              animate={shouldReduceMotion?undefined:{ x:['0%','-50%'] }}
+              transition={shouldReduceMotion?undefined:{ duration:18,repeat:Infinity,ease:'linear' }}>
+              {[...storyMoments,...storyMoments].map(({ Icon,label },index) => (
+                <div className="hero-story-moment" key={`${label}-${index}`} aria-hidden={index >= storyMoments.length}>
+                  <span><Icon size={15} /></span>
+                  <strong>{label}</strong>
+                  <ArrowRight size={13} className="hero-story-arrow" />
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+
           {/* Stats Bar */}
           <motion.div
             initial={{ opacity:0,y:16 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.85,duration:0.6 }}
             style={{ display:'flex',flexWrap:'wrap',justifyContent:'center',gap:'24px 64px', width: '100%',
               paddingTop:36,borderTop:'1px solid rgba(255,224,196,0.09)' }}>
-            {[['6','Stunning Themes'],['24 hrs','Fast Delivery'],['1 Year','Hosting Included'],['₹149','Starting Price']].map(([v,l]) => (
+            {[['6','Stunning Themes'],['Instant','Delivery Available'],['1 Year','Hosting Included'],['₹149','Starting Price']].map(([v,l]) => (
               <div key={l} style={{ textAlign:'center' }}>
                 <div className="g-text-gold" style={{ fontSize:'1.8rem',fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{v}</div>
                 <div style={{ fontSize:'0.8rem',color:'#8f8098',marginTop:6,fontWeight:500,letterSpacing:'0.04em',textTransform:'uppercase' }}>{l}</div>
@@ -528,6 +559,55 @@ function FeaturesGrid() {
             </motion.div>
           ))}
         </div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── CUSTOM WEBSITE STUDIO ───────────────────────────────────────────────── */
+function CustomWebsiteStudio() {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-100px' })
+  const shouldReduceMotion = useReducedMotion()
+  const services = [
+    { Icon: Palette, title: 'Made for your brand', desc: 'A visual direction shaped around your audience, voice and goals.' },
+    { Icon: Code2, title: 'Built for every screen', desc: 'Fast, responsive pages with thoughtful interactions and clean UX.' },
+    { Icon: Rocket, title: 'Ready to launch', desc: 'From first idea to deployment, we help bring the complete site online.' },
+  ]
+
+  return (
+    <section id="custom-websites" ref={ref} className="custom-studio">
+      <div className="custom-studio-rule" aria-hidden="true" />
+      <div className="wrap custom-studio-grid">
+        <motion.div
+          initial={shouldReduceMotion?false:{ opacity:0,y:34 }} animate={inView?{opacity:1,y:0}:{}}
+          transition={{ duration:0.75,ease:[0.22,1,0.36,1] }}>
+          <span className="custom-studio-kicker"><Globe2 size={15} /> Beyond celebrations</span>
+          <h2 className="serif custom-studio-title">
+            Need something entirely <span className="g-text">your own?</span>
+          </h2>
+          <p className="custom-studio-copy">
+            We also create fully customised websites for businesses, portfolios, events and bold new ideas. Every page is designed around your story, not squeezed into a template.
+          </p>
+
+          <div className="custom-service-list">
+            {services.map(({ Icon, title, desc }, index) => (
+              <motion.div key={title} className="custom-service-item"
+                initial={shouldReduceMotion?false:{ opacity:0,y:22 }} animate={inView?{opacity:1,y:0}:{}}
+                transition={{ duration:0.55,delay:0.16 + index*0.1 }}>
+                <span className="custom-service-icon"><Icon size={18} /></span>
+                <span><strong>{title}</strong><small>{desc}</small></span>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.a href="mailto:info@novantixtech.com?subject=Custom%20website%20enquiry"
+            className="btn btn-main custom-email-cta"
+            initial={shouldReduceMotion?false:{ opacity:0,y:18 }} animate={inView?{opacity:1,y:0}:{}}
+            transition={{ duration:0.55,delay:0.48 }}>
+            <Mail size={18} /> Email info@novantixtech.com
+          </motion.a>
+        </motion.div>
       </div>
     </section>
   )
@@ -753,15 +833,9 @@ function FinalCTA({ onOpenAuth }: { onOpenAuth: () => void }) {
               <button onClick={onOpenAuth} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>
                 Create Surprise Website <ArrowRight size={18} />
               </button>
-              <a href="https://wa.me/919999999999?text=Hi!%20I%20want%20to%20create%20a%20surprise%20website."
-                target="_blank" rel="noopener noreferrer"
-                className="btn btn-ghost" style={{ fontSize:'1.05rem',padding:'15px 32px' }}>
-                <MessageCircle size={18} style={{ color:'#25D366' }} />
-                WhatsApp Us
-              </a>
             </div>
             <p style={{ marginTop:36,color:'#6a5d73',fontSize:'0.84rem',fontWeight:500 }}>
-              ✨ 6 beautiful themes &nbsp;·&nbsp; ⚡ Ready in 24 hrs &nbsp;·&nbsp; 🔒 Secure Razorpay checkout
+              ✨ 6 beautiful themes &nbsp;·&nbsp; ⚡ Instant delivery available &nbsp;·&nbsp; 🔒 Secure Razorpay checkout
             </p>
           </div>
         </motion.div>
@@ -775,7 +849,7 @@ function Footer({ onOpenAuth }: { onOpenAuth: () => void }) {
   const socials = [
     { Icon: Camera, label: 'Instagram', color: '#f472b6' },
     { Icon: X,      label: 'Twitter/X', color: '#ffb877' },
-    { Icon: Mail,   label: 'Email',     color: '#fbbf24' },
+    { Icon: Mail,   label: 'Email',     color: '#fbbf24', href: 'mailto:info@novantixtech.com' },
   ]
   return (
     <footer style={{ background:'#0f0913',borderTop:'1px solid rgba(255,224,196,0.07)',padding:'64px 0 32px' }}>
@@ -796,8 +870,8 @@ function Footer({ onOpenAuth }: { onOpenAuth: () => void }) {
               Turning Special Moments Into Beautiful Digital Memories. Premium personalized surprise websites since 2023.
             </p>
             <div style={{ display:'flex',gap:12 }}>
-              {socials.map(({Icon,label,color}) => (
-                <a key={label} href="#" title={label}
+              {socials.map(({Icon,label,color,href}) => (
+                <a key={label} href={href ?? '#'} title={label}
                   style={{ width:36,height:36,borderRadius:'50%',background:'rgba(255,240,228,0.05)',
                     border:'1px solid rgba(255,224,196,0.1)',color:'#8f8098',display:'flex',alignItems:'center',
                     justifyContent:'center',textDecoration:'none',transition:'all 0.2s' }}
@@ -845,7 +919,9 @@ function Footer({ onOpenAuth }: { onOpenAuth: () => void }) {
           paddingTop:24,borderTop:'1px solid rgba(255,224,196,0.07)',flexWrap:'wrap',gap:16 }}>
           <p style={{ color:'#6a5d73',fontSize:'0.82rem',fontWeight:500 }}>© 2026 Just4You.buzz · All rights reserved</p>
           <p style={{ color:'#6a5d73',fontSize:'0.82rem',display:'flex',alignItems:'center',gap:5,fontWeight:500 }}>
-            Made with <Heart size={11} style={{ color:'#ff5f93' }} fill="#ff5f93" /> for every celebration
+            A product from <a href="https://novantixtech.com" target="_blank" rel="noopener noreferrer"
+              style={{ color:'#ffb877',textDecoration:'none',fontWeight:700 }}>NovantixTech.com</a>
+            <Heart size={11} style={{ color:'#ff5f93' }} fill="#ff5f93" />
           </p>
         </div>
       </div>
@@ -869,6 +945,7 @@ export default function LandingClient() {
       <Occasions onOpenAuth={handleOpenAuth} />
       <ThemeShowcase />
       <FeaturesGrid />
+      <CustomWebsiteStudio />
       <Testimonials />
       <Pricing />
       <FinalCTA onOpenAuth={handleOpenAuth} />

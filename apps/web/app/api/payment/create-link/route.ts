@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { PRICE_PAISE, COLLECTIONS, computePricePaise } from "@/lib/constants";
+import { COLLECTIONS } from "@/lib/constants";
+import { releaseCheckoutBenefits, reserveCheckoutBenefits } from "@/lib/referral-server";
 import Razorpay from "razorpay";
 
 // Force dynamic — this route uses env vars and must not be statically rendered
@@ -40,6 +41,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Already paid" }, { status: 400 });
     }
 
+    if (celeb.referralBenefitsStatus === "reserved" && celeb.razorpayPaymentLinkUrl) {
+      return NextResponse.json({
+        paymentUrl: celeb.razorpayPaymentLinkUrl,
+        amount: celeb.chargedPaise,
+        referralDiscountPaise: celeb.referralDiscountPaise ?? 0,
+        walletAppliedInr: celeb.walletAppliedInr ?? celeb.referralCreditAppliedInr ?? 0,
+        freeAddonFeatureId: celeb.freeAddonFeatureId ?? null,
+        freeAddonDiscountPaise: celeb.freeAddonDiscountPaise ?? 0,
+      });
+    }
+
     // Initialize Razorpay INSIDE the handler (not at module level)
     // so it doesn't run during Next.js build time
     const razorpay = new Razorpay({
@@ -49,31 +61,51 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://just4you.buzz";
 
-    // Amount is derived from the persisted feature selection (never the client).
     const celebFeatures: string[] = Array.isArray(celeb.selectedFeatures) ? celeb.selectedFeatures : [];
-    const amountPaise = computePricePaise(celebFeatures) || PRICE_PAISE;
-    await celebRef.update({ pricePaise: amountPaise });
+    let benefits;
+    try {
+      benefits = await reserveCheckoutBenefits(userId, celebrationId, celebFeatures);
+    } catch (error: any) {
+      const status = error?.message === "CHECKOUT_ALREADY_PENDING" ? 409 : 400;
+      return NextResponse.json({ error: "Unable to reserve checkout benefits. Please retry shortly." }, { status });
+    }
 
-    // Create a unique Razorpay Payment Link with celebrationId in notes
-    const paymentLink = await (razorpay as any).paymentLink.create({
-      amount: amountPaise,
-      currency: "INR",
-      accept_partial: false,
-      description: `Just4You — ${celeb.recipientName}'s ${celeb.occasionType || "birthday"} website`,
-      notes: {
-        celebrationId: celebrationId,
-        userId: userId,
-      },
-      callback_url: `${appUrl}/dashboard/payment-return`,
-      callback_method: "get",
-      notify: {
-        email: false,
-        sms: false,
-      },
-      reminder_enable: false,
+    let paymentLink;
+    try {
+      paymentLink = await (razorpay as any).paymentLink.create({
+        amount: benefits.amountPaise,
+        currency: "INR",
+        accept_partial: false,
+        description: `Just4You — ${celeb.recipientName}'s ${celeb.occasionType || "birthday"} website`,
+        notes: { celebrationId, userId },
+        callback_url: `${appUrl}/dashboard/payment-return`,
+        callback_method: "get",
+        notify: { email: false, sms: false },
+        reminder_enable: false,
+      });
+    } catch (error) {
+      await releaseCheckoutBenefits(celebrationId, benefits.reservationId);
+      throw error;
+    }
+
+    try {
+      await celebRef.update({
+        razorpayPaymentLinkId: paymentLink.id,
+        razorpayPaymentLinkUrl: paymentLink.short_url,
+      });
+    } catch (error) {
+      await releaseCheckoutBenefits(celebrationId, benefits.reservationId);
+      throw error;
+    }
+
+    return NextResponse.json({
+      paymentUrl: paymentLink.short_url,
+      amount: benefits.amountPaise,
+      referralDiscountPaise: benefits.referralDiscountPaise,
+      walletAppliedInr: benefits.walletAppliedInr,
+      freeAddonFeatureId: benefits.freeAddonFeatureId,
+      freeAddonDiscountPaise: benefits.freeAddonDiscountPaise,
     });
-
-    return NextResponse.json({ paymentUrl: paymentLink.short_url });
   } catch (error: any) {
     console.error("Create payment link error:", error);
     return NextResponse.json(

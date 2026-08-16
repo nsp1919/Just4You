@@ -2,29 +2,31 @@
 import { useEffect, useState } from "react";
 import { Copy, Check, Gift, Trophy } from "lucide-react";
 import { referralLinkFor } from "@/lib/referral";
-import { REFERRAL_DISCOUNT_INR, REFERRAL_REWARD_INR, REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
+import { REFERRAL_JOIN_WALLET_BONUS_INR, REFERRAL_REWARD_INR, REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
 
 interface Leader {
   rank: number;
   name: string;
-  credits: number;
+  walletBalance: number;
   referrals: number;
 }
 
 /**
  * Refer & Earn card for the dashboard. Each user gets a personal share link;
- * friends who sign up through it save ₹100, and the referrer earns ₹100 in
- * credit once that friend's first surprise is paid for. Shows milestone
+ * friends who sign up through it receive ₹50 in their wallet, and the referrer
+ * earns ₹100 in their wallet once that friend's first surprise is paid for. Shows milestone
  * progress and a public leaderboard for social proof.
  */
 export default function ReferralCard({
   uid,
-  credits = 0,
+  walletBalance = 0,
   referralCount = 0,
+  freeAddonCredits = 0,
 }: {
   uid: string;
-  credits?: number;
+  walletBalance?: number;
   referralCount?: number;
+  freeAddonCredits?: number;
 }) {
   const [copied, setCopied] = useState(false);
   const [leaders, setLeaders] = useState<Leader[]>([]);
@@ -50,7 +52,7 @@ export default function ReferralCard({
   };
 
   const shareWhatsApp = () => {
-    const text = `I made an amazing personalized surprise website on Just4You.buzz 🎉 Use my link and get ₹${REFERRAL_DISCOUNT_INR} off your first one:\n\n${link}`;
+    const text = `I made an amazing personalized surprise website on Just4You.buzz 🎉 Join with my link and get ₹${REFERRAL_JOIN_WALLET_BONUS_INR} in your wallet:\n\n${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -67,23 +69,21 @@ export default function ReferralCard({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1.5">
             <Gift size={18} style={{ color: "#ff8a5c" }} />
-            <h3 className="font-bold text-lg">Give ₹{REFERRAL_DISCOUNT_INR}, get ₹{REFERRAL_REWARD_INR}</h3>
-            {credits > 0 && (
-              <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
-                ₹{credits} earned
-              </span>
-            )}
+            <h3 className="font-bold text-lg">Friend gets ₹{REFERRAL_JOIN_WALLET_BONUS_INR}, you get ₹{REFERRAL_REWARD_INR}</h3>
+            <span id="wallet-balance" className="ml-1 text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/25 whitespace-nowrap">
+              Wallet Balance: ₹{walletBalance}
+            </span>
           </div>
           <p className="text-sm text-[var(--text-muted)] max-w-md mb-3">
-            Share your link. Friends get ₹{REFERRAL_DISCOUNT_INR} off their first surprise, and you
-            earn ₹{REFERRAL_REWARD_INR} credit when they create theirs.
+            Friends receive ₹{REFERRAL_JOIN_WALLET_BONUS_INR} in their wallet when they join. You receive
+            ₹{REFERRAL_REWARD_INR} in your wallet after their first successful purchase. Wallet funds apply automatically at checkout.
           </p>
           {/* Milestone progress */}
           <div className="mb-4">
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="text-[var(--text-muted)]">
-                {toNextMilestone === REFERRAL_MILESTONE_COUNT && referralCount > 0
-                  ? "🎁 Free add-on unlocked!"
+                {freeAddonCredits > 0
+                  ? `${freeAddonCredits} free premium add-on${freeAddonCredits > 1 ? "s" : ""} available`
                   : `${toNextMilestone} more referral${toNextMilestone > 1 ? "s" : ""} → a FREE premium add-on`}
               </span>
               <span className="font-semibold text-orange-300">{referralCount % REFERRAL_MILESTONE_COUNT}/{REFERRAL_MILESTONE_COUNT}</span>
@@ -126,7 +126,7 @@ export default function ReferralCard({
                     <span className="w-4 text-center">{l.rank === 1 ? "🥇" : l.rank === 2 ? "🥈" : l.rank === 3 ? "🥉" : l.rank}</span>
                     <span className="text-white/80">{l.name}</span>
                   </span>
-                  <span className="font-semibold text-green-400">₹{l.credits}</span>
+                  <span className="font-semibold text-green-400">₹{l.walletBalance}</span>
                 </div>
               ))}
             </div>

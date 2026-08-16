@@ -10,6 +10,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "migrate:referrals": "node scripts/migrate-referral-users.mjs",
+    "test:referrals": "node --test scripts/tests/*.test.mjs",
     "start": "node server.js",
     "start:wish": "node server_wish.js",
     "package:hostinger": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-hostinger.ps1"
