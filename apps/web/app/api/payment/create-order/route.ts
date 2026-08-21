@@ -15,6 +15,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const requestOrigin = req.headers.get("origin") || req.nextUrl.origin;
+  let requestHostname = "";
+  try {
+    requestHostname = new URL(requestOrigin).hostname;
+  } catch {
+    requestHostname = req.nextUrl.hostname;
+  }
+  const isLocalRequest = requestHostname === "localhost"
+    || requestHostname === "127.0.0.1"
+    || requestHostname === "::1";
+  if (keyId.startsWith("rzp_live_") && isLocalRequest) {
+    return NextResponse.json(
+      { error: "Live payments cannot be tested from localhost. Use Razorpay test keys locally, or open checkout on https://just4you.buzz." },
+      { status: 403 }
+    );
+  }
+
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
 
   try {
@@ -51,7 +68,14 @@ export async function POST(req: NextRequest) {
     const celebFeatures: string[] = Array.isArray(celebSnap.data()?.selectedFeatures)
       ? celebSnap.data()!.selectedFeatures
       : [];
-    const existingReservation = celebSnap.data()?.referralBenefitsStatus === "reserved";
+    let existingReservation = celebSnap.data()?.referralBenefitsStatus === "reserved";
+    if (existingReservation && celebSnap.data()?.paymentStatus === "failed") {
+      await releaseCheckoutBenefits(
+        celebrationId,
+        celebSnap.data()?.referralBenefitReservationId,
+      );
+      existingReservation = false;
+    }
     if (existingReservation && celebSnap.data()?.razorpayOrderId) {
       return NextResponse.json({
         orderId: celebSnap.data()!.razorpayOrderId,
@@ -61,7 +85,7 @@ export async function POST(req: NextRequest) {
         walletAppliedInr: celebSnap.data()!.walletAppliedInr ?? celebSnap.data()!.referralCreditAppliedInr ?? 0,
         freeAddonFeatureId: celebSnap.data()!.freeAddonFeatureId ?? null,
         freeAddonDiscountPaise: celebSnap.data()!.freeAddonDiscountPaise ?? 0,
-        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        keyId,
       });
     }
     let benefits;
@@ -100,7 +124,7 @@ export async function POST(req: NextRequest) {
       walletAppliedInr: benefits.walletAppliedInr,
       freeAddonFeatureId: benefits.freeAddonFeatureId,
       freeAddonDiscountPaise: benefits.freeAddonDiscountPaise,
-      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      keyId,
     });
   } catch (error: any) {
     console.error("create-order error:", error);

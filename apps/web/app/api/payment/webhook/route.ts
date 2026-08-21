@@ -5,7 +5,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
 import { COLLECTIONS, VALIDITY_DAYS } from "@/lib/constants";
-import { settlePaidReferralBenefits } from "@/lib/referral-server";
+import { releaseCheckoutBenefits, settlePaidReferralBenefits } from "@/lib/referral-server";
 
 export const dynamic = "force-dynamic";
 // Razorpay signs the exact raw bytes it POSTs — the Node runtime lets us read
@@ -273,6 +273,7 @@ export async function POST(req: NextRequest) {
       case "payment.failed": {
         if (celebrationId) {
           try {
+            await releaseCheckoutBenefits(celebrationId);
             await adminDb
               .collection(COLLECTIONS.CELEBRATIONS)
               .doc(celebrationId)
