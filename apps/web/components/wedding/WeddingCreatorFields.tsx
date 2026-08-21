@@ -269,6 +269,11 @@ export function WeddingPosterEditor({ value, onChange }: WeddingDataProps) {
               {ceremony.image ? (
                 <>
                   <img src={ceremony.image} alt={`${ceremony.name} poster`} className="h-full w-full object-cover" />
+                  <label className="absolute bottom-2 left-2 inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg bg-black/75 px-3 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/90">
+                    <input className="sr-only" type="file" accept="image/*" disabled={uploadingId !== null} onChange={(event) => event.target.files?.[0] && void uploadPoster(ceremony, event.target.files[0])} />
+                    {uploadingId === ceremony.id ? <Upload className="animate-pulse" size={14} /> : <ImagePlus size={14} />}
+                    {uploadingId === ceremony.id ? "Uploading..." : "Replace poster"}
+                  </label>
                   <button type="button" onClick={() => onChange({ ...value, ceremonies: updateCeremony(value.ceremonies, ceremony.id, { image: "" }) })} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white" aria-label={`Remove ${ceremony.name} poster`}><X size={14} /></button>
                 </>
               ) : (

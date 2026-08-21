@@ -11,7 +11,11 @@ import { Sparkles, ArrowRight, Heart } from "lucide-react";
  */
 const MAIN_APP_URL = process.env.NEXT_PUBLIC_MAIN_APP_URL || "https://just4you.buzz";
 
-export default function BrandFooter() {
+interface BrandFooterProps {
+  creditText?: string;
+}
+
+export default function BrandFooter({ creditText }: BrandFooterProps) {
   return (
     <footer
       style={{
@@ -23,6 +27,19 @@ export default function BrandFooter() {
       }}
     >
       <div style={{ maxWidth: 460, margin: "0 auto" }}>
+        {creditText && (
+          <p
+            style={{
+              color: "#ffe6d0",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              lineHeight: 1.5,
+              margin: "0 0 16px",
+            }}
+          >
+            {creditText}
+          </p>
+        )}
         <div
           style={{
             display: "inline-flex",

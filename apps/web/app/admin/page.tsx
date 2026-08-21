@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import {
-  collection, query, orderBy, getDocs, updateDoc, doc
+  collection, query, orderBy, getDocs, updateDoc, doc, serverTimestamp
 } from "firebase/firestore";
 import { COLLECTIONS, computePriceInr } from "@/lib/constants";
-import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone } from "lucide-react";
+import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine } from "lucide-react";
 import Link from "next/link";
 
 interface PrebookOrder {
@@ -45,6 +45,9 @@ export default function AdminPage() {
   const [prebookOrders, setPrebookOrders] = useState<PrebookOrder[]>([]);
   const [savingLaunch, setSavingLaunch] = useState(false);
   const [processingOrder, setProcessingOrder] = useState<string | null>(null);
+  const [editingCreditId, setEditingCreditId] = useState<string | null>(null);
+  const [creditDraft, setCreditDraft] = useState("");
+  const [savingCreditId, setSavingCreditId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading) {
@@ -99,6 +102,38 @@ export default function AdminPage() {
   const toggleGalleryApproved = async (id: string, current: boolean) => {
     await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, id), { galleryApproved: !current });
     setCelebrations((cs) => cs.map((c) => c.id === id ? { ...c, galleryApproved: !current } : c));
+  };
+
+  const editCredit = (celebration: any) => {
+    setEditingCreditId(celebration.id);
+    setCreditDraft(typeof celebration.creditText === "string" ? celebration.creditText : "");
+    setWithdrawalError("");
+  };
+
+  const saveCredit = async (celebrationId: string) => {
+    const creditText = creditDraft.trim();
+    if (creditText.length > 120) {
+      setWithdrawalError("Website credit must be 120 characters or fewer");
+      return;
+    }
+
+    setSavingCreditId(celebrationId);
+    setWithdrawalError("");
+    try {
+      await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, celebrationId), {
+        creditText,
+        creditUpdatedAt: serverTimestamp(),
+      });
+      setCelebrations((items) => items.map((item) => item.id === celebrationId
+        ? { ...item, creditText }
+        : item));
+      setEditingCreditId(null);
+      setCreditDraft("");
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to save website credit");
+    } finally {
+      setSavingCreditId(null);
+    }
   };
 
   const processWithdrawal = async (requestId: string, action: "paid" | "rejected") => {
@@ -442,7 +477,10 @@ export default function AdminPage() {
                 <tbody>
                   {(tab === "overview" ? filteredCelebrations.slice(0, 10) : filteredCelebrations).map((c) => (
                     <tr key={c.id} className="border-b border-purple-500/5 hover:bg-purple-500/5 transition-colors">
-                      <td className="px-4 py-3 font-medium">{c.recipientName}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <div>{c.recipientName}</div>
+                        {c.creditText && <div className="mt-1 max-w-48 truncate text-xs font-normal text-amber-200/80">{c.creditText}</div>}
+                      </td>
                       <td className="px-4 py-3 text-purple-400 font-mono text-xs">{c.slug || "—"}</td>
                       <td className="px-4 py-3 capitalize">{c.theme}</td>
                       <td className="px-4 py-3">{c.photos?.length ?? 0}</td>
@@ -458,7 +496,7 @@ export default function AdminPage() {
                       <td className="px-4 py-3 text-[var(--text-muted)] text-xs">
                         {c.createdAt?.toDate?.()?.toLocaleDateString("en-IN") ?? "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="min-w-80 px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button onClick={() => toggleBlockCelebration(c.id, c.isBlocked)}
                             className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all ${c.isBlocked ? "text-green-400" : "text-red-400"}`}
@@ -478,7 +516,38 @@ export default function AdminPage() {
                               💛 {c.galleryApproved ? "Featured" : "Feature"}
                             </button>
                           )}
+                          <button type="button" onClick={() => editCredit(c)}
+                            className="flex items-center gap-1 rounded bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20">
+                            <PencilLine size={11} /> {c.creditText ? "Edit credit" : "Add credit"}
+                          </button>
                         </div>
+                        {editingCreditId === c.id && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <input
+                              value={creditDraft}
+                              onChange={(event) => setCreditDraft(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") void saveCredit(c.id);
+                                if (event.key === "Escape") setEditingCreditId(null);
+                              }}
+                              maxLength={120}
+                              autoFocus
+                              placeholder="Created with love by..."
+                              aria-label={`Credit for ${c.recipientName}`}
+                              className="input-field min-w-0 flex-1 py-1.5 text-xs"
+                            />
+                            <button type="button" onClick={() => void saveCredit(c.id)} disabled={savingCreditId === c.id}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-green-500/10 text-green-300 transition hover:bg-green-500/20 disabled:opacity-50"
+                              title="Save credit" aria-label="Save credit">
+                              {savingCreditId === c.id ? <LoaderCircle size={13} className="animate-spin" /> : <Save size={13} />}
+                            </button>
+                            <button type="button" onClick={() => setEditingCreditId(null)} disabled={savingCreditId === c.id}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-white/5 text-[var(--text-muted)] transition hover:text-white disabled:opacity-50"
+                              title="Cancel editing" aria-label="Cancel editing">
+                              <XCircle size={13} />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === "updateSettings") {
       const launchDate = typeof body.launchAt === "string" && body.launchAt ? new Date(body.launchAt) : null;
-      if (body.prelaunchEnabled && (!launchDate || Number.isNaN(launchDate.getTime()))) {
+      if (body.prelaunchEnabled && (!launchDate || Number.isNaN(launchDate.getTime()) || launchDate.getTime() <= Date.now())) {
         return NextResponse.json({ error: "Choose a valid future launch date and time" }, { status: 400 });
       }
       await adminDb.collection(COLLECTIONS.APP_CONFIG).doc("siteLaunch").set({

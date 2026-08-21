@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { COLLECTIONS, OCCASIONS, OccasionType, formatInr } from "@/lib/constants";
-import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList, Video } from "lucide-react";
+import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList, ImagePlus } from "lucide-react";
 import ReferralCard from "@/components/ReferralCard";
 import QRCodeCard from "@/components/QRCodeCard";
 import { TiltCard, AnimatedCounter } from "@/components/TiltCard";
@@ -369,7 +369,7 @@ export default function DashboardPage() {
                         href={`/dashboard/edit/${c.id}`}
                         className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/25 bg-amber-400/[0.08] px-3 py-2 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/[0.14]"
                       >
-                        <Video size={14} /> Edit wedding details
+                        <ImagePlus size={14} /> Edit details & posters
                       </Link>
                     )}
 

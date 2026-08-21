@@ -27,8 +27,35 @@ service cloud.firestore {
           'paymentWaived', 'activationSource', 'manualActivationAt',
           'manualActivationReason', 'launchAt', 'launchScheduledBy',
           'launchScheduleUpdatedAt', 'adminOrderEmailClaimedAt',
-          'adminOrderEmailSentAt'
+          'adminOrderEmailSentAt', 'creditText', 'creditUpdatedAt'
         ]);
+      }
+
+      function weddingCeremonyPosterOnly(index) {
+        return resource.data.weddingData.ceremonies.size() <= index
+          || (request.resource.data.weddingData.ceremonies[index]
+                .diff(resource.data.weddingData.ceremonies[index])
+                .affectedKeys().hasOnly(['image'])
+              && (!request.resource.data.weddingData.ceremonies[index]
+                    .diff(resource.data.weddingData.ceremonies[index])
+                    .affectedKeys().hasAny(['image'])
+                || (request.resource.data.weddingData.ceremonies[index].image is string
+                  && request.resource.data.weddingData.ceremonies[index].image.size() <= 2048
+                  && (request.resource.data.weddingData.ceremonies[index].image == ''
+                    || request.resource.data.weddingData.ceremonies[index].image
+                      .matches('https://res.cloudinary.com/.+')))));
+      }
+
+      function weddingCeremonyPostersOnly() {
+        return request.resource.data.weddingData.ceremonies is list
+          && request.resource.data.weddingData.ceremonies.size()
+            == resource.data.weddingData.ceremonies.size()
+          && weddingCeremonyPosterOnly(0)
+          && weddingCeremonyPosterOnly(1)
+          && weddingCeremonyPosterOnly(2)
+          && weddingCeremonyPosterOnly(3)
+          && weddingCeremonyPosterOnly(4)
+          && weddingCeremonyPosterOnly(5);
       }
 
       function paidOwnerUpdateIsWeddingDetailsOnly() {
@@ -39,7 +66,10 @@ service cloud.firestore {
               && request.resource.data.diff(resource.data).affectedKeys()
                 .hasAll(['weddingData', 'updatedAt'])
               && request.resource.data.weddingData.diff(resource.data.weddingData)
-                   .affectedKeys().hasOnly(['videoUrl', 'couple'])
+                    .affectedKeys().hasOnly(['videoUrl', 'couple', 'ceremonies'])
+                  && (!request.resource.data.weddingData.diff(resource.data.weddingData)
+                  .affectedKeys().hasAny(['ceremonies'])
+                 || weddingCeremonyPostersOnly())
               && (!request.resource.data.weddingData.diff(resource.data.weddingData)
                     .affectedKeys().hasAny(['videoUrl'])
                 || (request.resource.data.weddingData.videoUrl is string
@@ -111,7 +141,7 @@ service cloud.firestore {
                       'freeAddonDiscountPaise', 'referralBenefitReservationId',
                       'referralBenefitsStatus', 'referralBenefitsReservedAt',
                       'referralBenefitsReleasedAt', 'referralBenefitsSettledAt',
-                      'referralRewardSettled'
+                      'referralRewardSettled', 'creditText', 'creditUpdatedAt'
                     ]);
 
       // ── Reactions sub-collection (public guestbook) ────────────────────────

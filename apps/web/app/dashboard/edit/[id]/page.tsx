@@ -6,8 +6,11 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { ArrowLeft, CheckCircle, ExternalLink, Heart, Save, Video } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { createDefaultWeddingData, WeddingPosterEditor } from "@/components/wedding/WeddingCreatorFields";
 import { db } from "@/lib/firebase";
-import { COLLECTIONS } from "@/lib/constants";
+import { COLLECTIONS, type WeddingCeremonyDraft, type WeddingDataDraft } from "@/lib/constants";
+
+type PublishedWeddingCeremony = Omit<WeddingCeremonyDraft, "selected">;
 
 function normalizedVideoUrl(value: string): string | null {
   const trimmed = value.trim();
@@ -30,6 +33,8 @@ export default function EditWeddingDetailsPage() {
   const [partnerOne, setPartnerOne] = useState("");
   const [partnerTwo, setPartnerTwo] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [posterData, setPosterData] = useState<WeddingDataDraft | null>(null);
+  const [posterDirty, setPosterDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -64,8 +69,18 @@ export default function EditWeddingDetailsPage() {
           setProjectName(`${partnerOne} & ${partnerTwo}`);
         }
         setVideoUrl(data.weddingData?.videoUrl ?? "");
+        const publishedCeremonies = Array.isArray(data.weddingData?.ceremonies)
+          ? data.weddingData.ceremonies.map((ceremony: PublishedWeddingCeremony): WeddingCeremonyDraft => ({
+              ...ceremony,
+              selected: true,
+            }))
+          : [];
+        setPosterData({
+          ...createDefaultWeddingData(),
+          ceremonies: publishedCeremonies,
+        });
       } catch (loadError) {
-        console.error("Failed to load wedding video settings:", loadError);
+        console.error("Failed to load wedding settings:", loadError);
         setError("Unable to load this project. Please return to the dashboard and try again.");
       } finally {
         setLoading(false);
@@ -94,6 +109,10 @@ export default function EditWeddingDetailsPage() {
       return;
     }
 
+    if (!posterData) return;
+
+    const publishedCeremonies = posterData.ceremonies.map(({ selected: _selected, ...ceremony }) => ceremony);
+
     setSaving(true);
     setStatus("idle");
     setError("");
@@ -103,6 +122,7 @@ export default function EditWeddingDetailsPage() {
         "weddingData.couple.partnerTwo": normalizedPartnerTwo,
         "weddingData.couple.monogram": `${normalizedPartnerOne.charAt(0)} · ${normalizedPartnerTwo.charAt(0)}`.toUpperCase(),
         "weddingData.videoUrl": normalized,
+        "weddingData.ceremonies": publishedCeremonies,
         recipientName: `${normalizedPartnerOne} & ${normalizedPartnerTwo}`,
         updatedAt: serverTimestamp(),
       });
@@ -110,11 +130,12 @@ export default function EditWeddingDetailsPage() {
       setPartnerTwo(normalizedPartnerTwo);
       setProjectName(`${normalizedPartnerOne} & ${normalizedPartnerTwo}`);
       setVideoUrl(normalized);
+      setPosterDirty(false);
       setStatus("saved");
     } catch (saveError) {
-      console.error("Failed to update wedding video link:", saveError);
+      console.error("Failed to update wedding settings:", saveError);
       setStatus("error");
-      setError("The video link could not be saved. Please try again.");
+      setError("Your wedding changes could not be saved. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -137,7 +158,7 @@ export default function EditWeddingDetailsPage() {
 
         <div className="mb-8">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Paid wedding project</p>
-          <h1 className="font-playfair text-3xl font-bold text-white sm:text-4xl">Edit wedding details</h1>
+          <h1 className="font-playfair text-3xl font-bold text-white sm:text-4xl">Edit wedding details & posters</h1>
           <p className="mt-2 text-sm text-[var(--text-muted)]">{projectName}</p>
         </div>
 
@@ -186,6 +207,25 @@ export default function EditWeddingDetailsPage() {
               </label>
             </div>
 
+            {posterData && (
+              <>
+                <WeddingPosterEditor
+                  value={posterData}
+                  onChange={(nextPosterData) => {
+                    setPosterData(nextPosterData);
+                    setPosterDirty(true);
+                    setStatus("idle");
+                    setError("");
+                  }}
+                />
+                {posterDirty && (
+                  <p className="mt-3 text-xs font-medium text-amber-200" role="status">
+                    Poster uploaded. Save your changes to publish the replacement.
+                  </p>
+                )}
+              </>
+            )}
+
             <div className="mb-6 flex items-start gap-3 border-b border-white/10 pb-6">
               <span className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-amber-400/10 text-amber-300"><Video size={20} /></span>
               <div>
@@ -218,11 +258,11 @@ export default function EditWeddingDetailsPage() {
               </a>
             )}
 
-            {status === "saved" && <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-emerald-300" role="status"><CheckCircle size={16} /> Wedding details updated.</p>}
+            {status === "saved" && <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-emerald-300" role="status"><CheckCircle size={16} /> Wedding details and posters updated.</p>}
             {status === "error" && <p className="mt-5 text-sm text-red-300" role="alert">{error}</p>}
 
             <button type="submit" disabled={saving} className="btn-primary mt-6 min-h-11 w-full justify-center disabled:cursor-wait disabled:opacity-60">
-              <Save size={17} /> {saving ? "Saving..." : "Save wedding details"}
+              <Save size={17} /> {saving ? "Saving..." : "Save wedding changes"}
             </button>
           </form>
         )}

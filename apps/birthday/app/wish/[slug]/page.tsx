@@ -98,6 +98,10 @@ export default async function WishPage({ params }: Props) {
     return notFound();
   }
 
+  const creditText = typeof celeb.creditText === "string" && celeb.creditText.trim()
+    ? celeb.creditText.trim().slice(0, 120)
+    : undefined;
+
   // Check expiry — expiresAt is now an ISO string after serialization
   const now = new Date();
   const expiresAt = celeb.expiresAt ? new Date(celeb.expiresAt) : null;
@@ -173,12 +177,15 @@ export default async function WishPage({ params }: Props) {
     event.setHours(0, 0, 0, 0);
     if (event > now) {
       return (
-        <CountdownPage
-          recipientName={celeb.recipientName}
-          eventDate={eventDate}
-          occasionType={celeb.occasionType}
-          theme={celeb.theme}
-        />
+        <>
+          <CountdownPage
+            recipientName={celeb.recipientName}
+            eventDate={eventDate}
+            occasionType={celeb.occasionType}
+            theme={celeb.theme}
+          />
+          <BrandFooter creditText={creditText} />
+        </>
       );
     }
   }
@@ -199,11 +206,14 @@ export default async function WishPage({ params }: Props) {
   // If a view was counted this request, set a 1-hour cookie so subsequent
   // reloads/back-navigations don't increment the counter again.
   const themeJsx = celeb.occasionType === "wedding" && celeb.weddingData ? (
-    <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
+    <>
+      <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
+      <BrandFooter creditText={creditText} />
+    </>
   ) : (
     <>
       <Theme celebration={celeb} />
-      <BrandFooter />
+      <BrandFooter creditText={creditText} />
     </>
   );
   if (!setViewCookie) return themeJsx;
