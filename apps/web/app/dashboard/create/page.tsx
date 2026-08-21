@@ -1395,6 +1395,11 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
               <span className="font-semibold">Online amount to pay</span>
               <span className="text-3xl font-bold gradient-text">{formatInr(finalAmountInr)}</span>
             </div>
+            {benefitPreview.walletAppliedInr > 0 && (
+              <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                Your available wallet balance is applied automatically. Pay only the remaining {formatInr(finalAmountInr)} through Razorpay.
+              </p>
+            )}
           </div>
         )}
         <div className="text-xs text-[var(--text-muted)] mb-6">One-time payment • 1 year validity • Instant delivery</div>
@@ -1424,7 +1429,7 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
 
 // ─── Main Create Page ─────────────────────────────────────────────────────────
 export default function CreatePage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [occasionType, setOccasionType] = useState<OccasionType>("birthday");
@@ -1464,6 +1469,13 @@ export default function CreatePage() {
       }));
     }
   }, []);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      router.replace(`/login?next=${encodeURIComponent(returnTo)}`);
+    }
+  }, [authLoading, user, router]);
 
   const selectedWeddingCeremonies = formData.weddingData.ceremonies.filter((ceremony) => ceremony.selected);
   const weddingCustomMusicCount = selectedWeddingCeremonies.filter((ceremony) => ceremony.revealMusicUrl).length;
@@ -1522,6 +1534,11 @@ export default function CreatePage() {
 
   const saveAndProceed = async () => {
     if (step === 4) {
+      if (!user) {
+        const returnTo = `${window.location.pathname}${window.location.search}`;
+        router.replace(`/login?next=${encodeURIComponent(returnTo)}`);
+        return;
+      }
       // Save celebration to Firestore before payment
       setSaving(true);
       try {
@@ -1592,7 +1609,7 @@ export default function CreatePage() {
         } else {
           const docRef = await addDoc(collection(db, COLLECTIONS.CELEBRATIONS), {
             ...draftData,
-            userId: user!.uid,
+            userId: user.uid,
             paymentStatus: "pending",
             isActive: false,
             isBlocked: false,
@@ -1621,6 +1638,17 @@ export default function CreatePage() {
   if (step === 6) {
     // Success — handled by onSuccess callback
     return null;
+  }
+
+  if (authLoading || !user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center" style={{ background: "var(--bg-deep)" }}>
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/15 border-t-purple-400" />
+          <p className="mt-4 text-sm text-[var(--text-muted)]">Checking your account...</p>
+        </div>
+      </main>
+    );
   }
 
   const currentOccasion = OCCASIONS.find(o => o.id === occasionType) ?? OCCASIONS[0];

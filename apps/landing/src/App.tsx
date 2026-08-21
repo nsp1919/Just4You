@@ -569,11 +569,11 @@ function Pricing() {
       features: ['1 premium animated theme', 'Up to 5 photos', 'A preset music track', 'Guest wishes & reactions', '1 year hosting'],
     },
     {
-      id: 'classic', name: 'Classic', price: 326, tagline: 'Our most-loved mix of memories & music.', badge: 'Most Popular',
+      id: 'classic', name: 'Classic', price: 376, tagline: 'Our most-loved mix of memories & music.', badge: 'Most Popular',
       features: ['Everything in Lite', '📸 Up to 25 photos', '🎵 Upload your own song', '⏳ Countdown reveal'],
     },
     {
-      id: 'grand', name: 'Grand', price: 504, tagline: 'Everything, for an unforgettable surprise.', badge: 'Best Value',
+      id: 'grand', name: 'Grand', price: 554, tagline: 'Everything, for an unforgettable surprise.', badge: 'Best Value',
       features: ['Everything in Classic', '🎤 Personal voice message', '⚡ Rush 6-hour delivery'],
     },
   ]

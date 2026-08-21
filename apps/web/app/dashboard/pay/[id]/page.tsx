@@ -182,6 +182,11 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
             <span className="font-semibold">Online amount to pay</span>
             <span className="text-3xl font-bold gradient-text">{formatInr(finalAmountInr)}</span>
           </div>
+          {preview.walletAppliedInr > 0 && (
+            <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+              Your available wallet balance is applied automatically. Pay only the remaining {formatInr(finalAmountInr)} through Razorpay.
+            </p>
+          )}
         </div>
       )}
 
