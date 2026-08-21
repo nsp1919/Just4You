@@ -5,6 +5,10 @@ import { useState } from "react";
 import {
   DEFAULT_WEDDING_CEREMONIES,
   MAX_WEDDING_CEREMONIES,
+  WEDDING_ADDITIONAL_CEREMONY_PRICE_INR,
+  WEDDING_BASE_PRICE_INR,
+  WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR,
+  WEDDING_RSVP_PRICE_INR,
   type WeddingCeremonyDraft,
   type WeddingDataDraft,
 } from "@/lib/constants";
@@ -54,6 +58,7 @@ export function WeddingDetailsEditor({
   };
 
   const selectedCount = value.ceremonies.filter((ceremony) => ceremony.selected).length;
+  const includedCeremonyId = value.ceremonies.find((ceremony) => ceremony.selected)?.id;
 
   return (
     <div className="space-y-7 step-enter">
@@ -127,6 +132,26 @@ export function WeddingDetailsEditor({
       </div>
 
       <div>
+        <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] p-3">
+            <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-emerald-300">First festival</span>
+            <strong className="mt-1 block text-lg text-white">Included</strong>
+            <small className="text-white/45">in ₹{WEDDING_BASE_PRICE_INR} base</small>
+          </div>
+          <div className="rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-3">
+            <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-amber-200">Each extra festival</span>
+            <strong className="mt-1 block text-xl text-amber-300">+₹{WEDDING_ADDITIONAL_CEREMONY_PRICE_INR}</strong>
+          </div>
+          <div className="rounded-xl border border-fuchsia-400/25 bg-fuchsia-400/[0.07] p-3">
+            <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-fuchsia-200">Custom music</span>
+            <strong className="mt-1 block text-xl text-fuchsia-300">+₹{WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR}</strong>
+            <small className="text-white/45">per festival</small>
+          </div>
+          <div className="rounded-xl border border-green-400/25 bg-green-400/[0.07] p-3">
+            <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-green-200">WhatsApp RSVP</span>
+            <strong className="mt-1 block text-xl text-green-300">+₹{WEDDING_RSVP_PRICE_INR}</strong>
+          </div>
+        </div>
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">Choose wedding celebrations *</p>
@@ -135,19 +160,27 @@ export function WeddingDetailsEditor({
           <span className="text-xs font-semibold text-amber-300">{selectedCount} selected</span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {value.ceremonies.map((ceremony) => (
-            <button
-              key={ceremony.id}
-              type="button"
-              onClick={() => setField("ceremonies", updateCeremony(value.ceremonies, ceremony.id, { selected: !ceremony.selected }))}
-              disabled={!ceremony.selected && selectedCount >= MAX_WEDDING_CEREMONIES}
-              className={`relative min-h-20 rounded-xl border px-3 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${ceremony.selected ? "border-amber-400/60 bg-amber-400/10 text-white" : "border-white/10 bg-white/[0.03] text-white/55"}`}
-            >
-              <span className="block text-sm font-bold">{ceremony.name}</span>
-              <span className="mt-1 block text-[0.68rem] leading-snug">{ceremony.subtitle}</span>
-              {ceremony.selected && <Check size={14} className="absolute right-2 top-2 text-amber-300" />}
-            </button>
-          ))}
+          {value.ceremonies.map((ceremony) => {
+            const isIncluded = ceremony.selected && ceremony.id === includedCeremonyId;
+            return (
+              <button
+                key={ceremony.id}
+                type="button"
+                onClick={() => setField("ceremonies", updateCeremony(value.ceremonies, ceremony.id, { selected: !ceremony.selected }))}
+                disabled={!ceremony.selected && selectedCount >= MAX_WEDDING_CEREMONIES}
+                className={`relative min-h-24 rounded-xl border px-3 pb-3 pt-8 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${ceremony.selected ? "border-amber-400/60 bg-amber-400/10 text-white" : "border-white/10 bg-white/[0.03] text-white/55"}`}
+              >
+                <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[0.62rem] font-extrabold ${isIncluded ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-300"}`}>
+                  {isIncluded ? "Included" : `+₹${WEDDING_ADDITIONAL_CEREMONY_PRICE_INR}`}
+                </span>
+                <span className="flex items-center gap-1.5 text-sm font-bold">
+                  {ceremony.selected && <Check size={13} className="text-amber-300" />}
+                  {ceremony.name}
+                </span>
+                <span className="mt-1 block text-[0.68rem] leading-snug">{ceremony.subtitle}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -274,7 +307,12 @@ export function WeddingRevealMusicEditor({ value, onChange }: WeddingDataProps) 
       <div className="mt-4 space-y-3">
         {selected.map((ceremony) => (
           <div key={ceremony.id} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/10 p-3 sm:flex-row sm:items-center">
-            <strong className="min-w-24 text-sm">{ceremony.name}</strong>
+            <div className="min-w-32">
+              <strong className="block text-sm">{ceremony.name}</strong>
+              <span className="mt-1 inline-block rounded-full bg-fuchsia-400/15 px-2 py-0.5 text-[0.62rem] font-extrabold text-fuchsia-300">
+                +₹{WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR} custom music
+              </span>
+            </div>
             {ceremony.revealMusicUrl ? (
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <audio className="h-9 min-w-0 flex-1" controls preload="metadata" src={ceremony.revealMusicUrl} />
