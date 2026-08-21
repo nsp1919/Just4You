@@ -8,7 +8,7 @@ import { db, auth } from "@/lib/firebase";
 import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, computeWeddingPriceInr, weddingPriceBreakdown, MAX_WEDDING_CEREMONIES, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
 import type { Theme, OccasionType, FeatureId, WeddingDataDraft } from "@/lib/constants";
 import { loadCartFeatures } from "@/lib/cart";
-import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff } from "lucide-react";
+import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff, Save } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import GalaxyTheme from "@/components/themes/GalaxyTheme";
@@ -25,6 +25,12 @@ import {
   WeddingRevealMusicEditor,
 } from "@/components/wedding/WeddingCreatorFields";
 import WeddingInvitation, { type WeddingInvitationData } from "@/components/wedding/WeddingInvitation";
+
+const CREATE_DRAFT_STORAGE_PREFIX = "birthdayglow_create_draft_v1";
+
+function createDraftStorageKey(userId: string): string {
+  return `${CREATE_DRAFT_STORAGE_PREFIX}:${userId}`;
+}
 
 function isValidOptionalWebUrl(value: string): boolean {
   if (!value.trim()) return true;
@@ -1067,7 +1073,7 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
 }
 
 // ─── Step 4: Preview ──────────────────────────────────────────────────────────
-function Step4({ data, photos, occasionType, features, priceInr }: { data: any; photos: string[]; occasionType: OccasionType; features: string[]; priceInr: number }) {
+function Step4({ data, photos, occasionType, features, priceInr, onEditWeddingDetails }: { data: any; photos: string[]; occasionType: OccasionType; features: string[]; priceInr: number; onEditWeddingDetails: () => void }) {
   const theme = THEMES.find((t) => t.id === data.theme) ?? THEMES[0];
   const track = PRESET_TRACKS.find((t) => t.id === data.musicData?.musicPresetId);
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
@@ -1142,6 +1148,35 @@ function Step4({ data, photos, occasionType, features, priceInr }: { data: any; 
           </div>
         ))}
       </div>
+
+      {occasionType === "wedding" && (
+        <div className="rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-amber-100">Wedding video & QR</div>
+              {data.weddingData.videoUrl.trim() ? (
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                  Video link added. Its QR code appears near the end of the full invitation preview.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                  No video link added. Paste a public YouTube, Vimeo, Google Drive, or direct video link in Wedding Details.
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onEditWeddingDetails}
+              className="shrink-0 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/15"
+            >
+              {data.weddingData.videoUrl.trim() ? "Change video link" : "Add video link"}
+            </button>
+          </div>
+          <p className="mt-4 border-t border-amber-400/15 pt-3 text-xs leading-5 text-white/45">
+            The separate QR code for sharing the complete invitation is generated after payment, when the final live website link exists.
+          </p>
+        </div>
+      )}
 
       {/* Package total */}
       <div className="rounded-2xl p-5 glass border border-purple-500/20 flex items-center justify-between">
@@ -1462,15 +1497,58 @@ export default function CreatePage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [musicData, setMusicData] = useState({ musicType: "preset", musicPresetId: "t1", musicUploadUrl: "", voiceMessageUrl: "", videoMessageUrl: "" });
   const [saving, setSaving] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   // Paid features chosen on the /pricing cart. Drives feature gating + price.
   const [features, setFeatures] = useState<FeatureId[]>([]);
 
   // Funnel: mark the start of a create session once per mount.
   useEffect(() => {
+    if (!user) return;
     trackEvent("create_started");
     setFeatures(loadCartFeatures());
     const requestedOccasion = new URLSearchParams(window.location.search).get("occasion");
     const occasion = OCCASIONS.find((item) => item.id === requestedOccasion);
+
+    try {
+      const storedDraft = localStorage.getItem(createDraftStorageKey(user.uid));
+      if (storedDraft) {
+        const draft = JSON.parse(storedDraft);
+        const draftOccasion = OCCASIONS.find((item) => item.id === draft.occasionType);
+        const canRestore = draft.version === 1
+          && draftOccasion
+          && (!occasion || occasion.id === draftOccasion.id)
+          && draft.formData;
+
+        if (canRestore) {
+          const defaultWeddingData = createDefaultWeddingData();
+          const restoredWeddingData = draft.formData.weddingData ?? {};
+          setStep(draft.step === 5 && draft.celebrationId ? 5 : Math.min(Math.max(Number(draft.step) || 0, 0), 4));
+          setOccasionType(draftOccasion.id);
+          setCelebrationId(typeof draft.celebrationId === "string" ? draft.celebrationId : null);
+          setFormData((current) => ({
+            ...current,
+            ...draft.formData,
+            weddingData: {
+              ...defaultWeddingData,
+              ...restoredWeddingData,
+              ceremonies: Array.isArray(restoredWeddingData.ceremonies)
+                ? restoredWeddingData.ceremonies
+                : defaultWeddingData.ceremonies,
+            },
+          }));
+          setPhotos(Array.isArray(draft.photos) ? draft.photos.filter((photo: unknown) => typeof photo === "string") : []);
+          setMusicData((current) => ({ ...current, ...(draft.musicData ?? {}) }));
+          setLastSavedAt(draft.savedAt ? new Date(draft.savedAt) : null);
+          setDraftReady(true);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn("Could not restore creation draft:", error);
+      localStorage.removeItem(createDraftStorageKey(user.uid));
+    }
+
     if (occasion) {
       setOccasionType(occasion.id);
       setFormData((current) => ({
@@ -1479,7 +1557,54 @@ export default function CreatePage() {
         relation: occasion.id === "wedding" ? "couple" : "",
       }));
     }
-  }, []);
+    setDraftReady(true);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !draftReady) return;
+
+    const saveTimer = window.setTimeout(() => {
+      const savedAt = new Date();
+      try {
+        localStorage.setItem(createDraftStorageKey(user.uid), JSON.stringify({
+          version: 1,
+          savedAt: savedAt.toISOString(),
+          step,
+          occasionType,
+          celebrationId,
+          formData,
+          photos,
+          musicData,
+        }));
+        setLastSavedAt(savedAt);
+      } catch (error) {
+        console.warn("Could not auto-save creation draft:", error);
+      }
+    }, 400);
+
+    return () => window.clearTimeout(saveTimer);
+  }, [user, draftReady, step, occasionType, celebrationId, formData, photos, musicData]);
+
+  const saveDraftNow = () => {
+    if (!user) return;
+    const savedAt = new Date();
+    try {
+      localStorage.setItem(createDraftStorageKey(user.uid), JSON.stringify({
+        version: 1,
+        savedAt: savedAt.toISOString(),
+        step,
+        occasionType,
+        celebrationId,
+        formData,
+        photos,
+        musicData,
+      }));
+      setLastSavedAt(savedAt);
+    } catch (error) {
+      console.error("Could not save creation draft:", error);
+      alert("This draft could not be saved on this device. Please check your browser storage settings.");
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -1695,7 +1820,7 @@ export default function CreatePage() {
           </div>
           {occasionType === "wedding" ? (
             <button type="button" onClick={() => setStep(1)} className="text-xs font-semibold text-amber-300 hover:text-amber-200">
-              Edit wedding options
+              Edit details & video
             </button>
           ) : (
             <Link href="/pricing" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
@@ -1715,11 +1840,12 @@ export default function CreatePage() {
           {step === 1 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} features={activeFeatures} />}
           {step === 2 && <Step2 photos={photos} onPhotos={setPhotos} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
           {step === 3 && <Step3 musicData={musicData} onChange={setMusicData} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
-          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={activeFeatures} priceInr={priceInr} />}
+          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={activeFeatures} priceInr={priceInr} onEditWeddingDetails={() => setStep(1)} />}
           {step === 5 && celebrationId && (
             <Step5
               celebrationId={celebrationId}
               onSuccess={(slug) => {
+                localStorage.removeItem(createDraftStorageKey(user.uid));
                 trackEvent("purchase_completed", { slug, occasionType });
                 router.push(`/dashboard/success?slug=${slug}`);
               }}
@@ -1729,21 +1855,31 @@ export default function CreatePage() {
           )}
 
           {step < 5 && (
-            <div className="flex justify-between mt-8 pt-6 border-t border-purple-500/10">
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-8 pt-6 border-t border-purple-500/10">
               {step > 0 ? (
                 <button onClick={() => setStep((s) => s - 1)} className="btn-ghost py-2 px-6">
                   <ArrowLeft size={16} /> Back
                 </button>
               ) : <div />}
-              <button
-                id="next-step"
-                onClick={saveAndProceed}
-                disabled={!canProceed || saving}
-                className="btn-primary py-2 px-8 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {saving ? "Saving..." : step === 4 ? "Proceed to Payment" : "Continue"}
-                {!saving && <ArrowRight size={16} />}
-              </button>
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+                {lastSavedAt && (
+                  <span className="text-xs text-white/45">
+                    Auto-saved {lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+                <button type="button" onClick={saveDraftNow} className="btn-ghost py-2 px-4">
+                  <Save size={15} /> Save draft
+                </button>
+                <button
+                  id="next-step"
+                  onClick={saveAndProceed}
+                  disabled={!canProceed || saving}
+                  className="btn-primary py-2 px-8 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {saving ? "Saving..." : step === 4 ? "Proceed to Payment" : "Continue"}
+                  {!saving && <ArrowRight size={16} />}
+                </button>
+              </div>
             </div>
           )}
         </div>

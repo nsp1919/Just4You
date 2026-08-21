@@ -10,8 +10,14 @@ import { REFERRAL_JOIN_WALLET_BONUS_INR } from "@/lib/constants";
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("name") ?? "";
+  });
+  const [email, setEmail] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("email") ?? "";
+  });
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -20,11 +26,6 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const nameParam = params.get("name");
-      const emailParam = params.get("email");
-      if (nameParam) setName(nameParam);
-      if (emailParam) setEmail(emailParam);
       captureReferralFromUrl();
       const storedReferral = getStoredReferral();
       if (storedReferral) {
@@ -140,6 +141,12 @@ export default function RegisterPage() {
           flex-direction: column;
           position: relative;
           z-index: 1;
+          animation: cardIn 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        @keyframes cardIn {
+          0% { opacity: 0; transform: translateY(24px) scale(0.98); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .login input[type="text"],
@@ -157,6 +164,12 @@ export default function RegisterPage() {
           background: rgba(255,240,228,0.04);
           color: #fff5ec;
           transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+          -webkit-appearance: none;
+        }
+
+        .login input::placeholder {
+          color: #8f8098;
+          opacity: 1;
         }
 
         .login input[type="text"]:focus,
@@ -178,7 +191,6 @@ export default function RegisterPage() {
           margin: 28px 0 0 0;
           border-radius: 500px;
           font-weight: 600;
-          animation: bounce2 1.6s;
         }
 
         .h1 {
@@ -217,16 +229,6 @@ export default function RegisterPage() {
         .btn:disabled {
           opacity: 0.5;
           cursor: not-allowed;
-        }
-
-        .login input[type=text],
-        .login input[type=email] {
-          animation: bounce 1s;
-          -webkit-appearance: none;
-        }
-
-        .login input[type=password] {
-          animation: bounce1 1.3s;
         }
 
         .ui {
@@ -320,32 +322,6 @@ export default function RegisterPage() {
           }
         }
 
-        @keyframes bounce {
-          0% {
-            transform: translateY(-250px);
-            opacity: 0;
-          }
-        }
-
-        @keyframes bounce1 {
-          0% {
-            opacity: 0;
-          }
-          40% {
-            transform: translateY(-100px);
-            opacity: 0;
-          }
-        }
-
-        @keyframes bounce2 {
-          0% {
-            opacity: 0;
-          }
-          70% {
-            transform: translateY(-20px);
-            opacity: 0;
-          }
-        }
       `}</style>
 
       <main className="auth-page">
