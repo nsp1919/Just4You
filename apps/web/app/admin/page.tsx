@@ -4,16 +4,34 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import {
-  collection, query, orderBy, getDocs, updateDoc, doc, where, Timestamp
+  collection, query, orderBy, getDocs, updateDoc, doc
 } from "firebase/firestore";
 import { COLLECTIONS, computePriceInr } from "@/lib/constants";
-import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle } from "lucide-react";
+import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone } from "lucide-react";
 import Link from "next/link";
+
+interface PrebookOrder {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  occasion: string;
+  message?: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string | null;
+}
+
+function toDatetimeLocal(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
 
 export default function AdminPage() {
   const { user, userDoc, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"overview" | "orders" | "users" | "payouts">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "launch" | "users" | "payouts">("overview");
   const [celebrations, setCelebrations] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -22,6 +40,11 @@ export default function AdminPage() {
   const [payoutNotes, setPayoutNotes] = useState<Record<string, string>>({});
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
   const [withdrawalError, setWithdrawalError] = useState("");
+  const [prelaunchEnabled, setPrelaunchEnabled] = useState(false);
+  const [launchAt, setLaunchAt] = useState("");
+  const [prebookOrders, setPrebookOrders] = useState<PrebookOrder[]>([]);
+  const [savingLaunch, setSavingLaunch] = useState(false);
+  const [processingOrder, setProcessingOrder] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading) {
@@ -35,16 +58,25 @@ export default function AdminPage() {
     const fetchAll = async () => {
       try {
         const token = await user.getIdToken();
-        const [celebSnap, userSnap, withdrawalResponse] = await Promise.all([
+        const [celebSnap, userSnap, withdrawalResponse, launchResponse] = await Promise.all([
           getDocs(query(collection(db, COLLECTIONS.CELEBRATIONS), orderBy("createdAt", "desc"))),
           getDocs(query(collection(db, COLLECTIONS.USERS), orderBy("createdAt", "desc"))),
           fetch("/api/admin/wallet-withdrawals", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/admin/site-launch", { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         setCelebrations(celebSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setUsers(userSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         const withdrawalResult = await withdrawalResponse.json();
-        if (!withdrawalResponse.ok) throw new Error(withdrawalResult.error || "Unable to load payouts");
-        setWithdrawals(Array.isArray(withdrawalResult.requests) ? withdrawalResult.requests : []);
+        const launchResult = await launchResponse.json();
+        if (!launchResponse.ok) throw new Error(launchResult.error || "Unable to load launch settings");
+        if (withdrawalResponse.ok) {
+          setWithdrawals(Array.isArray(withdrawalResult.requests) ? withdrawalResult.requests : []);
+        } else {
+          setWithdrawalError(withdrawalResult.error || "Unable to load payouts");
+        }
+        setPrelaunchEnabled(launchResult.settings?.prelaunchEnabled === true);
+        setLaunchAt(toDatetimeLocal(launchResult.settings?.launchAt ?? null));
+        setPrebookOrders(Array.isArray(launchResult.orders) ? launchResult.orders : []);
       } catch (error) {
         setWithdrawalError(error instanceof Error ? error.message : "Unable to load payouts");
       } finally {
@@ -107,6 +139,82 @@ export default function AdminPage() {
     }
   };
 
+  const saveLaunchSettings = async () => {
+    if (!user) return;
+    if (prelaunchEnabled && !launchAt) {
+      setWithdrawalError("Choose the website launch date and time");
+      return;
+    }
+    setSavingLaunch(true);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/site-launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          action: "updateSettings",
+          prelaunchEnabled,
+          launchAt: launchAt ? new Date(launchAt).toISOString() : null,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to save launch settings");
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to save launch settings");
+    } finally {
+      setSavingLaunch(false);
+    }
+  };
+
+  const processPrebook = async (orderId: string, status: "accepted" | "rejected") => {
+    if (!user) return;
+    setProcessingOrder(orderId);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/site-launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "updatePrebook", orderId, status }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to update prebook");
+      setPrebookOrders((orders) => orders.map((order) => order.id === orderId ? { ...order, status } : order));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to update prebook");
+    } finally {
+      setProcessingOrder(null);
+    }
+  };
+
+  const acceptWithoutPayment = async (celebrationId: string) => {
+    if (!user) return;
+    setProcessingOrder(celebrationId);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/activate-celebration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          celebrationId,
+          waivePayment: true,
+          reason: "Complimentary order approved from admin dashboard",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to approve order");
+      setCelebrations((orders) => orders.map((order) => order.id === celebrationId
+        ? { ...order, paymentStatus: "paid", isActive: true, paymentWaived: true, slug: result.slug }
+        : order));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to approve order");
+    } finally {
+      setProcessingOrder(null);
+    }
+  };
+
   if (loading || !user || !userDoc) return null;
 
   const paidCelebrations = celebrations.filter((c) => c.paymentStatus === "paid");
@@ -155,7 +263,7 @@ export default function AdminPage() {
           {[
             { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString("en-IN")}`, icon: <DollarSign size={20} />, color: "#22c55e" },
             { label: "Today Revenue", value: `₹${todayRevenue}`, icon: <TrendingUp size={20} />, color: "#f59e0b" },
-            { label: "Total Orders", value: paidCelebrations.length, icon: <Globe size={20} />, color: "#a855f7" },
+            { label: "Total Orders", value: celebrations.length + prebookOrders.length, icon: <Globe size={20} />, color: "#a855f7" },
             { label: "Total Users", value: users.length, icon: <Users size={20} />, color: "#ec4899" },
             { label: "Pending Payouts", value: pendingWithdrawals.length, icon: <Landmark size={20} />, color: "#22c55e" },
           ].map((s) => (
@@ -169,7 +277,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {(["overview", "orders", "users", "payouts"] as const).map((t) => (
+          {(["overview", "orders", "launch", "users", "payouts"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-5 py-2 rounded-xl text-sm font-medium capitalize transition-all ${tab === t ? "text-white" : "text-[var(--text-muted)] hover:text-white"}`}
               style={tab === t ? { background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.4)" } : { background: "transparent" }}>
@@ -187,6 +295,60 @@ export default function AdminPage() {
         {withdrawalError && (
           <div className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {withdrawalError}
+          </div>
+        )}
+
+        {tab === "launch" && (
+          <div className="space-y-6">
+            <section className="glass-card p-5">
+              <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <div className="mb-2 flex items-center gap-2 text-amber-300"><CalendarClock size={18} /><h2 className="font-semibold text-white">Website launch</h2></div>
+                  <p className="max-w-xl text-sm text-[var(--text-muted)]">When enabled, the home page shows the launch timer and prebook form until this time.</p>
+                </div>
+                <label className="flex items-center gap-3 text-sm font-semibold">
+                  <input type="checkbox" checked={prelaunchEnabled} onChange={(event) => setPrelaunchEnabled(event.target.checked)} className="h-4 w-4 accent-amber-400" />
+                  Enable prelaunch mode
+                </label>
+              </div>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input type="datetime-local" value={launchAt} onChange={(event) => setLaunchAt(event.target.value)} className="input-field py-2.5 text-sm sm:w-72" />
+                <button type="button" onClick={() => void saveLaunchSettings()} disabled={savingLaunch} className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-500/15 px-4 py-2.5 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/25 disabled:opacity-50">
+                  {savingLaunch ? <LoaderCircle size={15} className="animate-spin" /> : <Save size={15} />} Save launch settings
+                </button>
+              </div>
+            </section>
+
+            <section className="glass-card overflow-hidden">
+              <div className="border-b border-purple-500/10 p-4">
+                <h2 className="font-semibold">Prebook orders</h2>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">New requests are also emailed to info@novantixtech.com.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-purple-500/10 bg-white/[0.02]">{["Customer", "Contact", "Occasion", "Notes", "Date", "Status", "Action"].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{heading}</th>)}</tr></thead>
+                  <tbody>
+                    {prebookOrders.map((order) => (
+                      <tr key={order.id} className="border-b border-purple-500/5 align-top">
+                        <td className="px-4 py-3 font-medium">{order.name}</td>
+                        <td className="px-4 py-3 text-xs"><div className="flex items-center gap-1"><Mail size={11} />{order.email}</div><div className="mt-1 flex items-center gap-1 text-[var(--text-muted)]"><Phone size={11} />{order.phone}</div></td>
+                        <td className="px-4 py-3">{order.occasion}</td>
+                        <td className="max-w-56 px-4 py-3 text-xs text-[var(--text-muted)]">{order.message || "—"}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--text-muted)]">{order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN") : "—"}</td>
+                        <td className="px-4 py-3"><span className={order.status === "accepted" ? "text-green-400" : order.status === "rejected" ? "text-red-400" : "text-amber-300"}>{order.status}</span></td>
+                        <td className="px-4 py-3">
+                          {order.status === "pending" ? <div className="flex gap-2">
+                            <button disabled={processingOrder === order.id} onClick={() => void processPrebook(order.id, "accepted")} className="rounded bg-green-500/10 px-2.5 py-1.5 text-xs font-semibold text-green-300 disabled:opacity-50">Accept free</button>
+                            <button disabled={processingOrder === order.id} onClick={() => void processPrebook(order.id, "rejected")} className="rounded bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-300 disabled:opacity-50">Reject</button>
+                          </div> : <span className="text-xs text-[var(--text-muted)]">Processed</span>}
+                        </td>
+                      </tr>
+                    ))}
+                    {!fetching && prebookOrders.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-[var(--text-muted)]">No prebook orders yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
 
@@ -287,7 +449,7 @@ export default function AdminPage() {
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${c.paymentStatus === "paid" ? "text-green-400" : "text-yellow-400"}`}
                           style={{ background: c.paymentStatus === "paid" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)" }}>
-                          {c.paymentStatus}
+                          {c.paymentWaived ? "complimentary" : c.paymentStatus}
                         </span>
                       </td>
                       <td className="px-4 py-3 flex items-center gap-1">
@@ -303,6 +465,11 @@ export default function AdminPage() {
                             style={{ background: c.isBlocked ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
                             {c.isBlocked ? <><CheckCircle size={11} /> Unblock</> : <><Ban size={11} /> Block</>}
                           </button>
+                          {c.paymentStatus !== "paid" && (
+                            <button disabled={processingOrder === c.id} onClick={() => void acceptWithoutPayment(c.id)} className="flex items-center gap-1 rounded bg-green-500/10 px-2 py-1 text-xs font-medium text-green-300 transition hover:bg-green-500/20 disabled:opacity-50">
+                              {processingOrder === c.id ? <LoaderCircle size={11} className="animate-spin" /> : <Gift size={11} />} Accept free
+                            </button>
+                          )}
                           {c.isPublicOptIn && (
                             <button onClick={() => toggleGalleryApproved(c.id, c.galleryApproved)}
                               className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all ${c.galleryApproved ? "text-amber-300" : "text-[var(--text-muted)]"}`}

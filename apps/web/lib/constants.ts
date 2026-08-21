@@ -2,6 +2,8 @@ export const COLLECTIONS = {
   USERS: "users",
   CELEBRATIONS: "celebrations",
   WALLET_WITHDRAWALS: "walletWithdrawals",
+  APP_CONFIG: "appConfig",
+  PREBOOK_ORDERS: "prebookOrders",
 } as const;
 
 export const MAX_PHOTOS = 8;

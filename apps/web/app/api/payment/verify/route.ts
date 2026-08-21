@@ -6,6 +6,7 @@ import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
 import { VALIDITY_DAYS } from "@/lib/constants";
 import { settlePaidReferralBenefits } from "@/lib/referral-server";
+import { notifyAdminOfPaidOrder } from "@/lib/order-notification";
 
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
 const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key_for_build");
@@ -126,6 +127,7 @@ export async function POST(req: NextRequest) {
     // The payment is already recorded — never let a missing address or a Resend
     // failure turn a successful activation into a 500. Email is best-effort.
     const recipientEmail = decoded.email;
+    await notifyAdminOfPaidOrder(celebrationId, recipientEmail);
     if (recipientEmail) {
       try {
         await resend.emails.send({

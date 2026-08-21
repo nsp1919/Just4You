@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import LandingClient from "./LandingClient";
+import PrelaunchPage from "@/components/PrelaunchPage";
+import { adminDb } from "@/lib/firebase-admin";
+import { COLLECTIONS } from "@/lib/constants";
+import { Timestamp } from "firebase-admin/firestore";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Just4You.buzz — Instant Surprise & Custom Websites",
@@ -13,6 +19,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const launchSnapshot = await adminDb.collection(COLLECTIONS.APP_CONFIG).doc("siteLaunch").get();
+  const launchSettings = launchSnapshot.data();
+  const launchAt = launchSettings?.launchAt?.toDate?.() as Date | undefined;
+  if (launchSettings?.prelaunchEnabled === true && launchAt && launchAt.getTime() > Timestamp.now().toMillis()) {
+    return <PrelaunchPage launchAt={launchAt.toISOString()} />;
+  }
   return <LandingClient />;
 }

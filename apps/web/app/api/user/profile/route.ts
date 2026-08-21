@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
     const submittedCode = normalizeReferralCode(body.referralCode);
     const ownCode = referralCodeFor(decoded.uid);
     const userRef = adminDb.collection(COLLECTIONS.USERS).doc(decoded.uid);
+    const configuredAdminEmail = (process.env.ADMIN_EMAIL ?? process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "").trim().toLowerCase();
+    const isConfiguredAdmin = Boolean(decoded.email && decoded.email.toLowerCase() === configuredAdminEmail);
 
     let validReferrerId: string | null = null;
     if (submittedCode && submittedCode !== ownCode) {
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
       if (!snap.exists) {
         transaction.create(userRef, {
           ...profile,
-          role: decoded.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? "admin" : "user",
+          role: isConfiguredAdmin ? "admin" : "user",
           isBlocked: false,
           referralCode: ownCode,
           referralCredits: 0,
@@ -113,6 +115,7 @@ export async function POST(req: NextRequest) {
       if (wallet.shouldGrantJoinBonus) update.referralJoinBonusGranted = true;
       if (requestedName && requestedName !== "User") update.name = requestedName;
       if (!existing?.email && profile.email) update.email = profile.email;
+      if (isConfiguredAdmin && existing?.role !== "admin") update.role = "admin";
       if (!existing?.uid) update.uid = decoded.uid;
       if (decoded.picture && !existing?.photoURL) update.photoURL = decoded.picture;
       if (attachingReferral && submittedCode) {

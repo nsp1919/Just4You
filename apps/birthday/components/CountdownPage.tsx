@@ -7,6 +7,8 @@ interface Props {
   eventDate: string; // ISO string YYYY-MM-DD
   occasionType?: string;
   theme?: string;
+  exactTime?: boolean;
+  labelOverride?: string;
 }
 
 const OCCASION_CONFIG: Record<string, { emoji: string; label: string; unlockMsg: string }> = {
@@ -73,9 +75,9 @@ const THEME_CONFIG: Record<string, { gradient: string; accent: string; isLight: 
 
 interface TimeLeft { days: number; hours: number; minutes: number; seconds: number; total: number }
 
-function getTimeLeft(targetDate: string): TimeLeft {
+function getTimeLeft(targetDate: string, exactTime = false): TimeLeft {
   const target = new Date(targetDate);
-  target.setHours(0, 0, 0, 0);
+  if (!exactTime) target.setHours(0, 0, 0, 0);
   const now = new Date();
   const diff = target.getTime() - now.getTime();
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
@@ -135,11 +137,10 @@ const COUNTDOWN_CSS = `
   @keyframes unlockPop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
 `;
 
-export default function CountdownPage({ recipientName, eventDate, occasionType = "birthday", theme }: Props) {
+export default function CountdownPage({ recipientName, eventDate, occasionType = "birthday", theme, exactTime = false, labelOverride }: Props) {
   const config = OCCASION_CONFIG[occasionType] ?? OCCASION_CONFIG.birthday;
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => getTimeLeft(eventDate));
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => getTimeLeft(eventDate, exactTime));
   const [unlocked, setUnlocked] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   // Resolve styling based on theme
   const themeKey = (theme || "galaxy").toLowerCase();
@@ -157,9 +158,8 @@ export default function CountdownPage({ recipientName, eventDate, occasionType =
   }, []);
 
   useEffect(() => {
-    setMounted(true);
     const tick = () => {
-      const tl = getTimeLeft(eventDate);
+      const tl = getTimeLeft(eventDate, exactTime);
       setTimeLeft(tl);
       if (tl.total <= 0 && !unlocked) {
         setUnlocked(true);
@@ -172,7 +172,7 @@ export default function CountdownPage({ recipientName, eventDate, occasionType =
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [eventDate, unlocked, fireConfetti]);
+  }, [eventDate, exactTime, unlocked, fireConfetti]);
 
   return (
     <main
@@ -200,7 +200,7 @@ export default function CountdownPage({ recipientName, eventDate, occasionType =
         ))}
       </div>
 
-      <div className="relative z-10 max-w-2xl w-full" style={{ opacity: mounted ? 1 : 0, transition: "opacity 0.8s ease" }}>
+      <div className="relative z-10 max-w-2xl w-full">
         {/* Emoji */}
         <div className="text-8xl mb-6 inline-block" style={{ animation: "countdownFloat 4s ease-in-out infinite" }}>
           {config.emoji}
@@ -208,7 +208,7 @@ export default function CountdownPage({ recipientName, eventDate, occasionType =
 
         {/* Title */}
         <p className="text-sm uppercase tracking-[0.3em] mb-3" style={{ color: isLight ? `${accent}cc` : `${accent}ee`, fontFamily: font }}>
-          {config.label} for
+          {labelOverride ?? config.label} for
         </p>
         <h1
           className="text-5xl md:text-7xl font-bold mb-4"

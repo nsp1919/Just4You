@@ -23,7 +23,11 @@ service cloud.firestore {
           'freeAddonFeatureId', 'freeAddonDiscountPaise',
           'referralBenefitReservationId', 'referralBenefitsStatus',
           'referralBenefitsReservedAt', 'referralBenefitsReleasedAt',
-          'referralBenefitsSettledAt', 'referralRewardSettled'
+          'referralBenefitsSettledAt', 'referralRewardSettled',
+          'paymentWaived', 'activationSource', 'manualActivationAt',
+          'manualActivationReason', 'launchAt', 'launchScheduledBy',
+          'launchScheduleUpdatedAt', 'adminOrderEmailClaimedAt',
+          'adminOrderEmailSentAt'
         ]);
       }
 

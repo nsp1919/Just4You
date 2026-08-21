@@ -6,6 +6,7 @@ import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
 import { COLLECTIONS, VALIDITY_DAYS } from "@/lib/constants";
 import { releaseCheckoutBenefits, settlePaidReferralBenefits } from "@/lib/referral-server";
+import { notifyAdminOfPaidOrder } from "@/lib/order-notification";
 
 export const dynamic = "force-dynamic";
 // Razorpay signs the exact raw bytes it POSTs — the Node runtime lets us read
@@ -138,6 +139,8 @@ async function fulfillCelebration(
   } catch (authError) {
     console.error(`[${LOG}] Could not resolve email for userId ${celebData.userId}:`, authError);
   }
+
+  await notifyAdminOfPaidOrder(celebrationId, userEmail);
 
   if (userEmail) {
     try {
