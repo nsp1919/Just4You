@@ -1,9 +1,6 @@
-import type { NextConfig } from "next";
-
 // Baseline security headers applied to every response. A strict Content-Security
-// -Policy is intentionally omitted here because the checkout (Razorpay), image
-// CDN (Cloudinary) and inline theme styles would need a carefully tuned policy;
-// these headers are the safe, non-breaking baseline.
+// Policy is intentionally omitted because Razorpay, Cloudinary, and inline
+// theme styles require a carefully tuned policy.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -15,7 +12,8 @@ const securityHeaders = [
   },
 ];
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
     remotePatterns: [
       {
@@ -28,8 +26,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  // Allow the Next.js dev server to accept requests proxied through public
-  // tunnels (ngrok / Cloudflare / VS Code dev tunnels) when sharing locally.
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.app", "*.trycloudflare.com", "*.devtunnels.ms"],
   typescript: {
     ignoreBuildErrors: true,
@@ -37,4 +33,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

@@ -322,6 +322,7 @@ export interface WeddingDataDraft {
   location: string;
   hashtag: string;
   directionsUrl: string;
+  videoUrl: string;
   whatsappNumber: string;
   rsvpEnabled: boolean;
   rsvpDeadline: string;

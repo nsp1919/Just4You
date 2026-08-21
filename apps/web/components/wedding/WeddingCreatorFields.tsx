@@ -26,6 +26,7 @@ export function createDefaultWeddingData(): WeddingDataDraft {
     location: "",
     hashtag: "",
     directionsUrl: "",
+    videoUrl: "",
     whatsappNumber: "",
     rsvpEnabled: true,
     rsvpDeadline: "",
@@ -136,6 +137,14 @@ export function WeddingDetailsEditor({
           Invitation message *
           <textarea className="input-field mt-2 resize-none leading-relaxed" rows={4} value={message} onChange={(event) => onMessageChange(event.target.value.slice(0, 500))} placeholder="Together with our families, we invite you to celebrate with us..." />
         </label>
+      </div>
+
+      <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-4">
+        <label className="text-sm font-medium">
+          Wedding invitation video link
+          <input className="input-field mt-2" type="url" value={value.videoUrl} onChange={(event) => setField("videoUrl", event.target.value)} placeholder="https://youtube.com/watch?v=..." />
+        </label>
+        <small className="mt-2 block text-[var(--text-muted)]">Optional. Paste a public YouTube, Vimeo, Google Drive or direct video link. Only the link is saved; guests get a QR code at the end of the invitation.</small>
       </div>
 
       <div>

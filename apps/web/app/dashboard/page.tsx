@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { COLLECTIONS, OCCASIONS, OccasionType, formatInr } from "@/lib/constants";
-import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList } from "lucide-react";
+import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList, Video } from "lucide-react";
 import ReferralCard from "@/components/ReferralCard";
 import QRCodeCard from "@/components/QRCodeCard";
 import { TiltCard, AnimatedCounter } from "@/components/TiltCard";
@@ -30,6 +30,7 @@ interface Celebration {
   pricePaise?: number;
   weddingData?: {
     rsvpEnabled?: boolean;
+    videoUrl?: string;
   };
 }
 
@@ -360,6 +361,15 @@ export default function DashboardPage() {
                         className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.08] px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-400/[0.14]"
                       >
                         <ClipboardList size={14} /> View guest RSVPs
+                      </Link>
+                    )}
+
+                    {c.occasionType === "wedding" && c.paymentStatus === "paid" && (
+                      <Link
+                        href={`/dashboard/edit/${c.id}`}
+                        className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/25 bg-amber-400/[0.08] px-3 py-2 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/[0.14]"
+                      >
+                        <Video size={14} /> Edit invitation video
                       </Link>
                     )}
 

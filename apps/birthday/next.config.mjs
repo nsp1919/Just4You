@@ -1,5 +1,3 @@
-import type { NextConfig } from "next";
-
 // Baseline, non-breaking security response headers for the public wish viewer.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -12,7 +10,8 @@ const securityHeaders = [
   },
 ];
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
     remotePatterns: [
       {
@@ -25,8 +24,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  // Allow the Next.js dev server to accept requests proxied through public
-  // tunnels (ngrok / Cloudflare / VS Code dev tunnels) when sharing locally.
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.app", "*.trycloudflare.com", "*.devtunnels.ms"],
 };
 

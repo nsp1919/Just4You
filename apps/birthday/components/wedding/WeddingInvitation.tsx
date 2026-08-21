@@ -7,13 +7,16 @@ import {
   CalendarPlus,
   Check,
   Drum,
+  ExternalLink,
   Flame,
   Heart,
   MapPin,
   MessageCircle,
+  QrCode,
   Sparkles,
   X,
 } from "lucide-react";
+import QRCode from "qrcode";
 import {
   useEffect,
   useRef,
@@ -52,6 +55,7 @@ export interface WeddingInvitationData {
   hashtag: string;
   heroImage?: string;
   directionsUrl: string;
+  videoUrl?: string;
   whatsappNumber: string;
   rsvpEnabled?: boolean;
   rsvpDeadline?: string;
@@ -86,6 +90,16 @@ function calculateTimeLeft(date: string): TimeLeft {
     minutes: Math.floor((difference / 60_000) % 60),
     seconds: Math.floor((difference / 1_000) % 60),
   };
+}
+
+function safeExternalUrl(value?: string): string {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 function formatCalendarDate(date: Date): string {
@@ -553,6 +567,8 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
   const [attending, setAttending] = useState<"yes" | "no">("yes");
   const [rsvpStatus, setRsvpStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [rsvpError, setRsvpError] = useState("");
+  const [videoQrCode, setVideoQrCode] = useState("");
+  const videoUrl = safeExternalUrl(invitation.videoUrl);
   const [selectedCeremonies, setSelectedCeremonies] = useState<string[]>(
     invitation.ceremonies.map((ceremony) => ceremony.id),
   );
@@ -566,6 +582,27 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
   }).format(new Date(invitation.date));
   const weddingCeremony = invitation.ceremonies.find((ceremony) => ceremony.id === "wedding")
     ?? invitation.ceremonies.at(-1);
+
+  useEffect(() => {
+    if (!videoUrl) {
+      return;
+    }
+
+    let cancelled = false;
+    QRCode.toDataURL(videoUrl, {
+      width: 360,
+      margin: 2,
+      color: { dark: "#2d241e", light: "#fffaf0" },
+    }).then((dataUrl) => {
+      if (!cancelled) setVideoQrCode(dataUrl);
+    }).catch(() => {
+      if (!cancelled) setVideoQrCode("");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [videoUrl]);
   const rsvpDeadline = invitation.rsvpDeadline
     ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric" })
       .format(new Date(`${invitation.rsvpDeadline}T12:00:00`))
@@ -796,6 +833,25 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
           {rsvpStatus === "saved" && <p className={styles.rsvpStatus} role="status">RSVP saved. Your WhatsApp message is ready to send.</p>}
           {rsvpStatus === "error" && <p className={`${styles.rsvpStatus} ${styles.rsvpError}`} role="alert">{rsvpError}</p>}
         </form>
+      </section>}
+
+      {videoUrl && <section className={styles.videoSection}>
+        <div className={styles.videoCopy}>
+          <p>Our wedding film</p>
+          <h2>One more moment to share</h2>
+          <span>Point your phone camera at the code to open our invitation video.</span>
+          <a href={videoUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={17} /> Open wedding film
+          </a>
+        </div>
+        <div className={styles.qrFrame}>
+          {videoQrCode ? (
+            <img src={videoQrCode} alt="QR code to open the wedding invitation video" width={360} height={360} />
+          ) : (
+            <QrCode size={72} aria-hidden="true" />
+          )}
+          <small>Scan to watch</small>
+        </div>
       </section>}
 
       <footer className={styles.finale}>

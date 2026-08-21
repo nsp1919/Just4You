@@ -26,6 +26,16 @@ import {
 } from "@/components/wedding/WeddingCreatorFields";
 import WeddingInvitation, { type WeddingInvitationData } from "@/components/wedding/WeddingInvitation";
 
+function isValidOptionalWebUrl(value: string): boolean {
+  if (!value.trim()) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 const PREVIEW_THEME_COMPONENTS: Record<string, ComponentType<any>> = {
   galaxy: GalaxyTheme,
   floral: FloralTheme,
@@ -90,6 +100,7 @@ function LivePreviewModal({
     hashtag: data.weddingData.hashtag,
     heroImage: photos[0] || "",
     directionsUrl: data.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(data.weddingData.location)}`,
+    videoUrl: data.weddingData.videoUrl.trim() || undefined,
     whatsappNumber: data.weddingData.whatsappNumber,
     rsvpEnabled: data.weddingData.rsvpEnabled,
     rsvpDeadline: data.weddingData.rsvpDeadline,
@@ -1496,6 +1507,7 @@ export default function CreatePage() {
           && wedding.partnerTwo.trim()
           && wedding.families.trim()
           && wedding.location.trim()
+          && isValidOptionalWebUrl(wedding.videoUrl)
           && (!wedding.rsvpEnabled || wedding.whatsappNumber.trim())
           && formData.birthdayDate
           && formData.message.trim()
@@ -1555,6 +1567,7 @@ export default function CreatePage() {
           hashtag: formData.weddingData.hashtag || `#${formData.weddingData.partnerOne}${formData.weddingData.partnerTwo}`.replace(/\s/g, "").toUpperCase(),
           heroImage: photos[0] || "",
           directionsUrl: formData.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(formData.weddingData.location)}`,
+          videoUrl: formData.weddingData.videoUrl.trim() || null,
           whatsappNumber: formData.weddingData.whatsappNumber,
           rsvpEnabled: formData.weddingData.rsvpEnabled,
           rsvpDeadline: formData.weddingData.rsvpDeadline,

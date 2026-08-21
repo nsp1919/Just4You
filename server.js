@@ -2,6 +2,11 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const path = require('path');
 
+// Hostinger enforces a shared task/thread ceiling across web apps. Next's
+// native config loader otherwise sizes Rust pools from the host CPU count.
+process.env.TOKIO_WORKER_THREADS ||= '1';
+process.env.RAYON_NUM_THREADS ||= '1';
+
 const port = parseInt(process.env.PORT || '3000', 10);
 const hostname = '0.0.0.0';
 

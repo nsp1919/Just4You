@@ -2,6 +2,10 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const path = require('path');
 
+// Keep the public wish app within Hostinger's shared task/thread ceiling.
+process.env.TOKIO_WORKER_THREADS ||= '1';
+process.env.RAYON_NUM_THREADS ||= '1';
+
 const port = parseInt(process.env.PORT || '3001', 10);
 const hostname = '0.0.0.0';
 

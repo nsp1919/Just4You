@@ -31,6 +31,7 @@ const DEMO_INVITATION: WeddingInvitationData = {
   hashtag: "#AAROHIMEETSVIHAAN",
   heroImage: "/wedding-demo/couple.jpg",
   directionsUrl: "https://maps.google.com/?q=Taj+Falaknuma+Palace+Hyderabad",
+  videoUrl: "https://res.cloudinary.com/demo/video/upload/cld-sample-video.mp4",
   whatsappNumber: "919999999999",
   ceremonies: [
     {

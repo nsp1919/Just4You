@@ -27,6 +27,24 @@ service cloud.firestore {
         ]);
       }
 
+      function paidOwnerUpdateIsVideoOnly() {
+        return resource.data.paymentStatus != 'paid'
+          || (resource.data.occasionType == 'wedding'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['weddingData', 'updatedAt'])
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasAll(['weddingData', 'updatedAt'])
+              && request.resource.data.weddingData.diff(resource.data.weddingData)
+                   .affectedKeys().hasOnly(['videoUrl'])
+              && request.resource.data.weddingData.diff(resource.data.weddingData)
+                .affectedKeys().hasAll(['videoUrl'])
+              && request.resource.data.updatedAt == request.time
+              && request.resource.data.weddingData.videoUrl is string
+                && request.resource.data.weddingData.videoUrl.size() <= 2048
+                && (request.resource.data.weddingData.videoUrl == ''
+                  || request.resource.data.weddingData.videoUrl.matches('https?://.+')));
+      }
+
       // PUBLIC: Anyone with the link can read a single active, non-blocked
       // celebration BY DOCUMENT ID only. We intentionally use `get` (not `read`)
       // so this does NOT grant `list` — otherwise anyone could enumerate the
@@ -42,7 +60,8 @@ service cloud.firestore {
           && request.auth.uid == resource.data.userId;
       allow update: if request.auth != null
             && request.auth.uid == resource.data.userId
-            && serverFieldsUnchanged();
+        && serverFieldsUnchanged()
+        && paidOwnerUpdateIsVideoOnly();
       allow delete: if request.auth != null
             && request.auth.uid == resource.data.userId;
 
