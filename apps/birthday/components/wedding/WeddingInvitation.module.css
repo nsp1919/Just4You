@@ -141,23 +141,6 @@
   background: #f3c96d;
 }
 
-.scrollCue {
-  position: absolute;
-  bottom: 1.6rem;
-  left: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  z-index: 1;
-  color: #fff7e7;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-decoration: none;
-  text-transform: uppercase;
-  transform: translateX(-50%);
-}
 
 .petals {
   position: fixed;
@@ -1044,8 +1027,7 @@
   pointer-events: none;
 }
 
-.seal:focus-visible,
-.scrollCue:focus-visible {
+.seal:focus-visible {
   outline: 3px solid #fff1cd;
   outline-offset: 5px;
 }

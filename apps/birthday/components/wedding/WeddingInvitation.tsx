@@ -5,7 +5,6 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CalendarPlus,
   Check,
-  ChevronDown,
   Drum,
   Heart,
   MapPin,
@@ -48,7 +47,7 @@ export interface WeddingInvitationData {
   date: string;
   location: string;
   hashtag: string;
-  heroImage: string;
+  heroImage?: string;
   directionsUrl: string;
   whatsappNumber: string;
   rsvpEnabled?: boolean;
@@ -425,6 +424,7 @@ export default function WeddingInvitation({ invitation }: WeddingInvitationProps
   );
   const reduceMotion = useReducedMotion();
   const coupleNames = `${invitation.couple.partnerOne} & ${invitation.couple.partnerTwo}`;
+  const hasHeroImage = Boolean(invitation.heroImage?.trim());
   const weddingDate = new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "long",
@@ -464,34 +464,39 @@ export default function WeddingInvitation({ invitation }: WeddingInvitationProps
     <main className={styles.page}>
       <FallingPetals />
 
-      <section className={styles.hero} aria-labelledby="wedding-title">
-        <Image className={styles.heroImage} src={invitation.heroImage} alt="Wedding couple holding a bouquet" fill priority sizes="100vw" />
-        <div className={styles.heroShade} />
-        <div className={styles.heroTexture} />
-        <motion.div
-          className={styles.heroContent}
-          initial={reduceMotion ? false : { opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.35 }}
-        >
-          <p className={styles.eyebrow}>{invitation.families}</p>
-          <p className={styles.invitationLine}>request the pleasure of your company</p>
-          <h1 id="wedding-title" className={styles.names}>
-            <span>{invitation.couple.partnerOne}</span>
-            <b>&amp;</b>
-            <span>{invitation.couple.partnerTwo}</span>
-          </h1>
-          <div className={styles.details}>
-            <span>{weddingDate}</span>
-            <i aria-hidden="true" />
-            <span>{invitation.location}</span>
-          </div>
-          <p className={styles.hashtag}>{invitation.hashtag}</p>
-        </motion.div>
-        <a className={styles.scrollCue} href="#celebrations" aria-label="See the celebrations">
-          <span>Discover the celebrations</span>
-          <ChevronDown size={18} strokeWidth={1.5} />
-        </a>
+      <section
+        className={styles.hero}
+        aria-label={hasHeroImage ? `${coupleNames} wedding invitation` : undefined}
+        aria-labelledby={hasHeroImage ? undefined : "wedding-title"}
+      >
+        {hasHeroImage && invitation.heroImage ? (
+          <Image className={styles.heroImage} src={invitation.heroImage} alt={`${coupleNames} wedding invitation`} fill priority sizes="100vw" />
+        ) : (
+          <>
+            <div className={styles.heroShade} />
+            <div className={styles.heroTexture} />
+            <motion.div
+              className={styles.heroContent}
+              initial={reduceMotion ? false : { opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.35 }}
+            >
+              <p className={styles.eyebrow}>{invitation.families}</p>
+              <p className={styles.invitationLine}>request the pleasure of your company</p>
+              <h1 id="wedding-title" className={styles.names}>
+                <span>{invitation.couple.partnerOne}</span>
+                <b>&amp;</b>
+                <span>{invitation.couple.partnerTwo}</span>
+              </h1>
+              <div className={styles.details}>
+                <span>{weddingDate}</span>
+                <i aria-hidden="true" />
+                <span>{invitation.location}</span>
+              </div>
+              <p className={styles.hashtag}>{invitation.hashtag}</p>
+            </motion.div>
+          </>
+        )}
       </section>
 
       <section id="celebrations" className={styles.festivities}>

@@ -86,7 +86,7 @@ function LivePreviewModal({
     date: `${data.birthdayDate}T18:00:00+05:30`,
     location: data.weddingData.location,
     hashtag: data.weddingData.hashtag,
-    heroImage: photos[0],
+    heroImage: photos[0] || "",
     directionsUrl: data.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(data.weddingData.location)}`,
     whatsappNumber: data.weddingData.whatsappNumber,
     rsvpEnabled: data.weddingData.rsvpEnabled,
@@ -578,7 +578,7 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
       <div className="text-sm text-[var(--text-muted)]">
         {isWedding ? (
           <>
-            Upload one <strong className="text-white">9:16 wedding hero image</strong>. It fills the opening hero screen behind the editable couple names, date, and venue.
+            Optionally upload one <strong className="text-white">9:16 wedding hero image</strong>. Uploaded artwork is shown by itself; without one, the couple names, date, and venue are displayed automatically.
           </>
         ) : (
           <>Upload up to <strong className="text-white">{photoLimit} photos</strong>. They&apos;ll appear in a beautiful animated slideshow.</>
@@ -1495,7 +1495,7 @@ export default function CreatePage() {
     }
     if (step === 2) {
       if (occasionType === "wedding") {
-        return photos.length > 0 && formData.weddingData.ceremonies
+        return formData.weddingData.ceremonies
           .filter((ceremony) => ceremony.selected)
           .every((ceremony) => Boolean(ceremony.image));
       }
@@ -1530,7 +1530,7 @@ export default function CreatePage() {
           date: `${formData.birthdayDate}T18:00:00+05:30`,
           location: formData.weddingData.location.trim(),
           hashtag: formData.weddingData.hashtag || `#${formData.weddingData.partnerOne}${formData.weddingData.partnerTwo}`.replace(/\s/g, "").toUpperCase(),
-          heroImage: photos[0],
+          heroImage: photos[0] || "",
           directionsUrl: formData.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(formData.weddingData.location)}`,
           whatsappNumber: formData.weddingData.whatsappNumber,
           rsvpEnabled: formData.weddingData.rsvpEnabled,
