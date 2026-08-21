@@ -42,7 +42,7 @@ export default function MiniIndexPage() {
 
         <div className="text-center mt-14">
           <Link href="/pricing" className="text-purple-400 hover:text-purple-300 font-semibold">
-            Or build a full surprise website — from ₹149 →
+            Or build a full surprise website — from ₹199 →
           </Link>
         </div>
       </div>

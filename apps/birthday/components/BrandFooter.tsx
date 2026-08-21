@@ -75,7 +75,7 @@ export default function BrandFooter() {
             boxShadow: "0 12px 30px rgba(255,95,147,0.32)",
           }}
         >
-          Create My Surprise — from ₹149 <ArrowRight size={16} />
+          Create My Surprise — from ₹199 <ArrowRight size={16} />
         </a>
       </div>
     </footer>

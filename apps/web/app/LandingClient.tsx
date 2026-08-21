@@ -286,7 +286,7 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
                   Sign In
                 </a>
                 <button onClick={() => { setOpen(false); onOpenAuth(); }} className="btn btn-main" style={{ textAlign: 'center', justifyContent: 'center', padding: '14px', fontSize: '1rem' }}>
-                  Create Surprise — from ₹149
+                  Create Surprise — from ₹199
                 </button>
               </div>
             </div>
@@ -427,7 +427,7 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
             initial={{ opacity:0,y:16 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.85,duration:0.6 }}
             style={{ display:'flex',flexWrap:'wrap',justifyContent:'center',gap:'24px 64px', width: '100%',
               paddingTop:36,borderTop:'1px solid rgba(255,224,196,0.09)' }}>
-            {[['6','Stunning Themes'],['Instant','Delivery Available'],['1 Year','Hosting Included'],['₹149','Starting Price']].map(([v,l]) => (
+            {[['6','Stunning Themes'],['Instant','Delivery Available'],['1 Year','Hosting Included'],['₹199','Starting Price']].map(([v,l]) => (
               <div key={l} style={{ textAlign:'center' }}>
                 <div className="g-text-gold" style={{ fontSize:'1.8rem',fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{v}</div>
                 <div style={{ fontSize:'0.8rem',color:'#8f8098',marginTop:6,fontWeight:500,letterSpacing:'0.04em',textTransform:'uppercase' }}>{l}</div>
@@ -741,7 +741,7 @@ function Pricing() {
 
   const tiers = [
     {
-      id: 'lite', name: 'Lite', price: 149, tagline: 'The essentials to delight someone.',
+      id: 'lite', name: 'Lite', price: 199, tagline: 'The essentials to delight someone.',
       features: ['1 premium animated theme', 'Up to 5 photos', 'A preset music track', 'Guest wishes & reactions', '1 year hosting'],
     },
     {
@@ -760,7 +760,7 @@ function Pricing() {
       <div className="wrap" style={{ maxWidth:1020 }}>
         <SectionHeader label="Simple Pricing" labelColor="#ff8a5c"
           title={<>Build Your Own <span className="g-text">Package.</span></>}
-          sub="Start from ₹149 and add only the features you want. No subscriptions — pay once, surprise them forever."
+          sub="Start from ₹199 and add only the features you want. No subscriptions — pay once, surprise them forever."
           inView={inView} />
 
         <div className="three-col" style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,alignItems:'stretch' }}>
@@ -835,7 +835,7 @@ function FinalCTA({ onOpenAuth }: { onOpenAuth: () => void }) {
               Than a Disposable Card.
             </h2>
             <p style={{ color:'#b9a6be',fontSize:'1.08rem',lineHeight:1.75,maxWidth:500,margin:'0 auto 40px' }}>
-              Create a magical digital surprise page that your loved ones will open, cherish, and remember forever — starting at just ₹149.
+              Create a magical digital surprise page that your loved ones will open, cherish, and remember forever — starting at just ₹199.
             </p>
             <div style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center' }}>
               <button onClick={onOpenAuth} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>

@@ -1,13 +1,14 @@
 export const COLLECTIONS = {
   USERS: "users",
   CELEBRATIONS: "celebrations",
+  WALLET_WITHDRAWALS: "walletWithdrawals",
 } as const;
 
 export const MAX_PHOTOS = 8;
 // Fallback base price used only if a feature-based total can't be computed.
 // Must mirror BASE_PACKAGE.priceInr so a fallback never undercharges.
-export const PRICE_INR = 149;
-export const PRICE_PAISE = 14900;
+export const PRICE_INR = 199;
+export const PRICE_PAISE = 19900;
 export const VALIDITY_DAYS = 365;
 export const MAX_MESSAGE_LENGTH = 500;
 
@@ -39,7 +40,7 @@ export interface FeatureAddon {
 export const BASE_PACKAGE = {
   id: "base",
   label: "Base Website",
-  priceInr: 149,
+  priceInr: 199,
   includes: [
     "1 premium animated theme",
     "Up to 5 photos",
@@ -190,7 +191,7 @@ export function computePricePaise(features: string[] = []): number {
   return computePriceInr(features) * 100;
 }
 
-export const WEDDING_BASE_PRICE_INR = 149;
+export const WEDDING_BASE_PRICE_INR = 199;
 export const WEDDING_ADDITIONAL_CEREMONY_PRICE_INR = 49;
 export const WEDDING_RSVP_PRICE_INR = 49;
 export const WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR = 29;
@@ -229,9 +230,9 @@ export function formatInr(amount: number): string {
 
 // ─── Referral program ────────────────────────────────────────────────────────
 // A referred user receives ₹50 in their wallet when they join. The referrer
-// receives ₹100 in their wallet after that user's first successful purchase.
+// receives ₹50 in their wallet after that user's first successful purchase.
 export const REFERRAL_JOIN_WALLET_BONUS_INR = 50;
-export const REFERRAL_REWARD_INR = 100;
+export const REFERRAL_REWARD_INR = 50;
 export const REFERRAL_MILESTONE_COUNT = 3; // every N referrals → a free add-on credit
 
 export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical" | "wedding";
@@ -297,7 +298,7 @@ export const THEMES = [
 
 export type OccasionType = "birthday" | "kids-birthday" | "anniversary" | "proposal" | "wedding";
 
-export type WeddingCeremonyInteraction = "scratch" | "trace" | "rhythm" | "reveal";
+export type WeddingCeremonyInteraction = "scratch" | "trace" | "rhythm" | "bonalu" | "wedding" | "reception" | "reveal";
 
 export interface WeddingCeremonyDraft {
   id: string;
@@ -323,6 +324,7 @@ export interface WeddingDataDraft {
   directionsUrl: string;
   whatsappNumber: string;
   rsvpEnabled: boolean;
+  rsvpDeadline: string;
   ceremonies: WeddingCeremonyDraft[];
 }
 
@@ -488,7 +490,7 @@ export const DEFAULT_WEDDING_CEREMONIES: WeddingCeremonyDraft[] = [
     note: "Join our family as we offer Bonam and seek the blessings of Ammavaru before the wedding.",
     image: "",
     revealMusicUrl: "",
-    interaction: "reveal",
+    interaction: "bonalu",
     selected: false,
   },
   {
@@ -502,7 +504,7 @@ export const DEFAULT_WEDDING_CEREMONIES: WeddingCeremonyDraft[] = [
     note: "The sacred vows, witnessed by everyone we love.",
     image: "",
     revealMusicUrl: "",
-    interaction: "reveal",
+    interaction: "wedding",
     selected: true,
   },
   {
@@ -516,7 +518,7 @@ export const DEFAULT_WEDDING_CEREMONIES: WeddingCeremonyDraft[] = [
     note: "Raise a toast and celebrate the beginning of forever.",
     image: "",
     revealMusicUrl: "",
-    interaction: "reveal",
+    interaction: "reception",
     selected: false,
   },
 ];

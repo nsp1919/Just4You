@@ -16,7 +16,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "Aarohi & Vihaan | Wedding Invitation",
-  description: "Join Aarohi and Vihaan for four days of celebration.",
+  description: "Join Aarohi and Vihaan for six joyful celebrations.",
 };
 
 const DEMO_INVITATION: WeddingInvitationData = {
@@ -33,6 +33,18 @@ const DEMO_INVITATION: WeddingInvitationData = {
   directionsUrl: "https://maps.google.com/?q=Taj+Falaknuma+Palace+Hyderabad",
   whatsappNumber: "919999999999",
   ceremonies: [
+    {
+      id: "bonalu",
+      name: "Bonalu",
+      subtitle: "Gratitude and blessings",
+      date: "2026-12-07T11:00:00+05:30",
+      time: "11:00 AM onwards",
+      venue: "The Courtyard, Falaknuma Palace",
+      dressCode: "Traditional festive attire",
+      note: "We offer Bonam and seek the blessings of Ammavaru before the wedding.",
+      image: "/wedding-demo/haldi.jpg",
+      interaction: "bonalu",
+    },
     {
       id: "haldi",
       name: "Haldi",
@@ -79,7 +91,19 @@ const DEMO_INVITATION: WeddingInvitationData = {
       dressCode: "Traditional",
       note: "The sacred vows, witnessed by everyone we love.",
       image: "/wedding-demo/couple.jpg",
-      interaction: "reveal",
+      interaction: "wedding",
+    },
+    {
+      id: "reception",
+      name: "Reception",
+      subtitle: "Dinner and dancing",
+      date: "2026-12-12T19:30:00+05:30",
+      time: "7:30 PM onwards",
+      venue: "Durbar Hall, Falaknuma Palace",
+      dressCode: "Evening formal",
+      note: "Raise a toast and celebrate the beginning of forever.",
+      image: "/wedding-demo/sangeet.jpg",
+      interaction: "reception",
     },
   ],
 };

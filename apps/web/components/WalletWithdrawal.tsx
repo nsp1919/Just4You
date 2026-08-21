@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { Banknote, CheckCircle2, Clock3, Landmark, LoaderCircle, X, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatInr } from "@/lib/constants";
+import { MIN_WALLET_WITHDRAWAL_INR } from "@/lib/wallet-withdrawal";
 
 interface WithdrawalRequest {
   id: string;
@@ -82,7 +83,7 @@ export default function WalletWithdrawal({ initialWithdrawableBalance }: { initi
   };
 
   const available = data?.withdrawableBalance ?? initialWithdrawableBalance;
-  const minimum = data?.minimumWithdrawal ?? 500;
+  const minimum = data?.minimumWithdrawal ?? MIN_WALLET_WITHDRAWAL_INR;
 
   return (
     <>

@@ -199,7 +199,7 @@ export default async function WishPage({ params }: Props) {
   // If a view was counted this request, set a 1-hour cookie so subsequent
   // reloads/back-navigations don't increment the counter again.
   const themeJsx = celeb.occasionType === "wedding" && celeb.weddingData ? (
-    <WeddingInvitation invitation={celeb.weddingData} />
+    <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
   ) : (
     <>
       <Theme celebration={celeb} />

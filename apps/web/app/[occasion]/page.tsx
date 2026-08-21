@@ -238,7 +238,7 @@ export default async function OccasionLandingPage({ params }: Props) {
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-bold text-white"
               style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}
             >
-              {page.slug === "wedding" ? "Create Our Invitation — from ₹149 →" : "Create Mine — from ₹149 →"}
+              {page.slug === "wedding" ? "Create Our Invitation — from ₹199 →" : "Create Mine — from ₹199 →"}
             </Link>
             <Link
               href={page.demoPath ?? `/demo/${page.demoTheme}`}
@@ -286,7 +286,7 @@ export default async function OccasionLandingPage({ params }: Props) {
           className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-white"
           style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}
         >
-          {page.slug === "wedding" ? "Create Our Wedding Invitation →" : "Create My Surprise — from ₹149 →"}
+          {page.slug === "wedding" ? "Create Our Wedding Invitation →" : "Create My Surprise — from ₹199 →"}
         </Link>
       </section>
     </main>

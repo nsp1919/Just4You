@@ -191,7 +191,7 @@ export default async function WishPage({ params }: Props) {
   // Note: setting cookies from a Server Component page is not supported in
   // Next.js; cookie-based dedup must be done via middleware if needed.
   if (celeb.occasionType === "wedding" && celeb.weddingData) {
-    return <WeddingInvitation invitation={celeb.weddingData} />;
+    return <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />;
   }
 
   return (

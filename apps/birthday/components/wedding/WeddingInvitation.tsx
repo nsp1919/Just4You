@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CalendarPlus,
   Check,
   Drum,
+  Flame,
   Heart,
   MapPin,
   MessageCircle,
@@ -19,9 +21,10 @@ import {
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { db } from "@/lib/firebase";
 import styles from "./WeddingInvitation.module.css";
 
-type CeremonyInteraction = "scratch" | "trace" | "rhythm" | "reveal";
+type CeremonyInteraction = "scratch" | "trace" | "rhythm" | "bonalu" | "wedding" | "reception" | "reveal";
 
 export interface WeddingCeremony {
   id: string;
@@ -51,11 +54,13 @@ export interface WeddingInvitationData {
   directionsUrl: string;
   whatsappNumber: string;
   rsvpEnabled?: boolean;
+  rsvpDeadline?: string;
   ceremonies: WeddingCeremony[];
 }
 
 interface WeddingInvitationProps {
   invitation: WeddingInvitationData;
+  celebrationId?: string;
 }
 
 interface TimeLeft {
@@ -87,6 +92,14 @@ function formatCalendarDate(date: Date): string {
   return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
+function escapeCalendarText(value: string): string {
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll("\n", "\\n")
+    .replaceAll(",", "\\,")
+    .replaceAll(";", "\\;");
+}
+
 function downloadCalendar(ceremony: WeddingCeremony, coupleNames: string): void {
   const startsAt = new Date(ceremony.date);
   const endsAt = new Date(startsAt.getTime() + 3 * 60 * 60 * 1000);
@@ -99,9 +112,9 @@ function downloadCalendar(ceremony: WeddingCeremony, coupleNames: string): void 
     `DTSTAMP:${formatCalendarDate(new Date())}`,
     `DTSTART:${formatCalendarDate(startsAt)}`,
     `DTEND:${formatCalendarDate(endsAt)}`,
-    `SUMMARY:${ceremony.name} - ${coupleNames}`,
-    `DESCRIPTION:${ceremony.subtitle}`,
-    `LOCATION:${ceremony.venue}`,
+    `SUMMARY:${escapeCalendarText(`${ceremony.name} - ${coupleNames}`)}`,
+    `DESCRIPTION:${escapeCalendarText(`${ceremony.subtitle}. ${ceremony.note}`)}`,
+    `LOCATION:${escapeCalendarText(ceremony.venue)}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
@@ -310,11 +323,12 @@ function RhythmReveal({ ceremony }: { ceremony: WeddingCeremony }) {
   return (
     <div className={styles.rhythmSurface}>
       <Image src={ceremony.image} alt="Sangeet dance floor" fill sizes="(max-width: 720px) 92vw, 560px" />
-      <div className={styles.rhythmTint} />
-      <div className={styles.rhythmContent}>
+      <div className={`${styles.rhythmTint} ${complete ? styles.finished : ""}`} />
+      <div className={`${styles.rhythmContent} ${complete ? styles.finished : ""}`}>
         <button
           type="button"
           className={styles.dholButton}
+          disabled={complete}
           onClick={() => {
             playDrumBeat();
             setBeats((current) => Math.min(5, current + 1));
@@ -330,6 +344,115 @@ function RhythmReveal({ ceremony }: { ceremony: WeddingCeremony }) {
           ))}
         </div>
         <small>{complete ? ceremony.note : "Five beats to reveal the celebration"}</small>
+      </div>
+      <div className={styles.ritualCaption}>
+        <span>An evening in rhythm</span>
+        <strong>{ceremony.name}</strong>
+        <small>{complete ? ceremony.note : "Play the dhol to lift the music veil"}</small>
+      </div>
+    </div>
+  );
+}
+
+function BonaluReveal({ ceremony }: { ceremony: WeddingCeremony }) {
+  const [lampsLit, setLampsLit] = useState(0);
+  const complete = lampsLit >= 5;
+
+  return (
+    <div className={styles.ritualSurface}>
+      <Image src={ceremony.image} alt="Bonalu celebration" fill sizes="(max-width: 720px) 92vw, 560px" />
+      <div className={`${styles.festivalLayer} ${styles.bonaluLayer} ${complete ? styles.finished : ""}`}>
+        <span className={styles.bonaluArch} aria-hidden="true" />
+        <p>Blessings of Ammavaru</p>
+        <div className={styles.lampRow} aria-label={`${lampsLit} of 5 ceremonial lamps lit`}>
+          {Array.from({ length: 5 }, (_, index) => (
+            <span key={index} className={index < lampsLit ? styles.lampLit : ""}>
+              <Flame size={22} strokeWidth={1.5} />
+            </span>
+          ))}
+        </div>
+        <button
+          type="button"
+          className={styles.ritualAction}
+          disabled={complete}
+          onClick={() => setLampsLit((current) => Math.min(5, current + 1))}
+        >
+          <Flame size={20} />
+          Light the offering lamps
+        </button>
+        <small>Five lights reveal the invitation</small>
+      </div>
+      <div className={styles.ritualCaption}>
+        <span>Blessings of Ammavaru</span>
+        <strong>{ceremony.name}</strong>
+        <small>{complete ? ceremony.note : "Light each lamp to reveal"}</small>
+      </div>
+    </div>
+  );
+}
+
+function WeddingReveal({ ceremony }: { ceremony: WeddingCeremony }) {
+  const [knots, setKnots] = useState(0);
+  const complete = knots >= 3;
+
+  return (
+    <div className={styles.ritualSurface}>
+      <Image src={ceremony.image} alt="Wedding couple" fill sizes="(max-width: 720px) 92vw, 560px" />
+      <div className={`${styles.festivalLayer} ${styles.weddingLayer} ${complete ? styles.finished : ""}`}>
+        <motion.div
+          className={styles.sacredHeart}
+          animate={complete ? { scale: [1, 1.16, 1], rotate: [0, -4, 4, 0] } : { scale: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          <Heart size={70} strokeWidth={1.15} />
+        </motion.div>
+        <p>{complete ? "Two families, one promise" : "Complete the sacred knot"}</p>
+        <div className={styles.knotProgress} aria-label={`${knots} of 3 sacred knots completed`}>
+          {Array.from({ length: 3 }, (_, index) => (
+            <span key={index} className={index < knots ? styles.knotComplete : ""} />
+          ))}
+        </div>
+        <button
+          type="button"
+          className={styles.ritualAction}
+          disabled={complete}
+          onClick={() => setKnots((current) => Math.min(3, current + 1))}
+        >
+          <Heart size={19} />
+          Tie the sacred knot
+        </button>
+      </div>
+      <div className={styles.ritualCaption}>
+        <span>The sacred vows</span>
+        <strong>{ceremony.name}</strong>
+        <small>{complete ? ceremony.note : "Three knots reveal the muhurtham"}</small>
+      </div>
+    </div>
+  );
+}
+
+function ReceptionReveal({ ceremony }: { ceremony: WeddingCeremony }) {
+  const [complete, setComplete] = useState(false);
+
+  return (
+    <div className={styles.ritualSurface}>
+      <Image src={ceremony.image} alt="Wedding reception" fill sizes="(max-width: 720px) 92vw, 560px" />
+      <div className={`${styles.receptionReveal} ${complete ? styles.finished : ""}`}>
+        <span className={styles.receptionCurtainLeft} aria-hidden="true" />
+        <span className={styles.receptionCurtainRight} aria-hidden="true" />
+        <div className={styles.receptionContent}>
+          <Sparkles size={70} strokeWidth={1.1} />
+          <p>Raise a toast to forever</p>
+          <button type="button" className={styles.ritualAction} onClick={() => setComplete(true)}>
+            <Sparkles size={19} />
+            Begin the celebration
+          </button>
+        </div>
+      </div>
+      <div className={styles.ritualCaption}>
+        <span>Dinner and dancing</span>
+        <strong>{ceremony.name}</strong>
+        <small>{complete ? ceremony.note : "Open the celebration curtain"}</small>
       </div>
     </div>
   );
@@ -381,6 +504,18 @@ function CeremonyModal({ ceremony, onClose }: { ceremony: WeddingCeremony; onClo
     };
   }, [ceremony.id, ceremony.revealMusicUrl]);
 
+  const festivalReveal = (() => {
+    if (ceremony.id === "bonalu" || ceremony.interaction === "bonalu") return <BonaluReveal ceremony={ceremony} />;
+    if (ceremony.id === "mehndi") return <TraceReveal ceremony={ceremony} />;
+    if (ceremony.id === "sangeet") return <RhythmReveal ceremony={ceremony} />;
+    if (ceremony.id === "wedding" || ceremony.interaction === "wedding") return <WeddingReveal ceremony={ceremony} />;
+    if (ceremony.id === "reception" || ceremony.interaction === "reception") return <ReceptionReveal ceremony={ceremony} />;
+    if (ceremony.interaction === "scratch") return <ScratchReveal ceremony={ceremony} />;
+    if (ceremony.interaction === "trace") return <TraceReveal ceremony={ceremony} />;
+    if (ceremony.interaction === "rhythm") return <RhythmReveal ceremony={ceremony} />;
+    return <SimpleReveal ceremony={ceremony} />;
+  })();
+
   return (
     <motion.div
       className={styles.modalBackdrop}
@@ -403,22 +538,21 @@ function CeremonyModal({ ceremony, onClose }: { ceremony: WeddingCeremony; onClo
         <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close invitation">
           <X size={19} />
         </button>
-        {ceremony.interaction === "scratch" && <ScratchReveal ceremony={ceremony} />}
-        {ceremony.interaction === "trace" && <TraceReveal ceremony={ceremony} />}
-        {ceremony.interaction === "rhythm" && <RhythmReveal ceremony={ceremony} />}
-        {ceremony.interaction === "reveal" && <SimpleReveal ceremony={ceremony} />}
+        {festivalReveal}
       </motion.div>
     </motion.div>
   );
 }
 
-export default function WeddingInvitation({ invitation }: WeddingInvitationProps) {
+export default function WeddingInvitation({ invitation, celebrationId }: WeddingInvitationProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [openingComplete, setOpeningComplete] = useState(false);
   const [activeCeremony, setActiveCeremony] = useState<WeddingCeremony | null>(null);
   const [team, setTeam] = useState<"bride" | "groom" | null>(null);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [attending, setAttending] = useState<"yes" | "no">("yes");
+  const [rsvpStatus, setRsvpStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [rsvpError, setRsvpError] = useState("");
   const [selectedCeremonies, setSelectedCeremonies] = useState<string[]>(
     invitation.ceremonies.map((ceremony) => ceremony.id),
   );
@@ -430,6 +564,12 @@ export default function WeddingInvitation({ invitation }: WeddingInvitationProps
     month: "long",
     year: "numeric",
   }).format(new Date(invitation.date));
+  const weddingCeremony = invitation.ceremonies.find((ceremony) => ceremony.id === "wedding")
+    ?? invitation.ceremonies.at(-1);
+  const rsvpDeadline = invitation.rsvpDeadline
+    ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric" })
+      .format(new Date(`${invitation.rsvpDeadline}T12:00:00`))
+    : null;
 
   useEffect(() => {
     if (!openingComplete) return;
@@ -445,19 +585,53 @@ export default function WeddingInvitation({ invitation }: WeddingInvitationProps
     return () => window.clearTimeout(timer);
   }, [isOpening]);
 
-  const sendRsvp = (event: FormEvent<HTMLFormElement>) => {
+  const sendRsvp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const name = String(form.get("name") || "Guest");
-    const guests = String(form.get("guests") || "1");
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const name = String(form.get("name") || "Guest").trim().slice(0, 40);
+    const guestCount = attending === "yes"
+      ? Math.min(10, Math.max(1, Number(form.get("guests")) || 1))
+      : 0;
     const events = invitation.ceremonies
       .filter((ceremony) => selectedCeremonies.includes(ceremony.id))
-      .map((ceremony) => ceremony.name)
-      .join(", ");
+      .map((ceremony) => ({ id: ceremony.id, name: ceremony.name }));
+    if (attending === "yes" && events.length === 0) {
+      setRsvpError("Choose at least one celebration before sending your RSVP.");
+      setRsvpStatus("error");
+      return;
+    }
+    const teamLabel = team === "bride"
+      ? `Team Bride (${invitation.couple.partnerOne})`
+      : team === "groom"
+        ? `Team Groom (${invitation.couple.partnerTwo})`
+        : "No team selected";
     const message = attending === "yes"
-      ? `Hello! ${name} will joyfully attend ${coupleNames}'s wedding. Events: ${events}. Guests: ${guests}.`
-      : `Hello! ${name} regretfully cannot attend ${coupleNames}'s wedding.`;
-    window.open(`https://wa.me/${invitation.whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+      ? `Hello! ${name} will joyfully attend ${coupleNames}'s wedding. Events: ${events.map((item) => item.name).join(", ")}. Guests: ${guestCount}. ${teamLabel}.`
+      : `Hello! ${name} regretfully cannot attend ${coupleNames}'s wedding. ${teamLabel}.`;
+    const whatsappUrl = `https://wa.me/${invitation.whatsappNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+
+    if (!celebrationId) return;
+
+    setRsvpError("");
+    setRsvpStatus("saving");
+    try {
+      await addDoc(collection(db, "celebrations", celebrationId, "rsvps"), {
+        name,
+        attending,
+        ceremonies: attending === "yes" ? events : [],
+        guestCount,
+        team: team ?? "",
+        createdAt: serverTimestamp(),
+      });
+      setRsvpStatus("saved");
+      formElement.reset();
+    } catch (error) {
+      console.error("RSVP save failed:", error);
+      setRsvpError("WhatsApp opened, but the RSVP could not be saved. Please try again.");
+      setRsvpStatus("error");
+    }
   };
 
   return (
@@ -500,7 +674,7 @@ export default function WeddingInvitation({ invitation }: WeddingInvitationProps
       </section>
 
       <section id="celebrations" className={styles.festivities}>
-        <SectionHeading eyebrow="Four days of celebration">The Festivities</SectionHeading>
+        <SectionHeading eyebrow={`${invitation.ceremonies.length} celebrations`}>The Festivities</SectionHeading>
         <div className={styles.timeline}>
           {invitation.ceremonies.map((ceremony, index) => (
             <motion.article
@@ -568,9 +742,9 @@ export default function WeddingInvitation({ invitation }: WeddingInvitationProps
         <div className={styles.rsvpIntro}>
           <p>Save your place</p>
           <h2>Will you join us?</h2>
-          <span>Kindly reply before 15 November 2026.</span>
+          <span>{rsvpDeadline ? `Kindly reply before ${rsvpDeadline}.` : "Please reply at your earliest convenience."}</span>
           <div className={styles.locationActions}>
-            <button type="button" onClick={() => downloadCalendar(invitation.ceremonies.at(-1)!, coupleNames)}>
+            <button type="button" disabled={!weddingCeremony} onClick={() => weddingCeremony && downloadCalendar(weddingCeremony, coupleNames)}>
               <CalendarPlus size={17} /> Add wedding
             </button>
             <a href={invitation.directionsUrl} target="_blank" rel="noreferrer">
@@ -616,9 +790,11 @@ export default function WeddingInvitation({ invitation }: WeddingInvitationProps
               </label>
             </>
           )}
-          <button className={styles.whatsappButton} type="submit">
-            <MessageCircle size={18} /> Send RSVP on WhatsApp
+          <button className={styles.whatsappButton} type="submit" disabled={rsvpStatus === "saving"}>
+            <MessageCircle size={18} /> {rsvpStatus === "saving" ? "Saving RSVP..." : "Send RSVP on WhatsApp"}
           </button>
+          {rsvpStatus === "saved" && <p className={styles.rsvpStatus} role="status">RSVP saved. Your WhatsApp message is ready to send.</p>}
+          {rsvpStatus === "error" && <p className={`${styles.rsvpStatus} ${styles.rsvpError}`} role="alert">{rsvpError}</p>}
         </form>
       </section>}
 

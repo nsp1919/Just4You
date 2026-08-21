@@ -16,11 +16,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Just4You — Create a Beautiful Surprise Website in Minutes",
   description:
-    "Create personalized wedding invitations and surprise websites for birthdays, anniversaries, proposals, and kids birthdays. Add photos, music and interactive reveals. From ₹149.",
+    "Create personalized wedding invitations and surprise websites for birthdays, anniversaries, proposals, and kids birthdays. Add photos, music and interactive reveals. From ₹199.",
   keywords: ["wedding invitation website", "birthday website", "anniversary surprise website", "proposal surprise website", "kids birthday website", "personalized surprise online", "surprise gift India"],
   openGraph: {
     title: "Just4You — Animated Surprise Websites That Wow",
-    description: "Create a personalized surprise website from ₹149. Beautiful animated themes, photo slideshows, music & interactive features.",
+    description: "Create a personalized surprise website from ₹199. Beautiful animated themes, photo slideshows, music & interactive features.",
     url: SITE_URL,
     siteName: "Just4You",
     type: "website",

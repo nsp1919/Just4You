@@ -73,7 +73,7 @@ export default function DemoIndexPage() {
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-bold text-white"
             style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}
           >
-            Create My Surprise — from ₹149 →
+            Create My Surprise — from ₹199 →
           </Link>
         </div>
       </div>

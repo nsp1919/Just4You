@@ -1,4 +1,4 @@
-export const MIN_WALLET_WITHDRAWAL_INR = 500;
+export const MIN_WALLET_WITHDRAWAL_INR = 300;
 
 function wholeNonNegative(value) {
   return Math.max(0, Math.floor(Number(value) || 0));

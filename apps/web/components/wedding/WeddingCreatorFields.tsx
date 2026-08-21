@@ -28,6 +28,7 @@ export function createDefaultWeddingData(): WeddingDataDraft {
     directionsUrl: "",
     whatsappNumber: "",
     rsvpEnabled: true,
+    rsvpDeadline: "",
     ceremonies: DEFAULT_WEDDING_CEREMONIES.map((ceremony) => ({ ...ceremony })),
   };
 }
@@ -110,10 +111,16 @@ export function WeddingDetailsEditor({
           </span>
         </label>
         {value.rsvpEnabled && (
-          <label className="mt-4 block text-sm font-medium">
-            RSVP WhatsApp number *
-            <input className="input-field mt-2" value={value.whatsappNumber} onChange={(event) => setField("whatsappNumber", event.target.value.replace(/\D/g, "").slice(0, 15))} placeholder="919999999999" inputMode="tel" />
-          </label>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-medium">
+              RSVP WhatsApp number *
+              <input className="input-field mt-2" value={value.whatsappNumber} onChange={(event) => setField("whatsappNumber", event.target.value.replace(/\D/g, "").slice(0, 15))} placeholder="919999999999" inputMode="tel" />
+            </label>
+            <label className="block text-sm font-medium">
+              RSVP deadline
+              <input className="input-field mt-2" type="date" value={value.rsvpDeadline} onChange={(event) => setField("rsvpDeadline", event.target.value)} max={weddingDate || undefined} />
+            </label>
+          </div>
         )}
       </div>
 

@@ -82,7 +82,7 @@ function CardView() {
           <p className="text-sm opacity-70 mb-4">Made with 💛 on Just4You.buzz</p>
           <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white"
             style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}>
-            Create your own surprise — from ₹149 →
+            Create your own surprise — from ₹199 →
           </Link>
         </div>
       </div>

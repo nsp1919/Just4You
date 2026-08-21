@@ -89,7 +89,7 @@ export default function MiniCreatePage({ params }: { params: Promise<{ campaign:
           <p className="text-sm opacity-80 mb-3">Want to make it truly unforgettable — with photos, music &amp; a full animated website?</p>
           <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-white"
             style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}>
-            Create a full surprise — from ₹149 →
+            Create a full surprise — from ₹199 →
           </Link>
         </div>
       </div>

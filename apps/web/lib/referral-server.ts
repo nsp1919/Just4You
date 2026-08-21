@@ -12,6 +12,7 @@ import {
 } from "@/lib/constants";
 import { normalizeReferralCode } from "@/lib/referral-code";
 import { calculateWalletCheckout } from "@/lib/wallet-checkout";
+import { debitWalletForCheckout, resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
 
 export interface CheckoutBenefits {
   reservationId: string;
@@ -163,10 +164,17 @@ export async function reserveCheckoutBenefits(
 
     const pricing = authoritativeCheckoutPrice(celebration!, features);
     const benefits = calculateCheckoutBenefits(user, features, pricing.basePaise, pricing.allowFreeAddon);
+    const withdrawableBalance = resolveWithdrawableBalance(user ?? {}, REFERRAL_REWARD_INR);
+    const walletAfterCheckout = debitWalletForCheckout(
+      walletBalance,
+      withdrawableBalance,
+      benefits.walletAppliedInr,
+    );
     const freeAddon = benefits.freeAddonFeatureId;
     const reservationId = randomUUID();
     transaction.update(userRef, {
-      walletBalance: walletBalance - benefits.walletAppliedInr,
+      walletBalance: walletAfterCheckout.walletBalance,
+      walletWithdrawableBalance: walletAfterCheckout.walletWithdrawableBalance,
       freeAddonCredits: freeAddonCredits - (freeAddon ? 1 : 0),
     });
     transaction.update(celebRef, {
@@ -175,6 +183,7 @@ export async function reserveCheckoutBenefits(
       referralDiscountPaise: benefits.referralDiscountPaise,
       referralCreditAppliedInr: FieldValue.delete(),
       walletAppliedInr: benefits.walletAppliedInr,
+      walletWithdrawableAppliedInr: withdrawableBalance - walletAfterCheckout.walletWithdrawableBalance,
       freeAddonFeatureId: freeAddon ?? FieldValue.delete(),
       freeAddonDiscountPaise: benefits.freeAddonDiscountPaise,
       referredBy: friendEligible && referredBy ? referredBy : FieldValue.delete(),
@@ -213,8 +222,17 @@ export async function releaseCheckoutBenefits(
         0,
         Number(celebration.walletAppliedInr ?? celebration.referralCreditAppliedInr) || 0,
       );
+      const reservedWithdrawableWallet = Math.max(
+        0,
+        Number(celebration.walletWithdrawableAppliedInr) || 0,
+      );
+      const currentWithdrawableBalance = resolveWithdrawableBalance(
+        userSnap.data() ?? {},
+        REFERRAL_REWARD_INR,
+      );
       const userUpdate: Record<string, unknown> = {
         walletBalance: currentWalletBalance + reservedWallet,
+        walletWithdrawableBalance: currentWithdrawableBalance + reservedWithdrawableWallet,
         freeAddonCredits: FieldValue.increment(celebration.freeAddonFeatureId ? 1 : 0),
       };
       if (userSnap.data()?.referralDiscountReservationCelebrationId === celebrationId) {
@@ -271,6 +289,9 @@ export async function settlePaidReferralBenefits(celebrationId: string): Promise
       );
       const referrerUpdate: Record<string, unknown> = {
         walletBalance: referrerWalletBalance + REFERRAL_REWARD_INR,
+        walletWithdrawableBalance:
+          resolveWithdrawableBalance(referrerSnap.data() ?? {}, REFERRAL_REWARD_INR)
+          + REFERRAL_REWARD_INR,
         referralCount: FieldValue.increment(1),
       };
       if (newCount % REFERRAL_MILESTONE_COUNT === 0) {

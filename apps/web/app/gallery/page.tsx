@@ -12,7 +12,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Wall of Love — Real Surprise Websites | Just4You.buzz",
   description:
-    "Browse real personalized birthday, anniversary and proposal surprise websites created on Just4You.buzz. Get inspired, then make your own from ₹149.",
+    "Browse real personalized birthday, anniversary and proposal surprise websites created on Just4You.buzz. Get inspired, then make your own from ₹199.",
   alternates: { canonical: "/gallery" },
 };
 
@@ -107,7 +107,7 @@ export default async function GalleryPage() {
             className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-white"
             style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}
           >
-            Create My Surprise — from ₹149 →
+            Create My Surprise — from ₹199 →
           </Link>
         </div>
       </div>

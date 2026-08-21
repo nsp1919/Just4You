@@ -87,6 +87,35 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      // ── Wedding RSVPs ─────────────────────────────────────────────────────
+      match /rsvps/{rsvpId} {
+        // Invitation owners and admins can review attendance responses.
+        allow read: if request.auth != null
+                    && (request.auth.uid == get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.userId
+                        || isAdmin());
+
+        // Guests may submit a tightly validated response only while the
+        // invitation is active. Payment and owner data cannot be modified.
+        allow create: if get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.isActive == true
+                      && get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.isBlocked == false
+                      && request.resource.data.keys().hasOnly([
+                        'name', 'attending', 'ceremonies', 'guestCount', 'team', 'createdAt'
+                      ])
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() > 0
+                      && request.resource.data.name.size() <= 40
+                      && request.resource.data.attending in ['yes', 'no']
+                      && request.resource.data.ceremonies is list
+                      && request.resource.data.ceremonies.size() <= 6
+                      && request.resource.data.guestCount is int
+                      && request.resource.data.guestCount >= 0
+                      && request.resource.data.guestCount <= 10
+                      && request.resource.data.team in ['', 'bride', 'groom']
+                      && request.resource.data.createdAt == request.time;
+
+        allow update, delete: if false;
+      }
+
       // ── View log sub-collection (written by server only) ──────────────────
       match /viewLog/{logId} {
         // OWNER: can read their own view logs for analytics

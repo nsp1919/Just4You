@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
@@ -52,6 +53,7 @@ function LivePreviewModal({
   onClose: () => void;
 }) {
   const ThemeComp = PREVIEW_THEME_COMPONENTS[data.theme] ?? GalaxyTheme;
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const oneYear = new Date();
   oneYear.setFullYear(oneYear.getFullYear() + 1);
@@ -90,6 +92,7 @@ function LivePreviewModal({
     directionsUrl: data.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(data.weddingData.location)}`,
     whatsappNumber: data.weddingData.whatsappNumber,
     rsvpEnabled: data.weddingData.rsvpEnabled,
+    rsvpDeadline: data.weddingData.rsvpDeadline,
     ceremonies: data.weddingData.ceremonies
       .filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.selected)
       .map(({ selected: _selected, ...ceremony }: WeddingDataDraft["ceremonies"][number]) => ({
@@ -101,14 +104,16 @@ function LivePreviewModal({
 
   useEffect(() => {
     trackEvent("preview_viewed", { theme: data.theme, occasionType });
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    previewRef.current?.scrollTo({ top: 0, left: 0 });
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
     };
   }, [data.theme, occasionType]);
 
-  return (
-    <div className="fixed inset-0 z-[300] bg-black overflow-y-auto">
+  return createPortal(
+    <div ref={previewRef} className="fixed inset-0 z-[300] bg-black overflow-y-auto">
       {/* Watermark ribbon */}
       <div
         className="fixed top-0 left-0 right-0 z-[310] flex items-center justify-between px-4 py-2.5 text-sm"
@@ -126,7 +131,10 @@ function LivePreviewModal({
       </div>
 
       {/* Diagonal watermark overlay so screenshots are discouraged pre-payment */}
-      <div className="pointer-events-none fixed inset-0 z-[305] flex items-center justify-center overflow-hidden">
+      <div
+        className="pointer-events-none fixed inset-0 z-[305] flex items-center justify-center overflow-hidden"
+        style={{ backdropFilter: "blur(5px)", background: "rgba(0,0,0,0.01)" }}
+      >
         <div
           className="text-white/[0.06] font-black whitespace-nowrap select-none"
           style={{ fontSize: "6rem", transform: "rotate(-30deg)", letterSpacing: "0.1em" }}
@@ -135,13 +143,11 @@ function LivePreviewModal({
         </div>
       </div>
 
-      <div
-        className="pt-11 select-none"
-        style={{ filter: "blur(5px)", transform: "scale(1.01)", transformOrigin: "top center" }}
-      >
+      <div className="pt-11 select-none">
         {weddingInvitation ? <WeddingInvitation invitation={weddingInvitation} /> : <ThemeComp celebration={previewCelebration} />}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -1534,6 +1540,7 @@ export default function CreatePage() {
           directionsUrl: formData.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(formData.weddingData.location)}`,
           whatsappNumber: formData.weddingData.whatsappNumber,
           rsvpEnabled: formData.weddingData.rsvpEnabled,
+          rsvpDeadline: formData.weddingData.rsvpDeadline,
           ceremonies: selectedWeddingCeremonies.map(({ selected: _selected, ...ceremony }) => ({
             ...ceremony,
             date: `${ceremony.date}T${ceremony.time}:00+05:30`,
