@@ -12,7 +12,7 @@ export interface User {
 }
 
 // ─── Theme ─────────────────────────────────────────────────────────────────
-export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical";
+export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical" | "wedding";
 
 export const THEMES: { id: Theme; label: string; description: string; colors: string[] }[] = [
   {
@@ -51,6 +51,12 @@ export const THEMES: { id: Theme; label: string; description: string; colors: st
     description: "Bright colors, floating balloons, toys, cute animations",
     colors: ["#fff7ed", "#fdf2f8", "#f43f5e"],
   },
+  {
+    id: "wedding",
+    label: "Wedding Invitation",
+    description: "Ceremonial doors, festival poster reveals, RSVP and event timeline",
+    colors: ["#d9a01d", "#8a1736", "#315a46"],
+  },
 ];
 
 // ─── Music ─────────────────────────────────────────────────────────────────
@@ -76,7 +82,40 @@ export const PRESET_TRACKS: PresetTrack[] = [
 ];
 
 // ─── Celebration ───────────────────────────────────────────────────────────
-export type OccasionType = "birthday" | "kids-birthday" | "anniversary" | "proposal";
+export type OccasionType = "birthday" | "kids-birthday" | "anniversary" | "proposal" | "wedding";
+
+export type WeddingCeremonyInteraction = "scratch" | "trace" | "rhythm" | "reveal";
+
+export interface WeddingCeremony {
+  id: string;
+  name: string;
+  subtitle: string;
+  date: string;
+  time: string;
+  venue: string;
+  dressCode: string;
+  note: string;
+  image: string;
+  revealMusicUrl?: string;
+  interaction: WeddingCeremonyInteraction;
+}
+
+export interface WeddingInvitationData {
+  couple: {
+    partnerOne: string;
+    partnerTwo: string;
+    monogram: string;
+  };
+  families: string;
+  date: string;
+  location: string;
+  hashtag: string;
+  heroImage: string;
+  directionsUrl: string;
+  whatsappNumber: string;
+  rsvpEnabled?: boolean;
+  ceremonies: WeddingCeremony[];
+}
 
 export type RelationType = 
   // Birthday & general relations
@@ -110,6 +149,7 @@ export interface Celebration {
   isActive: boolean;
   isBlocked: boolean;         // admin can block
   occasionType?: OccasionType; // Optional for backwards compatibility
+  weddingData?: WeddingInvitationData;
   relation?: RelationType;     // Optional for backwards compatibility
   relationCustom?: string;     // Custom written relation if relation === 'custom'
   proposalResponse?: "yes" | "no" | null; // Response for proposal cards

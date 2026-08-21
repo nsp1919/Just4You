@@ -1,0 +1,1 @@
+export { default, metadata } from "../../../../birthday/app/invite/demo/page";

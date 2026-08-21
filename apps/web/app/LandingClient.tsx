@@ -16,6 +16,8 @@ import {
 const appUrl = (path: string) => path;
 
 const OCCASIONS = [
+  { emoji: '🪔', title: 'Wedding Invitations', tag: 'New ✨', c: '#d9a01d', bg: 'rgba(217,160,29,0.07)', border: 'rgba(217,160,29,0.2)', href: '/wedding',
+    desc: 'Interactive wedding websites with festival timelines, poster reveals, individual music, directions & RSVP.' },
   { emoji: '🎂', title: 'Birthday Websites', tag: 'Most Popular', c: '#ff9e4f', bg: 'rgba(255,158,79,0.06)', border: 'rgba(255,158,79,0.16)',
     desc: 'A personalized birthday page packed with photos, music, countdown & a heartfelt surprise reveal.' },
   { emoji: '💍', title: 'Anniversary Websites', tag: 'Most Romantic', c: '#ff6f9c', bg: 'rgba(255,111,156,0.06)', border: 'rgba(255,111,156,0.16)',
@@ -27,7 +29,7 @@ const OCCASIONS = [
   { emoji: '🎓', title: 'Graduation Websites', tag: 'New ✨', c: '#f7a83a', bg: 'rgba(247,168,58,0.06)', border: 'rgba(247,168,58,0.16)',
     desc: 'Honour the achievement with a premium tribute — professor wishes, milestone photos & a proud message.' },
   { emoji: '🎉', title: 'Custom Celebrations', tag: 'Fully Custom', c: '#ff7d6b', bg: 'rgba(255,125,107,0.06)', border: 'rgba(255,125,107,0.16)',
-    desc: 'Weddings, engagements, reunions, farewells — any occasion crafted beautifully, just for you.' },
+    desc: 'Engagements, reunions, farewells — any occasion crafted beautifully, just for you.' },
 ]
 
 const THEMES = [
@@ -40,7 +42,7 @@ const THEMES = [
 ]
 
 const HOW_IT_WORKS = [
-  { n: '01', title: 'Choose Your Occasion', desc: 'Select from Birthday, Anniversary, Proposal, Kids Birthday, Graduation, or create a fully custom celebration website.', emoji: '🎯' },
+  { n: '01', title: 'Choose Your Occasion', desc: 'Select Wedding, Birthday, Anniversary, Proposal, Kids Birthday, Graduation, or create a fully custom celebration website.', emoji: '🎯' },
   { n: '02', title: 'Fill In The Details', desc: 'Add the recipient\'s name, your heartfelt personal message, pick a beautiful visual theme & set the celebration date.', emoji: '✍️' },
   { n: '03', title: 'Upload Photos & Music', desc: 'Add up to 8 photos, choose a preset music track or upload your own song, even record a personal voice message.', emoji: '📸' },
   { n: '04', title: 'Secure Check & Go Live', desc: 'Complete secure payment and go live instantly with selected themes, or choose a handcrafted delivery option.', emoji: '✅' },
@@ -505,7 +507,13 @@ function Occasions({ onOpenAuth }: { onOpenAuth: () => void }) {
               style={{ padding:'32px',borderRadius:20,cursor:'pointer',
                 background:occ.bg,border:`1px solid ${occ.border}`,
                 display:'flex',flexDirection:'column',gap:16,position:'relative' }}
-              onClick={onOpenAuth}>
+              onClick={() => {
+                if ("href" in occ && occ.href) {
+                  window.location.href = occ.href
+                  return
+                }
+                onOpenAuth()
+              }}>
               {/* Tag */}
               <span style={{ position:'absolute',top:18,right:18,fontSize:'0.75rem',fontWeight:600,
                 padding:'4px 12px',borderRadius:50,background:`${occ.c}15`,color:occ.c }}>{occ.tag}</span>
@@ -741,8 +749,8 @@ function Pricing() {
       features: ['Everything in Lite', '📸 Up to 25 photos', '🎵 Upload your own song', '⏳ Countdown reveal'],
     },
     {
-      id: 'grand', name: 'Grand', price: 504, tagline: 'Everything, for an unforgettable surprise.', badge: 'Best Value',
-      features: ['Everything in Classic', '🎤 Personal voice message', '⚡ Rush 6-hour delivery'],
+      id: 'grand', name: 'Grand', price: 405, tagline: 'Everything, for an unforgettable surprise.', badge: 'Best Value',
+      features: ['Everything in Classic', '🎤 Personal voice message', '⚡ Instant delivery included'],
     },
   ]
 
@@ -887,7 +895,7 @@ function Footer({ onOpenAuth }: { onOpenAuth: () => void }) {
           <div>
             <h4 style={{ color:'#efe1d6',fontSize:'0.92rem',fontWeight:700,marginBottom:20 }}>Occasions</h4>
             <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
-              {['Birthday','Anniversary','Proposal','Kids Birthday','Graduation','Custom'].map(item => (
+              {['Wedding','Birthday','Anniversary','Proposal','Kids Birthday','Graduation','Custom'].map(item => (
                 <a key={item} href="#occasions"
                   style={{ color:'#8f8098',textDecoration:'none',fontSize:'0.88rem',transition:'color 0.2s',fontWeight:500 }}
                   onMouseEnter={e => e.currentTarget.style.color='#ffb877'}

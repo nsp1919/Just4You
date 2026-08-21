@@ -1,6 +1,7 @@
 export const COLLECTIONS = {
   USERS: "users",
   CELEBRATIONS: "celebrations",
+  WALLET_WITHDRAWALS: "walletWithdrawals",
 } as const;
 
 export const MAX_PHOTOS = 8;
@@ -22,7 +23,6 @@ export type FeatureId =
   | "voice_message"
   | "video_message"
   | "countdown"
-  | "rush_delivery"
   | "hosting_3yr"
   | "hosting_lifetime"
   | "advanced_analytics"
@@ -48,6 +48,7 @@ export const BASE_PACKAGE = {
     "Guest wishes & reactions wall",
     "Shareable link (WhatsApp / Instagram)",
     "Mobile-friendly on all devices",
+    "Instant delivery after payment",
     "Secure hosting for 1 full year",
   ],
 } as const;
@@ -87,13 +88,6 @@ export const FEATURE_ADDONS: FeatureAddon[] = [
     description: "Lock the page with an animated countdown until the big day.",
     priceInr: 49,
     icon: "⏳",
-  },
-  {
-    id: "rush_delivery",
-    label: "Rush 6-Hour Delivery",
-    description: "Skip the queue — your website goes live within 6 hours.",
-    priceInr: 99,
-    icon: "⚡",
   },
   {
     id: "hosting_3yr",
@@ -170,7 +164,7 @@ export const BUNDLES: Bundle[] = [
     id: "grand",
     label: "Grand",
     tagline: "Everything, for an unforgettable surprise.",
-    addons: ["extra_photos", "custom_music", "voice_message", "countdown", "rush_delivery"],
+    addons: ["extra_photos", "custom_music", "voice_message", "countdown"],
     badge: "Best Value",
   },
 ];
@@ -197,6 +191,38 @@ export function computePricePaise(features: string[] = []): number {
   return computePriceInr(features) * 100;
 }
 
+export const WEDDING_BASE_PRICE_INR = 149;
+export const WEDDING_ADDITIONAL_CEREMONY_PRICE_INR = 49;
+export const WEDDING_RSVP_PRICE_INR = 49;
+export const WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR = 29;
+export const MAX_WEDDING_CEREMONIES = 6;
+
+export interface WeddingPriceInput {
+  ceremonyCount: number;
+  rsvpEnabled: boolean;
+  customMusicCount: number;
+}
+
+export function computeWeddingPriceInr(input: WeddingPriceInput): number {
+  const ceremonyCount = Math.max(1, Math.min(MAX_WEDDING_CEREMONIES, Math.floor(input.ceremonyCount)));
+  const customMusicCount = Math.max(0, Math.min(ceremonyCount, Math.floor(input.customMusicCount)));
+  return WEDDING_BASE_PRICE_INR
+    + Math.max(0, ceremonyCount - 1) * WEDDING_ADDITIONAL_CEREMONY_PRICE_INR
+    + (input.rsvpEnabled ? WEDDING_RSVP_PRICE_INR : 0)
+    + customMusicCount * WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR;
+}
+
+export function weddingPriceBreakdown(input: WeddingPriceInput): { label: string; amountInr: number }[] {
+  const ceremonyCount = Math.max(1, Math.min(MAX_WEDDING_CEREMONIES, Math.floor(input.ceremonyCount)));
+  const customMusicCount = Math.max(0, Math.min(ceremonyCount, Math.floor(input.customMusicCount)));
+  return [
+    { label: "Wedding invitation · 1 ceremony", amountInr: WEDDING_BASE_PRICE_INR },
+    ...(ceremonyCount > 1 ? [{ label: `${ceremonyCount - 1} additional ${ceremonyCount === 2 ? "ceremony" : "ceremonies"}`, amountInr: (ceremonyCount - 1) * WEDDING_ADDITIONAL_CEREMONY_PRICE_INR }] : []),
+    ...(input.rsvpEnabled ? [{ label: "WhatsApp RSVP", amountInr: WEDDING_RSVP_PRICE_INR }] : []),
+    ...(customMusicCount > 0 ? [{ label: `${customMusicCount} custom reveal ${customMusicCount === 1 ? "track" : "tracks"}`, amountInr: customMusicCount * WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR }] : []),
+  ];
+}
+
 /** Format a rupee amount for display. */
 export function formatInr(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -209,7 +235,7 @@ export const REFERRAL_JOIN_WALLET_BONUS_INR = 50;
 export const REFERRAL_REWARD_INR = 100;
 export const REFERRAL_MILESTONE_COUNT = 3; // every N referrals → a free add-on credit
 
-export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical";
+export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical" | "wedding";
 
 export const THEMES = [
   {
@@ -260,9 +286,46 @@ export const THEMES = [
     accent: "#f43f5e",
     preview: ["#fff7ed", "#fdf2f8", "#f43f5e"],
   },
+  {
+    id: "wedding" as Theme,
+    label: "🪔 Wedding Invitation",
+    description: "Ceremonial doors, festival reveals, RSVP and event timeline",
+    gradient: "from-[#d9a01d] via-[#8a1736] to-[#315a46]",
+    accent: "#d9a01d",
+    preview: ["#d9a01d", "#8a1736", "#315a46"],
+  },
 ] as const;
 
-export type OccasionType = "birthday" | "kids-birthday" | "anniversary" | "proposal";
+export type OccasionType = "birthday" | "kids-birthday" | "anniversary" | "proposal" | "wedding";
+
+export type WeddingCeremonyInteraction = "scratch" | "trace" | "rhythm" | "reveal";
+
+export interface WeddingCeremonyDraft {
+  id: string;
+  name: string;
+  subtitle: string;
+  date: string;
+  time: string;
+  venue: string;
+  dressCode: string;
+  note: string;
+  image: string;
+  revealMusicUrl: string;
+  interaction: WeddingCeremonyInteraction;
+  selected: boolean;
+}
+
+export interface WeddingDataDraft {
+  partnerOne: string;
+  partnerTwo: string;
+  families: string;
+  location: string;
+  hashtag: string;
+  directionsUrl: string;
+  whatsappNumber: string;
+  rsvpEnabled: boolean;
+  ceremonies: WeddingCeremonyDraft[];
+}
 
 export interface OccasionInfo {
   id: OccasionType;
@@ -316,6 +379,16 @@ export const OCCASIONS: OccasionInfo[] = [
     messagePlaceholder: "Express your deepest feelings, your promises for forever, and pop the question! 🌹",
     defaultTheme: "galaxy",
   },
+  {
+    id: "wedding",
+    label: "Wedding Invitation",
+    emoji: "🪔",
+    description: "Interactive multi-event wedding invitation with RSVP and festival reveals",
+    dateLabel: "Wedding Date",
+    namePlaceholder: "e.g. Aarohi & Vihaan",
+    messagePlaceholder: "Invite your guests with a warm note from both families...",
+    defaultTheme: "wedding",
+  },
 ];
 
 export const RELATION_BY_OCCASION: Record<OccasionType, { id: string; label: string }[]> = {
@@ -354,7 +427,100 @@ export const RELATION_BY_OCCASION: Record<OccasionType, { id: string; label: str
     { id: "partner", label: "Partner 💕" },
     { id: "custom", label: "Other / Custom ✏️" },
   ],
+  wedding: [
+    { id: "couple", label: "The Couple 💍" },
+    { id: "family", label: "Family of the Couple 🪔" },
+    { id: "planner", label: "Wedding Planner ✨" },
+    { id: "custom", label: "Other / Custom ✏️" },
+  ],
 };
+
+export const DEFAULT_WEDDING_CEREMONIES: WeddingCeremonyDraft[] = [
+  {
+    id: "haldi",
+    name: "Haldi",
+    subtitle: "Sunshine, laughter and turmeric",
+    date: "",
+    time: "16:00",
+    venue: "",
+    dressCode: "Shades of yellow",
+    note: "An afternoon painted in sunshine and the warmest blessings.",
+    image: "",
+    revealMusicUrl: "",
+    interaction: "scratch",
+    selected: true,
+  },
+  {
+    id: "mehndi",
+    name: "Mehndi",
+    subtitle: "Where henna meets hearts",
+    date: "",
+    time: "17:30",
+    venue: "",
+    dressCode: "Pastels and florals",
+    note: "The deeper the mehndi, the deeper the love.",
+    image: "",
+    revealMusicUrl: "",
+    interaction: "trace",
+    selected: true,
+  },
+  {
+    id: "sangeet",
+    name: "Sangeet",
+    subtitle: "An evening of song",
+    date: "",
+    time: "19:00",
+    venue: "",
+    dressCode: "Jewel tones",
+    note: "Music, mischief and the whole family on its feet.",
+    image: "",
+    revealMusicUrl: "",
+    interaction: "rhythm",
+    selected: true,
+  },
+  {
+    id: "bonalu",
+    name: "Bonalu",
+    subtitle: "A celebration of gratitude and blessings",
+    date: "",
+    time: "11:00",
+    venue: "",
+    dressCode: "Traditional festive attire",
+    note: "Join our family as we offer Bonam and seek the blessings of Ammavaru before the wedding.",
+    image: "",
+    revealMusicUrl: "",
+    interaction: "reveal",
+    selected: false,
+  },
+  {
+    id: "wedding",
+    name: "The Wedding",
+    subtitle: "The muhurtham",
+    date: "",
+    time: "18:00",
+    venue: "",
+    dressCode: "Traditional",
+    note: "The sacred vows, witnessed by everyone we love.",
+    image: "",
+    revealMusicUrl: "",
+    interaction: "reveal",
+    selected: true,
+  },
+  {
+    id: "reception",
+    name: "Reception",
+    subtitle: "Dinner and dancing",
+    date: "",
+    time: "19:30",
+    venue: "",
+    dressCode: "Evening formal",
+    note: "Raise a toast and celebrate the beginning of forever.",
+    image: "",
+    revealMusicUrl: "",
+    interaction: "reveal",
+    selected: false,
+  },
+];
 
 export const PRESET_TRACKS = [
   { id: "t1", label: "Warm Birthday", artist: "Just4You Originals", mood: "Happy 🎉", url: "/music/t1.mp3" },

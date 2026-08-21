@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Copy, Check, Gift, Trophy } from "lucide-react";
 import { referralLinkFor } from "@/lib/referral";
 import { REFERRAL_JOIN_WALLET_BONUS_INR, REFERRAL_REWARD_INR, REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
+import WalletWithdrawal from "@/components/WalletWithdrawal";
 
 interface Leader {
   rank: number;
@@ -20,17 +21,23 @@ interface Leader {
 export default function ReferralCard({
   uid,
   walletBalance = 0,
+  walletWithdrawableBalance,
   referralCount = 0,
   freeAddonCredits = 0,
 }: {
   uid: string;
   walletBalance?: number;
+  walletWithdrawableBalance?: number;
   referralCount?: number;
   freeAddonCredits?: number;
 }) {
   const [copied, setCopied] = useState(false);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const link = referralLinkFor(uid);
+  const withdrawableBalance = Math.min(
+    walletBalance,
+    walletWithdrawableBalance ?? referralCount * REFERRAL_REWARD_INR,
+  );
 
   useEffect(() => {
     fetch("/api/referral/leaderboard")
@@ -76,7 +83,7 @@ export default function ReferralCard({
           </div>
           <p className="text-sm text-[var(--text-muted)] max-w-md mb-3">
             Friends receive ₹{REFERRAL_JOIN_WALLET_BONUS_INR} in their wallet when they join. You receive
-            ₹{REFERRAL_REWARD_INR} in your wallet after their first successful purchase. Wallet funds apply automatically at checkout.
+            ₹{REFERRAL_REWARD_INR} in your wallet after their first successful purchase. Wallet funds apply at checkout, and referral earnings can be withdrawn to your bank after ₹500.
           </p>
           {/* Milestone progress */}
           <div className="mb-4">
@@ -109,6 +116,7 @@ export default function ReferralCard({
             >
               Share on WhatsApp
             </button>
+            <WalletWithdrawal initialWithdrawableBalance={withdrawableBalance} />
           </div>
         </div>
 

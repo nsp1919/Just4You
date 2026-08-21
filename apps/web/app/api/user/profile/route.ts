@@ -4,6 +4,7 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { COLLECTIONS, REFERRAL_JOIN_WALLET_BONUS_INR } from "@/lib/constants";
 import { normalizeReferralCode, referralCodeFor } from "@/lib/referral-code";
 import { resolveProfileWallet } from "@/lib/wallet-profile";
+import { resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
           referralCode: ownCode,
           referralCredits: 0,
           walletBalance: validReferrerId ? REFERRAL_JOIN_WALLET_BONUS_INR : 0,
+          walletWithdrawableBalance: 0,
           referralJoinBonusGranted: Boolean(validReferrerId),
           referralCount: 0,
           freeAddonCredits: 0,
@@ -101,6 +103,12 @@ export async function POST(req: NextRequest) {
 
       if (wallet.needsWalletWrite) {
         update.walletBalance = wallet.walletBalance;
+      }
+      if (typeof existing?.walletWithdrawableBalance !== "number") {
+        update.walletWithdrawableBalance = resolveWithdrawableBalance(
+          { ...existing, walletBalance: wallet.walletBalance },
+          100,
+        );
       }
       if (wallet.shouldGrantJoinBonus) update.referralJoinBonusGranted = true;
       if (requestedName && requestedName !== "User") update.name = requestedName;

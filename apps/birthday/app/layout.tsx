@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Cormorant_Garamond, Inter, Manrope, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
+const weddingDisplay = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-wedding-display" });
+const weddingBody = Manrope({ subsets: ["latin"], variable: "--font-wedding-body" });
 
 const BIRTHDAY_URL = process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL || "https://just4you.buzz";
 
@@ -15,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable} ${weddingDisplay.variable} ${weddingBody.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

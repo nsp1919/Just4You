@@ -48,12 +48,19 @@ do {
 
   page.users.forEach((user, index) => {
     const current = existing[index]?.data();
+    const walletBalance = Math.max(0, Number(current?.walletBalance ?? current?.referralCredits) || 0);
     const base = {
       uid: user.uid,
       email: user.email ?? current?.email ?? "",
       name: user.displayName ?? current?.name ?? user.email?.split("@")[0] ?? "User",
       referralCode: normalizeReferralCode(current?.referralCode) || referralCodeFor(user.uid),
-      walletBalance: Math.max(0, Number(current?.walletBalance ?? current?.referralCredits) || 0),
+      walletBalance,
+      walletWithdrawableBalance: Math.min(
+        walletBalance,
+        typeof current?.walletWithdrawableBalance === "number"
+          ? Math.max(0, current.walletWithdrawableBalance)
+          : Math.max(0, Number(current?.referralCount) || 0) * 100,
+      ),
     };
     if (current) {
       batch.set(refs[index], base, { merge: true });
@@ -66,6 +73,7 @@ do {
         isBlocked: false,
         referralCredits: 0,
         walletBalance: 0,
+        walletWithdrawableBalance: 0,
         referralJoinBonusGranted: false,
         referralCount: 0,
         freeAddonCredits: 0,

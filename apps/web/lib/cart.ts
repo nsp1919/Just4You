@@ -1,5 +1,5 @@
 "use client";
-import type { FeatureId } from "@/lib/constants";
+import { FEATURE_ADDONS, type FeatureId } from "@/lib/constants";
 
 // Persists the user's selected paid features between the /pricing cart and the
 // create flow. Kept in localStorage so a selection survives navigation and
@@ -22,7 +22,9 @@ export function loadCartFeatures(): FeatureId[] {
     const raw = localStorage.getItem(CART_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as FeatureId[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    const validIds = new Set(FEATURE_ADDONS.map((feature) => feature.id));
+    return parsed.filter((feature): feature is FeatureId => validIds.has(feature as FeatureId));
   } catch {
     return [];
   }

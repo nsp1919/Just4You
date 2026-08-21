@@ -14,6 +14,7 @@ interface Props {
 type OccasionLanding = {
   slug: string;
   demoTheme: string;
+  demoPath?: string;
   eyebrow: string;
   h1: string;
   highlight: string;
@@ -27,6 +28,31 @@ type OccasionLanding = {
 };
 
 const OCCASION_PAGES: Record<string, OccasionLanding> = {
+  wedding: {
+    slug: "wedding",
+    demoTheme: "wedding",
+    demoPath: "/invite/demo",
+    eyebrow: "Interactive Wedding Invitations",
+    h1: "Create a wedding invitation website",
+    highlight: "every guest remembers",
+    intro:
+      "Bring every celebration into one elegant link with ceremonial doors, event timelines, interactive festival posters, individual reveal music, directions and WhatsApp RSVP.",
+    metaTitle: "Interactive Wedding Invitation Website Maker | Just4You.buzz",
+    metaDescription:
+      "Create a personalized Indian wedding invitation website with Haldi, Mehndi, Sangeet and wedding events, custom poster images, music, RSVP and maps.",
+    emoji: "🪔",
+    gradient: ["#d9a01d", "#8a1736", "#315a46"],
+    benefits: [
+      { title: "Choose every celebration", desc: "Include Haldi, Mehndi, Sangeet, Bonalu, Wedding and next-day Reception, or only the events your family celebrates." },
+      { title: "Interactive festival posters", desc: "Upload a custom image for each ceremony and reveal it through tactile guest interactions." },
+      { title: "Individual reveal music", desc: "Give every festival poster its own custom track that begins when guests open it." },
+      { title: "RSVP, maps and calendar", desc: "Guests can respond through WhatsApp, get directions and save each event." },
+    ],
+    faqs: [
+      { q: "Can each function have different details and music?", a: "Yes. Every selected celebration has its own date, time, venue, dress code, poster image and optional reveal track." },
+      { q: "Can we include only some ceremonies?", a: "Yes. Select exactly the festivals you are hosting and only those appear in the final invitation and RSVP form." },
+    ],
+  },
   birthday: {
     slug: "birthday",
     demoTheme: "galaxy",
@@ -37,7 +63,7 @@ const OCCASION_PAGES: Record<string, OccasionLanding> = {
       "Turn photos, music and your heartfelt words into a stunning personalized birthday website. Share one link on WhatsApp or Instagram and watch their face light up.",
     metaTitle: "Birthday Surprise Website Maker — Personalized Birthday Pages | Just4You.buzz",
     metaDescription:
-      "Create a personalized birthday surprise website in minutes — photos, music, countdown reveal & heartfelt messages. One flat price, ready in 24 hours. Try a live demo free.",
+      "Create a personalized birthday surprise website in minutes — photos, music, countdown reveal & heartfelt messages. Delivered instantly after payment. Try a live demo free.",
     emoji: "🎂",
     gradient: ["#0f0c29", "#302b63", "#f7d971"],
     benefits: [
@@ -61,7 +87,7 @@ const OCCASION_PAGES: Record<string, OccasionLanding> = {
       "Tell your love story with a cinematic, interactive proposal page — your journey in photos, your promises in words, and an unforgettable Will-You-Marry-Me reveal.",
     metaTitle: "Proposal Website Maker — Romantic Digital Proposal Pages | Just4You.buzz",
     metaDescription:
-      "Create a romantic proposal website with your love story, photos, music and an interactive Yes reveal. Ready in 24 hours, one flat price. Explore a live demo free.",
+      "Create a romantic proposal website with your love story, photos, music and an interactive Yes reveal. Delivered instantly after payment. Explore a live demo free.",
     emoji: "💌",
     gradient: ["#18101e", "#302b63", "#ff6f9c"],
     benefits: [
@@ -85,7 +111,7 @@ const OCCASION_PAGES: Record<string, OccasionLanding> = {
       "Honour years of togetherness with an elegant anniversary website — a beautiful timeline of your journey, your favourite photos, and a love letter they'll treasure.",
     metaTitle: "Anniversary Website Maker — Personalized Anniversary Pages | Just4You.buzz",
     metaDescription:
-      "Create a romantic anniversary website with a timeline of memories, photos, music and a heartfelt message. One flat price, ready in 24 hours. See a live demo free.",
+      "Create a romantic anniversary website with a timeline of memories, photos, music and a heartfelt message. Delivered instantly after payment. See a live demo free.",
     emoji: "💍",
     gradient: ["#fff0f5", "#ffb6c1", "#c8a96e"],
     benefits: [
@@ -109,7 +135,7 @@ const OCCASION_PAGES: Record<string, OccasionLanding> = {
       "Give your little one a bright, playful birthday page — floating balloons, fun animations, all their photos, and wishes from everyone who loves them.",
     metaTitle: "Kids Birthday Website Maker — Fun Personalized Party Pages | Just4You.buzz",
     metaDescription:
-      "Create a colourful kids birthday website with balloons, animations, photos, music and family wishes. One flat price, ready in 24 hours. Try a live demo free.",
+      "Create a colourful kids birthday website with balloons, animations, photos, music and family wishes. Delivered instantly after payment. Try a live demo free.",
     emoji: "🧸",
     gradient: ["#fff7ed", "#fdf2f8", "#f43f5e"],
     benefits: [
@@ -133,7 +159,7 @@ const OCCASION_PAGES: Record<string, OccasionLanding> = {
       "Honour years of hard work with a premium graduation tribute — milestone photos, messages from family and mentors, and a proud celebration of their achievement.",
     metaTitle: "Graduation Website Maker — Personalized Grad Tribute Pages | Just4You.buzz",
     metaDescription:
-      "Create a graduation celebration website with milestone photos, messages and music to honour their achievement. One flat price, ready in 24 hours. See a live demo free.",
+      "Create a graduation celebration website with milestone photos, messages and music to honour their achievement. Delivered instantly after payment. See a live demo free.",
     emoji: "🎓",
     gradient: ["#0f0c29", "#302b63", "#f7d971"],
     benefits: [
@@ -208,14 +234,14 @@ export default async function OccasionLandingPage({ params }: Props) {
           <p className="text-lg text-white/65 max-w-2xl mx-auto mb-9">{page.intro}</p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
-              href="/dashboard/create"
+              href={page.slug === "wedding" ? "/dashboard/create?occasion=wedding" : "/dashboard/create"}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-bold text-white"
               style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}
             >
-              Create Mine — from ₹149 →
+              {page.slug === "wedding" ? "Create Our Invitation — from ₹149 →" : "Create Mine — from ₹149 →"}
             </Link>
             <Link
-              href={`/demo/${page.demoTheme}`}
+              href={page.demoPath ?? `/demo/${page.demoTheme}`}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold text-white border border-white/15 hover:border-white/30"
             >
               ▶ See a live demo
@@ -254,13 +280,13 @@ export default async function OccasionLandingPage({ params }: Props) {
       {/* Final CTA */}
       <section className="px-5 py-20 text-center border-t border-white/5">
         <h2 className="text-3xl font-bold mb-4">Ready to make their day unforgettable?</h2>
-        <p className="text-white/60 mb-8">One flat price. Everything included. Ready in 24 hours.</p>
+        <p className="text-white/60 mb-8">{page.slug === "wedding" ? "Start with one ceremony and add only the wedding features you need. Delivered instantly after payment." : "One flat price. Everything included. Delivered instantly after payment."}</p>
         <Link
-          href="/dashboard/create"
+          href={page.slug === "wedding" ? "/dashboard/create?occasion=wedding" : "/dashboard/create"}
           className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-white"
           style={{ background: "linear-gradient(135deg, #ff8a5c, #ff5f93)" }}
         >
-          Create My Surprise — from ₹149 →
+          {page.slug === "wedding" ? "Create Our Wedding Invitation →" : "Create My Surprise — from ₹149 →"}
         </Link>
       </section>
     </main>

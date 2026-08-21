@@ -14,7 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "" ? 1 : 0.7,
   }));
 
-  const occasionRoutes = ["birthday", "proposal", "anniversary", "kids-birthday", "graduation"].map(
+  const occasionRoutes = ["wedding", "birthday", "proposal", "anniversary", "kids-birthday", "graduation"].map(
     (slug) => ({
       url: `${SITE_URL}/${slug}`,
       lastModified: now,
@@ -23,12 +23,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   );
 
-  const demoRoutes = THEMES.map((t) => ({
+  const demoRoutes = THEMES.filter((theme) => theme.id !== "wedding").map((t) => ({
     url: `${SITE_URL}/demo/${t.id}`,
     lastModified: now,
     changeFrequency: "monthly" as const,
     priority: 0.6,
   }));
+
+  demoRoutes.push({
+    url: `${SITE_URL}/invite/demo`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  });
 
   const miniRoutes = [
     { url: `${SITE_URL}/mini`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 },

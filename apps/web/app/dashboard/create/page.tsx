@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
-import type { Theme, OccasionType, FeatureId } from "@/lib/constants";
+import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, computeWeddingPriceInr, weddingPriceBreakdown, MAX_WEDDING_CEREMONIES, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
+import type { Theme, OccasionType, FeatureId, WeddingDataDraft } from "@/lib/constants";
 import { loadCartFeatures } from "@/lib/cart";
 import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +17,13 @@ import MinimalTheme from "@/components/themes/MinimalTheme";
 import RetroTheme from "@/components/themes/RetroTheme";
 import MagicalTheme from "@/components/themes/MagicalTheme";
 import { trackEvent } from "@/lib/analytics";
+import {
+  createDefaultWeddingData,
+  WeddingDetailsEditor,
+  WeddingPosterEditor,
+  WeddingRevealMusicEditor,
+} from "@/components/wedding/WeddingCreatorFields";
+import WeddingInvitation, { type WeddingInvitationData } from "@/components/wedding/WeddingInvitation";
 
 const PREVIEW_THEME_COMPONENTS: Record<string, ComponentType<any>> = {
   galaxy: GalaxyTheme,
@@ -69,6 +76,29 @@ function LivePreviewModal({
     views: 0,
   };
 
+  const weddingInvitation: WeddingInvitationData | null = occasionType === "wedding" ? {
+    couple: {
+      partnerOne: data.weddingData.partnerOne || "Partner One",
+      partnerTwo: data.weddingData.partnerTwo || "Partner Two",
+      monogram: `${data.weddingData.partnerOne?.charAt(0) || "A"} · ${data.weddingData.partnerTwo?.charAt(0) || "V"}`.toUpperCase(),
+    },
+    families: data.weddingData.families || "Together with their families",
+    date: `${data.birthdayDate}T18:00:00+05:30`,
+    location: data.weddingData.location,
+    hashtag: data.weddingData.hashtag,
+    heroImage: photos[0],
+    directionsUrl: data.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(data.weddingData.location)}`,
+    whatsappNumber: data.weddingData.whatsappNumber,
+    rsvpEnabled: data.weddingData.rsvpEnabled,
+    ceremonies: data.weddingData.ceremonies
+      .filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.selected)
+      .map(({ selected: _selected, ...ceremony }: WeddingDataDraft["ceremonies"][number]) => ({
+        ...ceremony,
+        date: `${ceremony.date}T${ceremony.time}:00+05:30`,
+        time: new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(new Date(`${ceremony.date}T${ceremony.time}:00+05:30`)),
+      })),
+  } : null;
+
   useEffect(() => {
     trackEvent("preview_viewed", { theme: data.theme, occasionType });
     document.body.style.overflow = "hidden";
@@ -109,7 +139,7 @@ function LivePreviewModal({
         className="pt-11 select-none"
         style={{ filter: "blur(5px)", transform: "scale(1.01)", transformOrigin: "top center" }}
       >
-        <ThemeComp celebration={previewCelebration} />
+        {weddingInvitation ? <WeddingInvitation invitation={weddingInvitation} /> : <ThemeComp celebration={previewCelebration} />}
       </div>
     </div>
   );
@@ -222,6 +252,25 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
       setAiLoading(false);
     }
   };
+
+  if (occasionType === "wedding") {
+    return (
+      <WeddingDetailsEditor
+        value={data.weddingData}
+        onChange={(weddingData) => onChange({
+          ...data,
+          weddingData,
+          recipientName: `${weddingData.partnerOne} & ${weddingData.partnerTwo}`,
+          relation: "couple",
+          theme: "wedding",
+        })}
+        weddingDate={data.birthdayDate}
+        onWeddingDateChange={(birthdayDate) => onChange({ ...data, birthdayDate })}
+        message={data.message}
+        onMessageChange={(message) => onChange({ ...data, message })}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 step-enter">
@@ -464,7 +513,7 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
 }
 
 // ─── Step 2: Photos ───────────────────────────────────────────────────────────
-function Step2({ photos, onPhotos, features }: { photos: string[]; onPhotos: (p: string[]) => void; features: string[] }) {
+function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddingChange }: { photos: string[]; onPhotos: (p: string[]) => void; features: string[]; occasionType: OccasionType; weddingData: WeddingDataDraft; onWeddingChange: (data: WeddingDataDraft) => void }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number[]>([]);
   const photoLimit = photoLimitFor(features);
@@ -605,12 +654,14 @@ function Step2({ photos, onPhotos, features }: { photos: string[]; onPhotos: (p:
           ))}
         </div>
       )}
+
+      {occasionType === "wedding" && <WeddingPosterEditor value={weddingData} onChange={onWeddingChange} />}
     </div>
   );
 }
 
 // ─── Step 3: Music + Voice ────────────────────────────────────────────────────
-function Step3({ musicData, onChange, features }: { musicData: any; onChange: (d: any) => void; features: string[] }) {
+function Step3({ musicData, onChange, features, occasionType, weddingData, onWeddingChange }: { musicData: any; onChange: (d: any) => void; features: string[]; occasionType: OccasionType; weddingData: WeddingDataDraft; onWeddingChange: (data: WeddingDataDraft) => void }) {
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -984,6 +1035,7 @@ function Step3({ musicData, onChange, features }: { musicData: any; onChange: (d
           )}
         </div>
       )}
+      {occasionType === "wedding" && <WeddingRevealMusicEditor value={weddingData} onChange={onWeddingChange} />}
     </div>
   );
 }
@@ -994,6 +1046,12 @@ function Step4({ data, photos, occasionType, features, priceInr }: { data: any; 
   const track = PRESET_TRACKS.find((t) => t.id === data.musicData?.musicPresetId);
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
   const [showLivePreview, setShowLivePreview] = useState(false);
+  const selectedWeddingCeremonies = data.weddingData?.ceremonies.filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.selected) ?? [];
+  const weddingBreakdown = weddingPriceBreakdown({
+    ceremonyCount: selectedWeddingCeremonies.length,
+    rsvpEnabled: Boolean(data.weddingData?.rsvpEnabled),
+    customMusicCount: selectedWeddingCeremonies.filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.revealMusicUrl).length,
+  });
 
   return (
     <div className="space-y-6 step-enter">
@@ -1014,7 +1072,13 @@ function Step4({ data, photos, occasionType, features, priceInr }: { data: any; 
           boxShadow: `0 0 60px ${theme.preview[1]}40`,
         }}>
         <div className="text-5xl font-bold font-playfair" style={{ color: theme.preview[2] || "#ffffff" }}>
-          {occasionType === "proposal" ? "Will You Marry Me? 💍" : occasionType === "anniversary" ? `Happy Anniversary, ${data.recipientName || "..."}! 💍` : `Happy Birthday, ${data.recipientName || "..."}! 🎂`}
+          {occasionType === "wedding"
+            ? `${data.weddingData.partnerOne || "Partner One"} & ${data.weddingData.partnerTwo || "Partner Two"} — Wedding Invitation`
+            : occasionType === "proposal"
+              ? "Will You Marry Me? 💍"
+              : occasionType === "anniversary"
+                ? `Happy Anniversary, ${data.recipientName || "..."}! 💍`
+                : `Happy Birthday, ${data.recipientName || "..."}! 🎂`}
         </div>
         {data.message && <p className="text-sm opacity-80 max-w-md">{data.message.slice(0, 100)}{data.message.length > 100 ? "..." : ""}</p>}
         {photos.length > 0 && (
@@ -1030,10 +1094,17 @@ function Step4({ data, photos, occasionType, features, priceInr }: { data: any; 
         {[
           { label: "Occasion", value: occasion.label },
           { label: "Theme", value: theme.label },
-          { label: "Photos", value: `${photos.length}/${photoLimitFor(features)}` },
+          {
+            label: occasionType === "wedding" ? "Ceremonies" : "Photos",
+            value: occasionType === "wedding"
+              ? `${data.weddingData.ceremonies.filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.selected).length} posters`
+              : `${photos.length}/${photoLimitFor(features)}`,
+          },
           {
             label: "Music", value:
-              data.musicData?.musicType === "preset" ? (track?.label ?? "Selected") :
+              occasionType === "wedding"
+                ? `${data.weddingData.ceremonies.filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.selected && ceremony.revealMusicUrl).length} reveal tracks`
+                : data.musicData?.musicType === "preset" ? (track?.label ?? "Selected") :
                 data.musicData?.musicType === "upload" ? "Custom song" :
                   data.musicData?.musicType === "voice" ? "Voice Message 🎤" : // BUG-12 fix
                     "No music"
@@ -1050,12 +1121,14 @@ function Step4({ data, photos, occasionType, features, priceInr }: { data: any; 
       <div className="rounded-2xl p-5 glass border border-purple-500/20 flex items-center justify-between">
         <div>
           <div className="text-sm font-semibold">
-            {features.length === 0 ? "Base website" : `Base + ${features.length} add-on${features.length > 1 ? "s" : ""}`}
+            {occasionType === "wedding" ? "Itemized wedding invitation" : features.length === 0 ? "Base website" : `Base + ${features.length} add-on${features.length > 1 ? "s" : ""}`}
           </div>
           <div className="text-xs text-[var(--text-muted)] mt-0.5">
-            {features.length > 0
-              ? FEATURE_ADDONS.filter((a) => features.includes(a.id)).map((a) => a.label).join(" · ")
-              : BASE_PACKAGE.label}
+            {occasionType === "wedding"
+              ? weddingBreakdown.map((item) => `${item.label} ${formatInr(item.amountInr)}`).join(" · ")
+              : features.length > 0
+                ? FEATURE_ADDONS.filter((a) => features.includes(a.id)).map((a) => a.label).join(" · ")
+                : BASE_PACKAGE.label}
           </div>
         </div>
         <div className="text-2xl font-bold gradient-text">{formatInr(priceInr)}</div>
@@ -1353,6 +1426,7 @@ export default function CreatePage() {
     scheduledDeliveryAt: "",
     recipientEmail: "",
     customLink: "",
+    weddingData: createDefaultWeddingData(),
   });
   const [photos, setPhotos] = useState<string[]>([]);
   const [musicData, setMusicData] = useState({ musicType: "preset", musicPresetId: "t1", musicUploadUrl: "", voiceMessageUrl: "", videoMessageUrl: "" });
@@ -1364,14 +1438,45 @@ export default function CreatePage() {
   useEffect(() => {
     trackEvent("create_started");
     setFeatures(loadCartFeatures());
+    const requestedOccasion = new URLSearchParams(window.location.search).get("occasion");
+    const occasion = OCCASIONS.find((item) => item.id === requestedOccasion);
+    if (occasion) {
+      setOccasionType(occasion.id);
+      setFormData((current) => ({
+        ...current,
+        theme: occasion.defaultTheme,
+        relation: occasion.id === "wedding" ? "couple" : "",
+      }));
+    }
   }, []);
 
-  const hasFeature = (id: FeatureId) => features.includes(id);
-  const priceInr = computePriceInr(features);
+  const selectedWeddingCeremonies = formData.weddingData.ceremonies.filter((ceremony) => ceremony.selected);
+  const weddingCustomMusicCount = selectedWeddingCeremonies.filter((ceremony) => ceremony.revealMusicUrl).length;
+  const activeFeatures = occasionType === "wedding" ? [] : features;
+  const hasFeature = (id: FeatureId) => activeFeatures.includes(id);
+  const priceInr = occasionType === "wedding"
+    ? computeWeddingPriceInr({ ceremonyCount: selectedWeddingCeremonies.length, rsvpEnabled: formData.weddingData.rsvpEnabled, customMusicCount: weddingCustomMusicCount })
+    : computePriceInr(activeFeatures);
 
   const canProceed = (() => {
     if (step === 0) return !!occasionType;
     if (step === 1) {
+      if (occasionType === "wedding") {
+        const wedding = formData.weddingData;
+        const selectedCeremonies = wedding.ceremonies.filter((ceremony) => ceremony.selected);
+        return Boolean(
+          wedding.partnerOne.trim()
+          && wedding.partnerTwo.trim()
+          && wedding.families.trim()
+          && wedding.location.trim()
+          && (!wedding.rsvpEnabled || wedding.whatsappNumber.trim())
+          && formData.birthdayDate
+          && formData.message.trim()
+          && selectedCeremonies.length > 0
+          && selectedCeremonies.length <= MAX_WEDDING_CEREMONIES
+          && selectedCeremonies.every((ceremony) => ceremony.date && ceremony.time && ceremony.venue.trim())
+        );
+      }
       const basic = formData.recipientName.trim() && formData.birthdayDate && formData.message.trim() && formData.theme && formData.relation;
       if (!basic) return false;
       if (formData.relation === "custom") {
@@ -1379,7 +1484,14 @@ export default function CreatePage() {
       }
       return true;
     }
-    if (step === 2) return photos.length > 0;
+    if (step === 2) {
+      if (occasionType === "wedding") {
+        return photos.length > 0 && formData.weddingData.ceremonies
+          .filter((ceremony) => ceremony.selected)
+          .every((ceremony) => Boolean(ceremony.image));
+      }
+      return photos.length > 0;
+    }
     // BUG-06: each music type requires its own condition — the old ternary incorrectly
     // allowed proceeding with no voice message when musicType was "voice".
     if (step === 3) {
@@ -1398,6 +1510,27 @@ export default function CreatePage() {
       // Save celebration to Firestore before payment
       setSaving(true);
       try {
+        const selectedWeddingCeremonies = formData.weddingData.ceremonies.filter((ceremony) => ceremony.selected);
+        const weddingData = occasionType === "wedding" ? {
+          couple: {
+            partnerOne: formData.weddingData.partnerOne.trim(),
+            partnerTwo: formData.weddingData.partnerTwo.trim(),
+            monogram: `${formData.weddingData.partnerOne.trim().charAt(0)} · ${formData.weddingData.partnerTwo.trim().charAt(0)}`.toUpperCase(),
+          },
+          families: formData.weddingData.families.trim(),
+          date: `${formData.birthdayDate}T18:00:00+05:30`,
+          location: formData.weddingData.location.trim(),
+          hashtag: formData.weddingData.hashtag || `#${formData.weddingData.partnerOne}${formData.weddingData.partnerTwo}`.replace(/\s/g, "").toUpperCase(),
+          heroImage: photos[0],
+          directionsUrl: formData.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(formData.weddingData.location)}`,
+          whatsappNumber: formData.weddingData.whatsappNumber,
+          rsvpEnabled: formData.weddingData.rsvpEnabled,
+          ceremonies: selectedWeddingCeremonies.map(({ selected: _selected, ...ceremony }) => ({
+            ...ceremony,
+            date: `${ceremony.date}T${ceremony.time}:00+05:30`,
+            time: new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(new Date(`${ceremony.date}T${ceremony.time}:00+05:30`)),
+          })),
+        } : null;
         const draftData = {
           recipientName: formData.recipientName,
           birthdayDate: formData.birthdayDate, // deprecated backward compatibility
@@ -1407,6 +1540,7 @@ export default function CreatePage() {
           relation: formData.relation,
           relationCustom: formData.relation === "custom" ? formData.relationCustom : "",
           occasionType,
+          weddingData,
           photos,
           countdownEnabled: hasFeature("countdown") ? (formData.countdownEnabled ?? false) : false,
           // Wall of Love: creator opt-in; admin approves before it appears publicly.
@@ -1428,8 +1562,13 @@ export default function CreatePage() {
           videoMessageUrl: musicData.videoMessageUrl ?? "",
           // Selected paid features + a display copy of the price. The charged
           // amount is always recomputed server-side from selectedFeatures.
-          selectedFeatures: features,
-          pricePaise: computePricePaise(features),
+          selectedFeatures: activeFeatures,
+          weddingPricing: occasionType === "wedding" ? {
+            ceremonyCount: selectedWeddingCeremonies.length,
+            rsvpEnabled: formData.weddingData.rsvpEnabled,
+            customMusicCount: weddingCustomMusicCount,
+          } : null,
+          pricePaise: occasionType === "wedding" ? priceInr * 100 : computePricePaise(activeFeatures),
         };
 
         if (celebrationId) {
@@ -1489,15 +1628,23 @@ export default function CreatePage() {
           <div className="flex items-center gap-2 text-sm">
             <span className="font-semibold">Your package:</span>
             <span className="text-[var(--text-muted)]">
-              {features.length === 0
-                ? "Base website"
-                : `Base + ${features.length} extra${features.length > 1 ? "s" : ""}`}
+              {occasionType === "wedding"
+                ? `${selectedWeddingCeremonies.length} ${selectedWeddingCeremonies.length === 1 ? "ceremony" : "ceremonies"}${formData.weddingData.rsvpEnabled ? " + RSVP" : ""}${weddingCustomMusicCount ? ` + ${weddingCustomMusicCount} custom ${weddingCustomMusicCount === 1 ? "track" : "tracks"}` : ""}`
+                : features.length === 0
+                  ? "Base website"
+                  : `Base + ${features.length} extra${features.length > 1 ? "s" : ""}`}
             </span>
             <span className="font-bold gradient-text ml-1">{formatInr(priceInr)}</span>
           </div>
-          <Link href="/pricing" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
-            Edit package
-          </Link>
+          {occasionType === "wedding" ? (
+            <button type="button" onClick={() => setStep(1)} className="text-xs font-semibold text-amber-300 hover:text-amber-200">
+              Edit wedding options
+            </button>
+          ) : (
+            <Link href="/pricing" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
+              Edit package
+            </Link>
+          )}
         </div>
 
         <StepBar step={step} onStepChange={setStep} />
@@ -1506,12 +1653,12 @@ export default function CreatePage() {
           {step === 0 && <StepOccasion selected={occasionType} onSelect={(o) => {
             setOccasionType(o);
             const defaultT = OCCASIONS.find(occ => occ.id === o)?.defaultTheme || "galaxy";
-            setFormData(f => ({ ...f, theme: defaultT, relation: "" }));
+            setFormData(f => ({ ...f, theme: defaultT, relation: o === "wedding" ? "couple" : "" }));
           }} />}
-          {step === 1 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} features={features} />}
-          {step === 2 && <Step2 photos={photos} onPhotos={setPhotos} features={features} />}
-          {step === 3 && <Step3 musicData={musicData} onChange={setMusicData} features={features} />}
-          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={features} priceInr={priceInr} />}
+          {step === 1 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} features={activeFeatures} />}
+          {step === 2 && <Step2 photos={photos} onPhotos={setPhotos} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
+          {step === 3 && <Step3 musicData={musicData} onChange={setMusicData} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
+          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={activeFeatures} priceInr={priceInr} />}
           {step === 5 && celebrationId && (
             <Step5
               celebrationId={celebrationId}

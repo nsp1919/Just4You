@@ -42,6 +42,8 @@ interface UserDoc {
   referralCode?: string;
   referredBy?: string;
   walletBalance?: number;
+  walletWithdrawableBalance?: number;
+  pendingWalletWithdrawalId?: string;
   referralJoinBonusGranted?: boolean;
   /** Legacy balance migrated into walletBalance on profile initialization. */
   referralCredits?: number;

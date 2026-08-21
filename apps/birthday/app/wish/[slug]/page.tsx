@@ -13,6 +13,7 @@ import MagicalTheme from "@/components/themes/MagicalTheme";
 import ExpiredPage from "@/components/ExpiredPage";
 import CountdownPage from "@/components/CountdownPage";
 import BrandFooter from "@/components/BrandFooter";
+import WeddingInvitation from "@/components/wedding/WeddingInvitation";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -64,6 +65,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title = `Happy Anniversary, ${celeb.recipientName}! 💍`;
   } else if (celeb.occasionType === "proposal") {
     title = `A Special Surprise for ${celeb.recipientName} 💌`;
+  } else if (celeb.occasionType === "wedding") {
+    title = `${celeb.weddingData?.couple?.partnerOne ?? "Our"} & ${celeb.weddingData?.couple?.partnerTwo ?? "Wedding"} | Wedding Invitation`;
   }
 
   const description = celeb.message?.slice(0, 155) ?? "A beautiful interactive celebration website made with Just4You";
@@ -165,7 +168,7 @@ export default async function WishPage({ params }: Props) {
 
   // ── Countdown check ─────────────────────────────────────────────────────────
   const eventDate = celeb.eventDate || celeb.birthdayDate;
-  if (celeb.countdownEnabled && eventDate) {
+  if (celeb.occasionType !== "wedding" && celeb.countdownEnabled && eventDate) {
     const event = new Date(eventDate);
     event.setHours(0, 0, 0, 0);
     if (event > now) {
@@ -195,7 +198,9 @@ export default async function WishPage({ params }: Props) {
 
   // If a view was counted this request, set a 1-hour cookie so subsequent
   // reloads/back-navigations don't increment the counter again.
-  const themeJsx = (
+  const themeJsx = celeb.occasionType === "wedding" && celeb.weddingData ? (
+    <WeddingInvitation invitation={celeb.weddingData} />
+  ) : (
     <>
       <Theme celebration={celeb} />
       <BrandFooter />

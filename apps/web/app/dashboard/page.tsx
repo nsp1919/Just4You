@@ -85,6 +85,8 @@ export default function DashboardPage() {
       shareText = `💌 A Special Surprise for you ${name}! I made this website for you... Please check it out ❤️\n\n${url}`;
     } else if (occasionType === "kids-birthday") {
       shareText = `🧸 Happy Birthday ${name}! Look at this magical website we created for you! 🎈\n\n${url}`;
+    } else if (occasionType === "wedding") {
+      shareText = `🪔 You're invited to celebrate the wedding of ${name}! Open our interactive invitation for events, directions and RSVP.\n\n${url}`;
     }
     const msg = encodeURIComponent(shareText);
     window.open(`https://wa.me/?text=${msg}`, "_blank");
@@ -217,6 +219,7 @@ export default function DashboardPage() {
           <ReferralCard
             uid={user.uid}
             walletBalance={userDoc?.walletBalance ?? userDoc?.referralCredits ?? 0}
+            walletWithdrawableBalance={userDoc?.walletWithdrawableBalance}
             referralCount={userDoc?.referralCount ?? 0}
             freeAddonCredits={userDoc?.freeAddonCredits ?? 0}
           />

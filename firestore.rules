@@ -19,7 +19,7 @@ service cloud.firestore {
           'pricePaise', 'chargedPaise', 'slug', 'expiresAt', 'razorpayOrderId',
           'razorpayPaymentId', 'razorpayPaymentLinkId', 'razorpayPaymentLinkUrl',
           'referredBy', 'referralDiscountPaise', 'referralCreditAppliedInr',
-          'walletAppliedInr',
+          'walletAppliedInr', 'walletWithdrawableAppliedInr',
           'freeAddonFeatureId', 'freeAddonDiscountPaise',
           'referralBenefitReservationId', 'referralBenefitsStatus',
           'referralBenefitsReservedAt', 'referralBenefitsReleasedAt',
@@ -60,7 +60,8 @@ service cloud.firestore {
                     && !request.resource.data.keys().hasAny([
                       'chargedPaise', 'razorpayPaymentId', 'razorpayPaymentLinkId',
                       'razorpayPaymentLinkUrl', 'referredBy', 'referralDiscountPaise',
-                      'referralCreditAppliedInr', 'walletAppliedInr', 'freeAddonFeatureId',
+                      'referralCreditAppliedInr', 'walletAppliedInr',
+                      'walletWithdrawableAppliedInr', 'freeAddonFeatureId',
                       'freeAddonDiscountPaise', 'referralBenefitReservationId',
                       'referralBenefitsStatus', 'referralBenefitsReservedAt',
                       'referralBenefitsReleasedAt', 'referralBenefitsSettledAt',
@@ -106,7 +107,8 @@ service cloud.firestore {
                  .hasAny(['role', 'isBlocked', 'referralCode', 'referredBy',
                    'referralCredits', 'walletBalance', 'referralJoinBonusGranted',
                    'referralRedeemed', 'referralCount', 'freeAddonCredits',
-                   'referralDiscountReservationCelebrationId']);
+                   'referralDiscountReservationCelebrationId',
+                   'walletWithdrawableBalance', 'pendingWalletWithdrawalId']);
       }
 
       // Users can read only their own document.
@@ -127,6 +129,12 @@ service cloud.firestore {
                     && protectedUnchanged();
 
       allow delete: if false;
+    }
+
+    // Bank details and payout state are available only through authenticated
+    // server routes using the Admin SDK. Account numbers are encrypted at rest.
+    match /walletWithdrawals/{withdrawalId} {
+      allow read, write: if false;
     }
 
     // ── Admin-only: everything else blocked by default ─────────────────────
