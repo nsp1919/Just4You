@@ -516,7 +516,8 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
 function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddingChange }: { photos: string[]; onPhotos: (p: string[]) => void; features: string[]; occasionType: OccasionType; weddingData: WeddingDataDraft; onWeddingChange: (data: WeddingDataDraft) => void }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number[]>([]);
-  const photoLimit = photoLimitFor(features);
+  const isWedding = occasionType === "wedding";
+  const photoLimit = isWedding ? 1 : photoLimitFor(features);
 
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -575,11 +576,17 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
   return (
     <div className="space-y-6 step-enter">
       <div className="text-sm text-[var(--text-muted)]">
-        Upload up to <strong className="text-white">{photoLimit} photos</strong>. They'll appear in a beautiful animated slideshow.
+        {isWedding ? (
+          <>
+            Upload one <strong className="text-white">9:16 wedding hero image</strong>. It fills the opening hero screen behind the editable couple names, date, and venue.
+          </>
+        ) : (
+          <>Upload up to <strong className="text-white">{photoLimit} photos</strong>. They&apos;ll appear in a beautiful animated slideshow.</>
+        )}
         <span className="ml-2 font-semibold" style={{ color: photos.length >= photoLimit ? "#22c55e" : "#a855f7" }}>
           {photos.length}/{photoLimit} uploaded
         </span>
-        {!features.includes("extra_photos") && (
+        {!isWedding && !features.includes("extra_photos") && (
           <Link href="/pricing" className="ml-2 text-purple-400 hover:text-purple-300 font-semibold">
             Need more? Add Extra Photos →
           </Link>
@@ -597,7 +604,7 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
           <input
             type="file"
             accept="image/*"
-            multiple
+            multiple={!isWedding}
             className="sr-only"
             onChange={(e) => e.target.files && handleFiles(e.target.files)}
             disabled={uploading}
@@ -608,8 +615,10 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
               <Upload size={24} className="text-purple-400" />
             </div>
             <div>
-              <div className="font-semibold text-sm">Drag & drop photos here</div>
-              <div className="text-xs text-[var(--text-muted)] mt-1">or click to browse — JPG, PNG, WEBP accepted</div>
+              <div className="font-semibold text-sm">{isWedding ? "Upload wedding hero image" : "Drag & drop photos here"}</div>
+              <div className="text-xs text-[var(--text-muted)] mt-1">
+                {isWedding ? "Portrait 9:16 recommended · use artwork without baked-in text" : "or click to browse — JPG, PNG, WEBP accepted"}
+              </div>
             </div>
             {uploading && (
               <div className="w-full max-w-xs space-y-2">
@@ -635,10 +644,10 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
       )}
 
       {photos.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className={isWedding ? "flex justify-center" : "grid grid-cols-2 sm:grid-cols-4 gap-3"}>
           {photos.map((url, i) => (
-            <div key={i} className="relative group aspect-square rounded-xl overflow-hidden">
-              <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+            <div key={i} className={`relative group rounded-xl overflow-hidden ${isWedding ? "w-40 aspect-[9/16] ring-1 ring-amber-400/30" : "aspect-square"}`}>
+              <img src={url} alt={isWedding ? "Wedding hero preview" : `Photo ${i + 1}`} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-200 flex items-center justify-center">
                 <button
                   onClick={() => removePhoto(i)}
@@ -648,7 +657,7 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
                 </button>
               </div>
               <div className="absolute bottom-1 left-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center text-xs">
-                {i + 1}
+                {isWedding ? "H" : i + 1}
               </div>
             </div>
           ))}

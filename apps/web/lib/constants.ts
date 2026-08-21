@@ -1,7 +1,6 @@
 export const COLLECTIONS = {
   USERS: "users",
   CELEBRATIONS: "celebrations",
-  WALLET_WITHDRAWALS: "walletWithdrawals",
 } as const;
 
 export const MAX_PHOTOS = 8;
