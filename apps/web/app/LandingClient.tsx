@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion, useInView, useReducedMotion, AnimatePresence } from 'framer-motion'
 import "./landing.css"
+import { BUSINESS } from '@/lib/business'
 import {
   Sparkles, ArrowRight, Play, Check, Star, ChevronLeft, ChevronRight,
   Quote, Music2, Images, Lock, Clock, MessageCircle, Gift, Zap, Shield, Share2,
@@ -853,11 +855,22 @@ function FinalCTA({ onOpenAuth }: { onOpenAuth: () => void }) {
 }
 
 /* ─── FOOTER ─────────────────────────────────────────────────────────────────── */
-function Footer({ onOpenAuth }: { onOpenAuth: () => void }) {
+function Footer() {
   const socials = [
     { Icon: Camera, label: 'Instagram', color: '#f472b6' },
     { Icon: X,      label: 'Twitter/X', color: '#ffb877' },
     { Icon: Mail,   label: 'Email',     color: '#fbbf24', href: 'mailto:info@novantixtech.com' },
+  ]
+  const companyLinks = [
+    { label: 'How It Works', href: '/#how' },
+    { label: 'Pricing', href: '/pricing' },
+    { label: 'Testimonials', href: '/#testimonials' },
+    { label: 'About Us', href: '/about' },
+    { label: 'Contact Us', href: '/contact' },
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms & Conditions', href: '/terms' },
+    { label: 'Refund & Cancellation', href: '/refund-policy' },
+    { label: 'Digital Delivery', href: '/delivery-policy' },
   ]
   return (
     <footer style={{ background:'#0f0913',borderTop:'1px solid rgba(255,224,196,0.07)',padding:'64px 0 32px' }}>
@@ -910,13 +923,13 @@ function Footer({ onOpenAuth }: { onOpenAuth: () => void }) {
           <div>
             <h4 style={{ color:'#efe1d6',fontSize:'0.92rem',fontWeight:700,marginBottom:20 }}>Links</h4>
             <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
-              {['How It Works','Pricing','Testimonials','Privacy Policy','Terms of Service','Contact Us'].map(item => (
-                <button key={item} onClick={onOpenAuth}
-                  style={{ background: 'none', border: 'none', padding: 0, textDecoration:'none', textAlign: 'left', cursor: 'pointer', color:'#8f8098',fontSize:'0.88rem',transition:'color 0.2s',fontWeight:500 }}
+              {companyLinks.map(({ label, href }) => (
+                <Link key={label} href={href}
+                  style={{ textDecoration:'none',color:'#8f8098',fontSize:'0.88rem',transition:'color 0.2s',fontWeight:500 }}
                   onMouseEnter={e => e.currentTarget.style.color='#ffb877'}
                   onMouseLeave={e => e.currentTarget.style.color='#8f8098'}>
-                  {item}
-                </button>
+                  {label}
+                </Link>
               ))}
             </div>
           </div>
@@ -926,10 +939,9 @@ function Footer({ onOpenAuth }: { onOpenAuth: () => void }) {
         <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',
           paddingTop:24,borderTop:'1px solid rgba(255,224,196,0.07)',flexWrap:'wrap',gap:16 }}>
           <p style={{ color:'#6a5d73',fontSize:'0.82rem',fontWeight:500 }}>© 2026 Just4You.buzz · All rights reserved</p>
-          <p style={{ color:'#6a5d73',fontSize:'0.82rem',display:'flex',alignItems:'center',gap:5,fontWeight:500 }}>
-            A product from <a href="https://novantixtech.com" target="_blank" rel="noopener noreferrer"
-              style={{ color:'#ffb877',textDecoration:'none',fontWeight:700 }}>NovantixTech.com</a>
-            <Heart size={11} style={{ color:'#ff5f93' }} fill="#ff5f93" />
+          <p style={{ color:'#8f8098',fontSize:'0.82rem',lineHeight:1.65,maxWidth:680,fontWeight:500 }}>
+            Just4You is a product of <a href={BUSINESS.companyUrl} target="_blank" rel="noopener noreferrer"
+              style={{ color:'#ffb877',textDecoration:'none',fontWeight:700 }}>Novantix Technologies</a>. Payments are processed and invoices are issued by Novantix Technologies.
           </p>
         </div>
       </div>
@@ -957,7 +969,7 @@ export default function LandingClient() {
       <Testimonials />
       <Pricing />
       <FinalCTA onOpenAuth={handleOpenAuth} />
-      <Footer onOpenAuth={handleOpenAuth} />
+      <Footer />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Sparkles, ArrowRight, Heart } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { BUSINESS } from "@/lib/business";
 
 /**
  * BrandFooter — a subtle, self-contained "made with" banner rendered at the
@@ -78,6 +79,13 @@ export default function BrandFooter({ slug }: { slug?: string }) {
         >
           Create My Surprise — from ₹199 <ArrowRight size={16} />
         </Link>
+        <p style={{ color: "#8f8098", fontSize: "0.72rem", lineHeight: 1.6, margin: "24px auto 0", maxWidth: 430 }}>
+          Just4You is a product of{" "}
+          <a href={BUSINESS.companyUrl} target="_blank" rel="noreferrer" style={{ color: "#ffcf7a", fontWeight: 700 }}>
+            Novantix Technologies
+          </a>
+          . Payments are processed and invoices are issued by Novantix Technologies.
+        </p>
       </div>
     </footer>
   );

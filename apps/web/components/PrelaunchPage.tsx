@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { CalendarClock, CheckCircle2, ChevronDown, Heart, Mail, Phone, Send, Sparkles, User } from "lucide-react";
+import { BUSINESS } from "@/lib/business";
 
 interface Props {
   launchAt: string;
@@ -196,8 +198,20 @@ export default function PrelaunchPage({ launchAt }: Props) {
         </section>
 
         <footer className="prelaunch-footer">
-          <span>Made for birthdays, weddings, anniversaries and every moment worth keeping.</span>
-          <span>Questions? info@novantixtech.com</span>
+          <span>
+            Just4You is a product of <a href={BUSINESS.companyUrl} target="_blank" rel="noreferrer">Novantix Technologies</a>. Payments are
+            processed and invoices are issued by Novantix Technologies.
+          </span>
+          <nav className="prelaunch-policy-links" aria-label="Company and policy pages">
+            <Link href="/about">About</Link>
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/refund-policy">Refunds</Link>
+            <Link href="/delivery-policy">Delivery</Link>
+            <Link href="/contact">Contact</Link>
+          </nav>
+          <a href={`mailto:${BUSINESS.email}`}>Questions? {BUSINESS.email}</a>
         </footer>
       </div>
 
@@ -290,6 +304,22 @@ export default function PrelaunchPage({ launchAt }: Props) {
         .prelaunch-footer {
           color: rgba(255, 247, 239, 0.62);
           font-size: 11px;
+        }
+
+        .prelaunch-footer a {
+          color: var(--gold);
+          font-weight: 700;
+          text-decoration: none;
+        }
+
+        .prelaunch-footer > span:first-child {
+          flex-basis: 100%;
+        }
+
+        .prelaunch-policy-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px 16px;
         }
 
         .header-note {
@@ -696,7 +726,7 @@ export default function PrelaunchPage({ launchAt }: Props) {
           .panel-heading h2, .success-state h2 { font-size: 27px; }
           .field-grid { grid-template-columns: 1fr; }
           .success-state { min-height: 330px; padding: 20px 4px; }
-          .prelaunch-footer { font-size: 9px; line-height: 1.5; }
+          .prelaunch-footer { font-size: 11px; line-height: 1.6; gap: 8px; }
         }
 
         @media (prefers-reduced-motion: reduce) {

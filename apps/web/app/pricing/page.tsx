@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import { saveCartFeatures } from "@/lib/cart";
 import { trackEvent } from "@/lib/analytics";
+import { BUSINESS } from "@/lib/business";
 
 function sameSet(a: FeatureId[], b: FeatureId[]) {
   if (a.length !== b.length) return false;
@@ -221,6 +222,23 @@ export default function PricingPage() {
             </div>
           </div>
         </div>
+
+        <footer className="mt-14 border-t border-white/10 pt-8 text-center text-sm leading-6 text-white/50">
+          <p>
+            All prices are in INR. Just4You is a product of{" "}
+            <a href={BUSINESS.companyUrl} target="_blank" rel="noreferrer" className="font-semibold text-amber-300 hover:underline">
+              Novantix Technologies
+            </a>
+            . Payments are processed and invoices are issued by Novantix Technologies.
+          </p>
+          <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2">
+            <Link href="/terms" className="hover:text-white">Terms</Link>
+            <Link href="/privacy" className="hover:text-white">Privacy</Link>
+            <Link href="/refund-policy" className="hover:text-white">Refunds</Link>
+            <Link href="/delivery-policy" className="hover:text-white">Digital delivery</Link>
+            <Link href="/contact" className="hover:text-white">Contact</Link>
+          </div>
+        </footer>
       </div>
     </main>
   );

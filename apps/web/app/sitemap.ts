@@ -7,7 +7,20 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://just4you.buzz";
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
-  const staticRoutes = ["", "/demo", "/gallery", "/login", "/register"].map((path) => ({
+  const staticRoutes = [
+    "",
+    "/about",
+    "/contact",
+    "/delivery-policy",
+    "/demo",
+    "/gallery",
+    "/login",
+    "/pricing",
+    "/privacy",
+    "/refund-policy",
+    "/register",
+    "/terms",
+  ].map((path) => ({
     url: `${SITE_URL}${path}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
