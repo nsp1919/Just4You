@@ -62,17 +62,23 @@ export function PublicSiteHeader() {
           </span>
           <span className="font-playfair text-[1.35rem] font-bold">Just4You<span className="text-[#ffc979]">.buzz</span></span>
         </Link>
-        <div className="flex items-center gap-6">
-          <nav aria-label="Primary" className="hidden items-center gap-6 text-sm font-semibold text-[#cdbfce] md:flex">
-            <Link href="/about" className="transition-colors hover:text-[#ffc979]">About</Link>
-            <Link href="/pricing" className="transition-colors hover:text-[#ffc979]">Pricing</Link>
-            <Link href="/contact" className="transition-colors hover:text-[#ffc979]">Contact</Link>
-          </nav>
-          <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-[#fff8f2] transition-colors hover:border-[#ffc979]/60 hover:text-[#ffc979]">
-            <ArrowLeft size={15} aria-hidden="true" /> <span className="hidden sm:inline">Back to home</span><span className="sm:hidden">Home</span>
-          </Link>
-        </div>
+        <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-[#fff8f2] transition-colors hover:border-[#ffc979]/60 hover:text-[#ffc979]">
+          <ArrowLeft size={15} aria-hidden="true" /> <span className="hidden sm:inline">Back to home</span><span className="sm:hidden">Home</span>
+        </Link>
       </div>
+      <nav aria-label="Company and policy pages" className="border-t border-white/10 bg-[#150d1b]">
+        <div className="mx-auto flex max-w-[1600px] gap-1 overflow-x-auto px-3 sm:px-6 2xl:px-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {PUBLIC_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="whitespace-nowrap rounded-md px-3.5 py-3 text-sm font-semibold text-[#cdbfce] transition-colors hover:text-[#ffc979]"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </header>
   );
 }

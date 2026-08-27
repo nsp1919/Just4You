@@ -958,7 +958,7 @@ export default function LandingClient() {
   const handleOpenAuth = () => router.push('/register')
 
   return (
-    <div style={{ background: '#18101e', minHeight: '100vh' }}>
+    <div className="landing-scope" style={{ background: '#18101e', minHeight: '100vh' }}>
       <Navbar onOpenAuth={handleOpenAuth} />
       <Hero onOpenAuth={handleOpenAuth} />
       <HowItWorks onOpenAuth={handleOpenAuth} />

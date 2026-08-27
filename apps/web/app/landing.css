@@ -24,21 +24,27 @@
   --font-display:'Fraunces', 'Playfair Display', serif;
 }
 
-/* ─── Reset ─────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; overflow-x: hidden; }
-body {
+/* ─── Reset (scoped to the landing page) ─────────────────────────
+   These rules are scoped under .landing-scope so landing-page globals
+   never leak into other routes during client-side navigation. When they
+   were global, `html { overflow-x: hidden }` persisted after navigating
+   to /pricing and broke the sticky order summary until a hard refresh. */
+.landing-scope,
+.landing-scope *,
+.landing-scope *::before,
+.landing-scope *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.landing-scope {
+  overflow-x: hidden;
   font-family: var(--font-body);
   background: var(--bg);
   color: var(--ink-soft);
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-::selection { background: rgba(255, 143, 174, 0.28); color: #fff; }
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: linear-gradient(var(--amber), var(--rose)); border-radius: 3px; }
+.landing-scope ::selection { background: rgba(255, 143, 174, 0.28); color: #fff; }
+.landing-scope ::-webkit-scrollbar { width: 6px; }
+.landing-scope ::-webkit-scrollbar-track { background: var(--bg); }
+.landing-scope ::-webkit-scrollbar-thumb { background: linear-gradient(var(--amber), var(--rose)); border-radius: 3px; }
 
 /* ─── Focus & motion a11y ───────────────────────────────────── */
 :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
