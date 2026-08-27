@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CalendarDays, Clock3, RotateCcw } from "lucide-react";
 import PublicInfoPage, { InfoSection } from "@/components/PublicInfoPage";
 import { BUSINESS } from "@/lib/business";
 
@@ -13,6 +14,11 @@ export default function RefundPolicyPage() {
       eyebrow="Payments"
       title="Refund and Cancellation Policy"
       description="Just4You supplies personalized digital services that can begin immediately after payment. This policy states when an order may be cancelled or refunded."
+      highlights={[
+        { icon: <CalendarDays size={19} />, label: "Request window", value: "Within 7 calendar days" },
+        { icon: <Clock3 size={19} />, label: "Review outcome", value: "Normally within 5 business days" },
+        { icon: <RotateCcw size={19} />, label: "Approved refunds", value: "Returned to the original payment method" },
+      ]}
     >
       <InfoSection title="1. Before payment">
         <p>

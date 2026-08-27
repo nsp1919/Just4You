@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CreditCard, EyeOff, ShieldCheck } from "lucide-react";
 import PublicInfoPage, { InfoSection } from "@/components/PublicInfoPage";
 import { BUSINESS } from "@/lib/business";
 
@@ -13,6 +14,11 @@ export default function PrivacyPage() {
       eyebrow="Privacy"
       title="Privacy Policy"
       description={`This policy explains how ${BUSINESS.legalName} handles personal information when you use Just4You.`}
+      highlights={[
+        { icon: <ShieldCheck size={19} />, label: "Data controller", value: "Novantix Technologies" },
+        { icon: <CreditCard size={19} />, label: "Payment security", value: "Credentials stay with the payment provider" },
+        { icon: <EyeOff size={19} />, label: "Our commitment", value: "We do not sell personal information" },
+      ]}
     >
       <InfoSection title="1. Who controls your information">
         <p>

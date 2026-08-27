@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CalendarClock, MailCheck, Zap } from "lucide-react";
 import PublicInfoPage, { InfoSection } from "@/components/PublicInfoPage";
 import { BUSINESS } from "@/lib/business";
 
@@ -14,6 +15,11 @@ export default function DeliveryPolicyPage() {
       eyebrow="Fulfilment"
       title="Digital Delivery Policy"
       description="Just4You provides digital services only. This policy explains provisioning, scheduled delivery, custom work, and hosting."
+      highlights={[
+        { icon: <Zap size={19} />, label: "Standard delivery", value: "Normally live within minutes" },
+        { icon: <MailCheck size={19} />, label: "Delivery format", value: "A hosted digital link, no physical shipping" },
+        { icon: <CalendarClock size={19} />, label: "Scheduled option", value: "Sent at the date and time you choose" },
+      ]}
     >
       <InfoSection title="1. No physical shipping">
         <p>

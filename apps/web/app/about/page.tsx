@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <PublicInfoPage
-      eyebrow="About the product"
-      title="Personalized celebration websites, made by Novantix Technologies"
-      description="Just4You helps people turn photos, music, messages, and meaningful dates into shareable digital experiences."
+      eyebrow="Product & company"
+      title="About Just4You"
+      description="A Novantix Technologies product that turns photos, music, messages, and meaningful dates into personal digital celebrations."
     >
       <InfoSection title="What Just4You provides">
         <p>

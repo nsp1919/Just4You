@@ -1,6 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowLeft, Building2, ExternalLink, Mail, Phone, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  CalendarDays,
+  ExternalLink,
+  IndianRupee,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { BUSINESS, OWNERSHIP_DISCLOSURE } from "@/lib/business";
 
 const PUBLIC_LINKS = [
@@ -17,6 +28,11 @@ interface PublicInfoPageProps {
   eyebrow: string;
   title: string;
   description: string;
+  highlights?: Array<{
+    icon: ReactNode;
+    label: string;
+    value: string;
+  }>;
   children: ReactNode;
 }
 
@@ -27,12 +43,74 @@ interface InfoSectionProps {
 
 export function InfoSection({ title, children }: InfoSectionProps) {
   return (
-    <section className="border-t border-white/10 pt-8 first:border-t-0 first:pt-0">
-      <h2 className="font-playfair text-2xl font-semibold text-[#fff5ec]">{title}</h2>
-      <div className="mt-4 space-y-4 text-[0.95rem] leading-7 text-[#b9a6be] [&_a]:font-semibold [&_a]:text-[#ffb877] [&_a]:underline-offset-4 hover:[&_a]:underline [&_li]:pl-1 [&_strong]:text-[#efe1d6] [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-2">
+    <section className="border-b border-[#eadfd9] pb-10 last:border-b-0 last:pb-0">
+      <h2 className="font-playfair text-[1.65rem] font-bold leading-tight text-[#241728] sm:text-3xl 2xl:text-[2rem]">{title}</h2>
+      <div className="mt-4 max-w-5xl space-y-4 text-[0.98rem] leading-7 text-[#615866] 2xl:text-[1.05rem] 2xl:leading-8 [&_a]:font-bold [&_a]:text-[#b44552] [&_a]:underline-offset-4 hover:[&_a]:underline [&_li]:pl-1.5 [&_strong]:font-bold [&_strong]:text-[#332638] [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-2.5">
         {children}
       </div>
     </section>
+  );
+}
+
+export function PublicSiteHeader() {
+  return (
+    <header className="border-b border-white/10 bg-[#18101e] text-white">
+      <div className="mx-auto flex h-20 max-w-[1600px] items-center justify-between gap-6 px-5 sm:px-8 2xl:px-10">
+        <Link href="/" className="inline-flex items-center gap-3 text-[#fff8f2]">
+          <span className="flex size-10 items-center justify-center rounded-lg bg-[#f06f61] shadow-[0_8px_24px_rgba(240,111,97,0.25)]">
+            <Sparkles size={18} aria-hidden="true" />
+          </span>
+          <span className="font-playfair text-[1.35rem] font-bold">Just4You<span className="text-[#ffc979]">.buzz</span></span>
+        </Link>
+        <div className="flex items-center gap-6">
+          <nav aria-label="Primary" className="hidden items-center gap-6 text-sm font-semibold text-[#cdbfce] md:flex">
+            <Link href="/about" className="transition-colors hover:text-[#ffc979]">About</Link>
+            <Link href="/pricing" className="transition-colors hover:text-[#ffc979]">Pricing</Link>
+            <Link href="/contact" className="transition-colors hover:text-[#ffc979]">Contact</Link>
+          </nav>
+          <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-[#fff8f2] transition-colors hover:border-[#ffc979]/60 hover:text-[#ffc979]">
+            <ArrowLeft size={15} aria-hidden="true" /> <span className="hidden sm:inline">Back to home</span><span className="sm:hidden">Home</span>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export function PublicSiteFooter() {
+  return (
+    <footer className="border-t-4 border-[#f06f61] bg-[#18101e] text-white">
+      <div className="mx-auto grid max-w-[1600px] gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.4fr_0.8fr_1fr] 2xl:px-10">
+        <div>
+          <p className="font-playfair text-2xl font-bold text-[#fff8f2]">Just4You<span className="text-[#ffc979]">.buzz</span></p>
+          <p className="mt-4 max-w-md text-sm font-medium leading-7 text-[#cdbfce]">
+            Just4You is a product of{" "}
+            <a className="font-bold text-[#ffc979] hover:underline" href={BUSINESS.companyUrl} target="_blank" rel="noreferrer">Novantix Technologies</a>.
+            {" "}Payments are processed and invoices are issued by Novantix Technologies.
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#ffc979]">Customer support</p>
+          <div className="mt-4 space-y-3 text-sm text-[#cdbfce]">
+            <a href={`mailto:${BUSINESS.email}`} className="flex items-center gap-2.5 transition-colors hover:text-white"><Mail size={15} /> {BUSINESS.email}</a>
+            <a href={BUSINESS.phoneHref} className="flex items-center gap-2.5 transition-colors hover:text-white"><Phone size={15} /> {BUSINESS.phoneDisplay}</a>
+            <span className="flex items-center gap-2.5"><MapPin size={15} /> {BUSINESS.location}</span>
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#ffc979]">Company & policies</p>
+          <nav aria-label="Footer policy links" className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 text-sm text-[#cdbfce]">
+            {PUBLIC_LINKS.map((link) => <Link key={link.href} href={link.href} className="transition-colors hover:text-white">{link.label}</Link>)}
+          </nav>
+        </div>
+      </div>
+      <div className="border-t border-white/10">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-5 py-5 text-xs leading-5 text-[#8e818f] sm:px-8 md:flex-row md:items-center md:justify-between 2xl:px-10">
+          <p>© 2026 {BUSINESS.legalName}. All rights reserved.</p>
+          <p>{OWNERSHIP_DISCLOSURE} CIN: {BUSINESS.cin}.</p>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -40,90 +118,95 @@ export default function PublicInfoPage({
   eyebrow,
   title,
   description,
+  highlights,
   children,
 }: PublicInfoPageProps) {
   return (
-    <main className="min-h-screen bg-[#0f0913] text-white">
-      <header className="border-b border-white/10 bg-[#18101e]">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-5 py-5 sm:px-8">
-          <Link href="/" className="inline-flex items-center gap-3 text-[#fff5ec]">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#ff8a5c] to-[#ff5f93]">
-              <Sparkles size={16} aria-hidden="true" />
-            </span>
-            <span className="font-playfair text-xl font-bold">Just4You.buzz</span>
-          </Link>
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#b9a6be] transition-colors hover:text-[#fff5ec]">
-            <ArrowLeft size={16} aria-hidden="true" /> Back to home
-          </Link>
-        </div>
-      </header>
+    <main className="min-h-screen bg-[#fffaf7] text-[#241728]">
+      <PublicSiteHeader />
 
-      <section className="border-b border-white/10 bg-[#18101e]">
-        <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-20">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#ffb877]">{eyebrow}</p>
-          <h1 className="mt-4 max-w-4xl font-playfair text-4xl font-bold leading-tight text-[#fff5ec] sm:text-5xl">{title}</h1>
-          <p className="mt-5 max-w-3xl text-base leading-7 text-[#b9a6be] sm:text-lg">{description}</p>
-          <p className="mt-5 text-sm text-[#8f8098]">Last updated: {BUSINESS.policyUpdated}</p>
+      <section className="relative overflow-hidden bg-[#18101e] text-white">
+        <div
+          className="absolute inset-0 opacity-40"
+          aria-hidden="true"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,201,121,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,201,121,0.055) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage: "linear-gradient(to right, black, transparent 85%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-[1600px] px-5 py-16 sm:px-8 sm:py-20 lg:py-24 2xl:px-10">
+          <div className="max-w-5xl">
+            <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#ffc979]">
+              <span className="h-px w-8 bg-[#f06f61]" aria-hidden="true" /> {eyebrow}
+            </p>
+            <h1 className="mt-5 max-w-5xl font-playfair text-4xl font-bold leading-[1.05] text-[#fff8f2] sm:text-5xl lg:text-[3.5rem] 2xl:text-6xl">{title}</h1>
+            <p className="mt-6 max-w-4xl text-base leading-8 text-[#cdbfce] sm:text-lg 2xl:text-xl 2xl:leading-9">{description}</p>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[#a99baa]">
+              <span className="inline-flex items-center gap-2"><ShieldCheck size={16} className="text-[#ffc979]" /> Operated by a registered Indian company</span>
+              <span className="inline-flex items-center gap-2"><CalendarDays size={16} className="text-[#ffc979]" /> Updated {BUSINESS.policyUpdated}</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl gap-12 px-5 py-12 sm:px-8 lg:grid-cols-[250px_minmax(0,1fr)] lg:py-16">
+      {highlights && highlights.length > 0 && (
+        <section className="border-b border-[#eadfd9] bg-[#fff1eb]">
+          <div className="mx-auto grid max-w-[1600px] divide-y divide-[#e6cfc7] px-5 sm:px-8 md:grid-cols-3 md:divide-x md:divide-y-0 2xl:px-10">
+            {highlights.map((highlight) => (
+              <div key={highlight.label} className="flex items-start gap-4 py-6 md:px-7 md:first:pl-0 md:last:pr-0">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#f06f61] text-white shadow-[0_8px_20px_rgba(180,69,82,0.16)]">
+                  {highlight.icon}
+                </span>
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.11em] text-[#a54a55]">{highlight.label}</p>
+                  <p className="mt-1 font-playfair text-lg font-bold leading-snug text-[#332638]">{highlight.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="mx-auto grid max-w-[1600px] gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[290px_minmax(0,1fr)] lg:gap-20 lg:py-20 2xl:grid-cols-[320px_minmax(0,1fr)] 2xl:gap-24 2xl:px-10">
         <aside className="lg:sticky lg:top-8 lg:self-start">
-          <div className="border-l-2 border-[#ff8a5c] pl-5">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#ffb877]">Operated by</p>
-            <p className="mt-3 text-sm font-bold leading-6 text-[#fff5ec]">{BUSINESS.legalName}</p>
-            <dl className="mt-4 space-y-3 text-sm leading-6 text-[#8f8098]">
-              <div>
-                <dt className="sr-only">Corporate Identity Number</dt>
-                <dd>CIN: {BUSINESS.cin}</dd>
+          <div className="rounded-lg border border-[#ecd9d2] bg-[#fff1eb] p-6">
+            <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.13em] text-[#b44552]">
+              <ShieldCheck size={16} /> Verified operator
+            </p>
+            <p className="mt-4 font-playfair text-xl font-bold leading-snug text-[#241728]">{BUSINESS.legalName}</p>
+            <dl className="mt-5 space-y-4 border-t border-[#e7d0c8] pt-5 text-sm leading-6 text-[#6d606c]">
+              <div className="flex gap-3">
+                <Building2 size={17} className="mt-1 shrink-0 text-[#b44552]" aria-hidden="true" />
+                <div><dt className="font-bold text-[#443647]">Corporate identity</dt><dd className="break-all">{BUSINESS.cin}</dd></div>
               </div>
-              <div>
-                <dt className="sr-only">Location</dt>
-                <dd>{BUSINESS.location}</dd>
+              <div className="flex gap-3">
+                <MapPin size={17} className="mt-1 shrink-0 text-[#b44552]" aria-hidden="true" />
+                <div><dt className="font-bold text-[#443647]">Business location</dt><dd>{BUSINESS.location}</dd></div>
               </div>
-              <div>
-                <dt className="sr-only">Currency</dt>
-                <dd>{BUSINESS.currency}</dd>
+              <div className="flex gap-3">
+                <IndianRupee size={17} className="mt-1 shrink-0 text-[#b44552]" aria-hidden="true" />
+                <div><dt className="font-bold text-[#443647]">Transaction currency</dt><dd>{BUSINESS.currency}</dd></div>
               </div>
             </dl>
+            <a href={BUSINESS.companyUrl} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#b44552] hover:underline">
+              Verify on novantixtech.com <ExternalLink size={14} aria-hidden="true" />
+            </a>
           </div>
-          <nav aria-label="Business and policy pages" className="mt-8 grid grid-cols-2 gap-x-4 gap-y-3 text-sm lg:grid-cols-1">
+          <nav aria-label="Business and policy pages" className="mt-7 grid grid-cols-2 gap-2 text-sm lg:grid-cols-1">
             {PUBLIC_LINKS.map((link) => (
-              <Link key={link.href} href={link.href} className="text-[#8f8098] transition-colors hover:text-[#ffb877]">
+              <Link key={link.href} href={link.href} className="rounded-md px-3 py-2 font-semibold text-[#6d606c] transition-colors hover:bg-[#f7e7e1] hover:text-[#b44552]">
                 {link.label}
               </Link>
             ))}
           </nav>
         </aside>
 
-        <article className="min-w-0 space-y-10">{children}</article>
+        <article className="min-w-0 max-w-5xl space-y-10 lg:pt-1 2xl:space-y-12">{children}</article>
       </div>
 
-      <footer className="border-t border-white/10 bg-[#0a0612]">
-        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-          <p className="max-w-4xl text-sm font-medium leading-7 text-[#b9a6be]">
-            Just4You is a product of{" "}
-            <a className="font-bold text-[#ffb877]" href={BUSINESS.companyUrl} target="_blank" rel="noreferrer">
-              Novantix Technologies
-            </a>
-            . Payments are processed and invoices are issued by Novantix Technologies.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-x-7 gap-y-3 text-sm text-[#8f8098]">
-            <a href={`mailto:${BUSINESS.email}`} className="inline-flex items-center gap-2 hover:text-[#fff5ec]">
-              <Mail size={15} aria-hidden="true" /> {BUSINESS.email}
-            </a>
-            <a href={BUSINESS.phoneHref} className="inline-flex items-center gap-2 hover:text-[#fff5ec]">
-              <Phone size={15} aria-hidden="true" /> {BUSINESS.phoneDisplay}
-            </a>
-            <a href={BUSINESS.companyUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-[#fff5ec]">
-              <Building2 size={15} aria-hidden="true" /> {BUSINESS.legalName} <ExternalLink size={13} aria-hidden="true" />
-            </a>
-          </div>
-          <p className="mt-7 text-xs leading-5 text-[#6a5d73]">
-            {OWNERSHIP_DISCLOSURE} CIN: {BUSINESS.cin}. Business location: {BUSINESS.location}.
-          </p>
-        </div>
-      </footer>
+      <PublicSiteFooter />
     </main>
   );
 }

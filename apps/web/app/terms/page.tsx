@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Building2, Globe2, IndianRupee } from "lucide-react";
 import PublicInfoPage, { InfoSection } from "@/components/PublicInfoPage";
 import { BUSINESS } from "@/lib/business";
 
@@ -14,6 +15,11 @@ export default function TermsPage() {
       eyebrow="Legal"
       title="Terms and Conditions"
       description={`These terms govern your use of Just4You, a digital product owned and operated by ${BUSINESS.legalName}.`}
+      highlights={[
+        { icon: <Building2 size={19} />, label: "Merchant of record", value: "Novantix Technologies" },
+        { icon: <IndianRupee size={19} />, label: "Transaction currency", value: "Indian Rupees (INR)" },
+        { icon: <Globe2 size={19} />, label: "Service type", value: "Personalized digital websites" },
+      ]}
     >
       <InfoSection title="1. Agreement and operator">
         <p>
