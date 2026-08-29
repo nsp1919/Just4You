@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin";
+import { requireAdminRequest } from "@/lib/admin-session";
 import { COLLECTIONS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 async function requireAdmin(req: NextRequest): Promise<string> {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) throw new Error("UNAUTHORIZED");
-  const decoded = await adminAuth.verifyIdToken(authHeader.slice(7));
-  const user = await adminDb.collection(COLLECTIONS.USERS).doc(decoded.uid).get();
-  if (user.data()?.role !== "admin") throw new Error("FORBIDDEN");
-  return decoded.uid;
+  const admin = await requireAdminRequest(req);
+  return admin.uid;
 }
 
 function serializeTimestamp(value: unknown): string | null {
@@ -23,7 +20,7 @@ function serializeTimestamp(value: unknown): string | null {
 
 function errorResponse(error: unknown): NextResponse {
   const message = error instanceof Error ? error.message : "";
-  if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (message === "UNAUTHORIZED" || message === "ADMIN_SESSION_REQUIRED") return NextResponse.json({ error: "Admin session required" }, { status: 401 });
   if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   console.error("admin site launch error:", error);
   return NextResponse.json({ error: "Unable to manage launch settings" }, { status: 500 });

@@ -14,6 +14,7 @@ import ExpiredPage from "@/components/ExpiredPage";
 import CountdownPage from "@/components/CountdownPage";
 import BrandFooter from "@/components/BrandFooter";
 import WeddingInvitation from "@/components/wedding/WeddingInvitation";
+import { referralCodeFor } from "@/lib/referral-code";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -93,6 +94,7 @@ export default async function WishPage({ params }: Props) {
 
   if (!result) return notFound();
   const { serialized: celeb, docId } = result;
+  const referralCode = typeof celeb.userId === "string" ? referralCodeFor(celeb.userId) : undefined;
 
   if (!celeb.isActive || celeb.isBlocked) {
     return notFound();
@@ -191,13 +193,18 @@ export default async function WishPage({ params }: Props) {
   // Note: setting cookies from a Server Component page is not supported in
   // Next.js; cookie-based dedup must be done via middleware if needed.
   if (celeb.occasionType === "wedding" && celeb.weddingData) {
-    return <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />;
+    return (
+      <>
+        <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
+        <BrandFooter slug={slug} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
+      </>
+    );
   }
 
   return (
     <>
       <Theme celebration={celeb} />
-      <BrandFooter slug={slug} />
+      <BrandFooter slug={slug} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
     </>
   );
 }

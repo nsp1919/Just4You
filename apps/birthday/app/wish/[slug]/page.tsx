@@ -19,6 +19,11 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+function referralCodeFor(uid: string): string {
+  const clean = uid.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  return `J4Y${clean.padEnd(10, "0").slice(0, 10)}`;
+}
+
 // Convert Firestore Admin Timestamps → plain ISO strings so Next.js can
 // safely pass the object from Server → Client Components.
 function serializeCelebration(data: any): any {
@@ -93,6 +98,7 @@ export default async function WishPage({ params }: Props) {
 
   if (!result) return notFound();
   const { serialized: celeb, docId } = result;
+  const referralCode = typeof celeb.userId === "string" ? referralCodeFor(celeb.userId) : undefined;
 
   if (!celeb.isActive || celeb.isBlocked) {
     return notFound();
@@ -208,12 +214,12 @@ export default async function WishPage({ params }: Props) {
   const themeJsx = celeb.occasionType === "wedding" && celeb.weddingData ? (
     <>
       <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
-      <BrandFooter creditText={creditText} />
+      <BrandFooter creditText={creditText} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
     </>
   ) : (
     <>
       <Theme celebration={celeb} />
-      <BrandFooter creditText={creditText} />
+      <BrandFooter creditText={creditText} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
     </>
   );
   if (!setViewCookie) return themeJsx;

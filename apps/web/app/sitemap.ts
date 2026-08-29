@@ -19,6 +19,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/privacy",
     "/refund-policy",
     "/register",
+    "/birthday-website-for-girlfriend",
+    "/birthday-surprise-for-best-friend",
+    "/anniversary-website-for-husband",
+    "/online-wedding-invitation",
+    "/last-minute-birthday-surprise",
+    "/reminders",
     "/terms",
   ].map((path) => ({
     url: `${SITE_URL}${path}`,

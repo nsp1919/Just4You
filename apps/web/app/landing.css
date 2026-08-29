@@ -125,6 +125,23 @@
   border: 1px solid var(--line);
 }
 .btn-ghost:hover { border-color: rgba(255, 158, 79, 0.55); color: var(--gold); transform: translateY(-2px); }
+.hero-demo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.hero-demo-link:hover { color: var(--gold); }
+.hero-free-note {
+  margin: -27px 0 32px;
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
 
 /* ─── Glass ────────────────────────────────────────────────────── */
 .glass {
@@ -225,6 +242,104 @@
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* ─── Verified customer proof ───────────────────────────────── */
+.proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+.proof-card {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: rgba(255, 240, 228, 0.03);
+}
+.proof-photo {
+  position: relative;
+  display: grid;
+  height: 260px;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(255,158,79,0.12), rgba(48,189,187,0.08));
+}
+.proof-photo > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.55s ease;
+}
+.proof-card:hover .proof-photo > img { transform: scale(1.035); }
+.proof-photo > span:not(.proof-consent) { font-size: 3.5rem; }
+.proof-photo-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15,9,19,0.95), transparent 58%);
+}
+.proof-consent {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 50px;
+  background: rgba(15,9,19,0.72);
+  color: #d7f7de;
+  font-size: 0.66rem;
+  font-weight: 700;
+  backdrop-filter: blur(10px);
+}
+.proof-photo-meta {
+  position: absolute;
+  right: 18px;
+  bottom: 17px;
+  left: 18px;
+}
+.proof-photo-meta strong { display: block; color: var(--ink); font-size: 1.25rem; }
+.proof-photo-meta span { display: block; margin-top: 5px; color: rgba(255,255,255,0.65); font-size: 0.75rem; text-transform: capitalize; }
+.proof-review-media { padding: 15px 16px 0; }
+.proof-review-media > span { display: block; margin-bottom: 8px; color: #9ee2d9; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; }
+.proof-review-media img,
+.proof-review-media video { display: block; width: 100%; max-height: 190px; border-radius: 6px; object-fit: cover; background: #0f0913; }
+.proof-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+}
+.proof-view-count { display: flex; align-items: center; gap: 6px; color: var(--muted-2); font-size: 0.75rem; }
+.proof-view-count strong { color: var(--ink-soft); }
+.proof-card-footer a { display: inline-flex; align-items: center; gap: 5px; color: var(--gold); font-size: 0.76rem; font-weight: 700; text-decoration: none; }
+.proof-empty { display: flex; align-items: center; justify-content: center; gap: 12px; border-block: 1px solid var(--line); padding: 48px 20px; color: var(--muted); text-align: center; }
+.proof-empty svg { flex: 0 0 auto; color: var(--rose); }
+@media (max-width: 900px) { .proof-grid { grid-template-columns: 1fr; max-width: 560px; margin-inline: auto; } }
+
+.pricing-reassurance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 54px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--line);
+}
+.pricing-reassurance > div {
+  display: flex;
+  gap: 11px;
+  min-height: 116px;
+  padding: 21px;
+  background: #18101e;
+  color: var(--amber);
+}
+.pricing-reassurance span { color: var(--muted); font-size: 0.76rem; line-height: 1.6; }
+.pricing-reassurance strong { display: block; margin-bottom: 4px; color: var(--ink-soft); font-size: 0.84rem; }
+.pricing-reassurance a { color: var(--gold); font-weight: 700; text-decoration: none; }
+@media (max-width: 800px) { .pricing-reassurance { grid-template-columns: 1fr; } .pricing-reassurance > div { min-height: 0; } }
 
 /* ─── Custom website studio ─────────────────────────────────── */
 .custom-studio {

@@ -7,9 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { COLLECTIONS, OCCASIONS, OccasionType, formatInr } from "@/lib/constants";
-import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList, ImagePlus } from "lucide-react";
+import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList, ImagePlus, UsersRound, Clapperboard } from "lucide-react";
 import ReferralCard from "@/components/ReferralCard";
 import QRCodeCard from "@/components/QRCodeCard";
+import ShareAssetGenerator from "@/components/ShareAssetGenerator";
 import { TiltCard, AnimatedCounter } from "@/components/TiltCard";
 
 interface Celebration {
@@ -355,6 +356,22 @@ export default function DashboardPage() {
                       <div>{c.photos?.length ?? 0} photos</div>
                     </div>
 
+                    <Link
+                      href={`/dashboard/collaborate/${c.id}`}
+                      className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-pink-300/25 bg-pink-300/[0.08] px-3 py-2 text-xs font-semibold text-pink-200 transition-colors hover:bg-pink-300/[0.14]"
+                    >
+                      <UsersRound size={14} /> Collect group memories
+                    </Link>
+
+                    {c.isActive && (
+                      <Link
+                        href={`/dashboard/reactions/${c.id}`}
+                        className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/[0.07] px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-300/[0.13]"
+                      >
+                        <Clapperboard size={14} /> Reaction videos & reward
+                      </Link>
+                    )}
+
                     {c.occasionType === "wedding" && c.weddingData?.rsvpEnabled && (
                       <Link
                         href={`/dashboard/rsvp/${c.id}`}
@@ -392,6 +409,13 @@ export default function DashboardPage() {
                           style={{ background: "rgba(37,211,102,0.15)", border: "1px solid rgba(37,211,102,0.3)", color: "#25d366" }}>
                           <Share2 size={14} />
                         </button>
+                        <ShareAssetGenerator
+                          url={url}
+                          recipientName={c.recipientName}
+                          eventDate={displayDate}
+                          photos={c.photos ?? []}
+                          occasionLabel={occasion.label}
+                        />
                         <QRCodeCard url={url} name={c.recipientName} compact />
                       </div>
                     )}

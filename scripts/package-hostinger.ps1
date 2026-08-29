@@ -109,7 +109,7 @@ Just4You - Hostinger deployment package
 ========================================
 
 Two Node.js apps to deploy:
-  - Main domain      -> startup file: server.js       (web app,  Next 15)
+  - Main domain      -> startup file: server.js       (web app,  Next 16)
   - Wish subdomain   -> startup file: server_wish.js  (birthday, Next 16)
 
 Steps (Hostinger hPanel -> Advanced -> Node.js):
@@ -132,6 +132,14 @@ Notes:
   - Set the same RAZORPAY_WEBHOOK_SECRET here and in the Razorpay Dashboard
     webhook (URL: https://<your-domain>/api/payment/webhook, event:
     payment.captured).
+  - Required additions: NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_MAIN_APP_URL,
+    ADMIN_EMAIL, CRON_SECRET, WALLET_BANK_ENCRYPTION_KEY (32+ stable chars),
+    and a video-capable NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET.
+  - Delete the retired ADMIN_SECRET environment variable. It is no longer
+    accepted by the application.
+  - Deploy firestore.rules separately with Firebase CLI.
+  - Hostinger must schedule authenticated requests to /api/reminders/run and
+    /api/draft-recovery/run daily, and /api/delivery/run hourly.
 "@
 Set-Content -Path (Join-Path $stage "DEPLOY-HOSTINGER.txt") -Value $readme -Encoding UTF8
 Write-Host "    + DEPLOY-HOSTINGER.txt"

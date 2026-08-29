@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin";
 import { decryptBankAccount } from "@/lib/bank-details";
 import { COLLECTIONS, REFERRAL_REWARD_INR } from "@/lib/constants";
 import { resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
+import { requireAdminRequest } from "@/lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
 async function requireAdmin(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) throw new Error("UNAUTHORIZED");
-  const decoded = await adminAuth.verifyIdToken(authHeader.slice(7));
-  const adminSnap = await adminDb.collection(COLLECTIONS.USERS).doc(decoded.uid).get();
-  if (adminSnap.data()?.role !== "admin") throw new Error("FORBIDDEN");
-  return decoded;
+  return requireAdminRequest(req);
 }
 
 export async function GET(req: NextRequest) {
@@ -44,7 +40,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ requests });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (message === "UNAUTHORIZED" || message === "ADMIN_SESSION_REQUIRED") return NextResponse.json({ error: "Admin session required" }, { status: 401 });
     if (message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     if (message === "BANK_ENCRYPTION_NOT_CONFIGURED") {
       return NextResponse.json({ error: "Bank withdrawal encryption is not configured" }, { status: 503 });
@@ -110,6 +106,7 @@ export async function POST(req: NextRequest) {
     const message = error instanceof Error ? error.message : "";
     const knownErrors: Record<string, { error: string; status: number }> = {
       UNAUTHORIZED: { error: "Unauthorized", status: 401 },
+      ADMIN_SESSION_REQUIRED: { error: "Admin session required", status: 401 },
       FORBIDDEN: { error: "Forbidden", status: 403 },
       WITHDRAWAL_NOT_FOUND: { error: "Withdrawal not found", status: 404 },
       PROFILE_REQUIRED: { error: "User profile not found", status: 404 },

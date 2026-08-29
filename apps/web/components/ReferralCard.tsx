@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Copy, Check, Gift, Trophy } from "lucide-react";
 import { referralLinkFor } from "@/lib/referral";
 import { REFERRAL_JOIN_WALLET_BONUS_INR, REFERRAL_REWARD_INR, REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
-import { MIN_WALLET_WITHDRAWAL_INR } from "@/lib/wallet-withdrawal";
 import WalletWithdrawal from "@/components/WalletWithdrawal";
 
 interface Leader {
@@ -84,7 +83,7 @@ export default function ReferralCard({
           </div>
           <p className="text-sm text-[var(--text-muted)] max-w-md mb-3">
             Friends receive ₹{REFERRAL_JOIN_WALLET_BONUS_INR} in their wallet when they join. You receive
-            ₹{REFERRAL_REWARD_INR} in your wallet after their first successful purchase. Your full wallet balance is automatically applied at checkout, and referral earnings can be withdrawn to your bank after ₹{MIN_WALLET_WITHDRAWAL_INR}.
+            ₹{REFERRAL_REWARD_INR} in your wallet after their first successful purchase. Verified referral and social-post earnings can be withdrawn after reaching the current Admin-set minimum shown in the bank withdrawal form.
           </p>
           {/* Milestone progress */}
           <div className="mb-4">

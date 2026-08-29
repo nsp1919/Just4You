@@ -3,7 +3,8 @@ import { Timestamp } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { encryptBankAccount } from "@/lib/bank-details";
 import { COLLECTIONS, REFERRAL_REWARD_INR } from "@/lib/constants";
-import { MIN_WALLET_WITHDRAWAL_INR, resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
+import { resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
+import { getMinimumWithdrawalInr } from "@/lib/wallet-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -37,13 +38,14 @@ export async function GET(req: NextRequest) {
       adminDb.collection(COLLECTIONS.WALLET_WITHDRAWALS).where("userId", "==", decoded.uid).get(),
     ]);
     const profile = userSnap.data() ?? {};
+    const minimumWithdrawal = await getMinimumWithdrawalInr();
     const requests = requestsSnap.docs
       .sort((a, b) => (b.data().createdAt?.toMillis?.() ?? 0) - (a.data().createdAt?.toMillis?.() ?? 0))
       .map(publicRequest);
 
     return NextResponse.json({
       withdrawableBalance: resolveWithdrawableBalance(profile, REFERRAL_REWARD_INR),
-      minimumWithdrawal: MIN_WALLET_WITHDRAWAL_INR,
+      minimumWithdrawal,
       hasPendingRequest: Boolean(profile.pendingWalletWithdrawalId),
       requests,
     });
@@ -59,14 +61,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const decoded = await authenticatedUser(req);
+    const minimumWithdrawal = await getMinimumWithdrawalInr();
     const body = await req.json().catch(() => ({}));
     const amountInr = Number(body.amountInr);
     const accountHolderName = typeof body.accountHolderName === "string" ? body.accountHolderName.trim() : "";
     const accountNumber = typeof body.accountNumber === "string" ? body.accountNumber.replace(/[\s-]/g, "") : "";
     const ifsc = typeof body.ifsc === "string" ? body.ifsc.trim().toUpperCase() : "";
 
-    if (!Number.isInteger(amountInr) || amountInr < MIN_WALLET_WITHDRAWAL_INR) {
-      return NextResponse.json({ error: `Minimum withdrawal is ₹${MIN_WALLET_WITHDRAWAL_INR}` }, { status: 400 });
+    if (!Number.isInteger(amountInr) || amountInr < minimumWithdrawal) {
+      return NextResponse.json({ error: `Minimum withdrawal is ₹${minimumWithdrawal}` }, { status: 400 });
     }
     if (accountHolderName.length < 2 || accountHolderName.length > 80) {
       return NextResponse.json({ error: "Enter the account holder name" }, { status: 400 });

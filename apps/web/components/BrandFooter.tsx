@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Sparkles, ArrowRight, Heart } from "lucide-react";
+import { Sparkles, ArrowRight, Heart, Video } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { BUSINESS } from "@/lib/business";
 
@@ -12,7 +12,7 @@ import { BUSINESS } from "@/lib/business";
  * The band ships its own dark gradient background so it looks intentional on
  * top of any theme (light Minimal/Floral or dark Galaxy/Neon).
  */
-export default function BrandFooter({ slug }: { slug?: string }) {
+export default function BrandFooter({ slug, celebrationId, recipientName, referralCode }: { slug?: string; celebrationId?: string; recipientName?: string; referralCode?: string }) {
   return (
     <footer
       style={{
@@ -24,6 +24,23 @@ export default function BrandFooter({ slug }: { slug?: string }) {
       }}
     >
       <div style={{ maxWidth: 460, margin: "0 auto" }}>
+        {celebrationId && (
+          <div style={{ marginBottom: 42, paddingBottom: 40, borderBottom: "1px solid rgba(255,224,196,0.12)" }}>
+            <Video size={26} style={{ color: "#ff9e4f", margin: "0 auto 12px" }} />
+            <span style={{ display: "inline-block", marginBottom: 10, padding: "5px 10px", borderRadius: 999, background: "rgba(52,211,153,0.1)", color: "#6ee7b7", fontSize: "0.7rem", fontWeight: 800 }}>
+              ₹25 VERIFIED WALLET REWARD
+            </span>
+            <h3 style={{ color: "#fff5ec", fontSize: "1.35rem", fontWeight: 700, lineHeight: 1.3, margin: "0 0 8px" }}>
+              Record your reaction for the person who made this
+            </h3>
+            <p style={{ color: "#b9a6be", fontSize: "0.88rem", lineHeight: 1.6, margin: "0 0 18px" }}>
+              Send a private 30-second video{recipientName ? ` after opening ${recipientName}'s surprise` : ""}. If the creator shares your consented branded reaction and the post is verified, they receive ₹25 in withdrawable wallet earnings.
+            </p>
+            <Link href={`/reaction/${celebrationId}`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 22px", borderRadius: 8, color: "#18101e", background: "#ffcf7a", fontSize: "0.9rem", fontWeight: 800, textDecoration: "none" }}>
+              <Video size={16} /> Record my reaction
+            </Link>
+          </div>
+        )}
         <div
           style={{
             display: "inline-flex",
@@ -53,15 +70,14 @@ export default function BrandFooter({ slug }: { slug?: string }) {
             margin: "0 0 8px",
           }}
         >
-          Want to surprise someone you love?
+          {referralCode ? "Loved your surprise? Make one for someone else." : "Want to surprise someone you love?"}
         </h3>
         <p style={{ color: "#b9a6be", fontSize: "0.92rem", lineHeight: 1.6, margin: "0 0 22px" }}>
-          Create your own personalized celebration website in minutes — photos, music &amp;
-          heartfelt messages they&apos;ll treasure forever.
+          {referralCode ? "Join through this surprise and get ₹50 promotional credit toward your first creation." : "Create your own personalized celebration website in minutes — photos, music and heartfelt messages they'll treasure forever."}
         </p>
 
         <Link
-          href="/dashboard/create"
+          href={referralCode ? `/register?ref=${encodeURIComponent(referralCode)}` : "/dashboard/create"}
           onClick={() => trackEvent("viral_footer_cta_click", { slug })}
           style={{
             display: "inline-flex",
@@ -77,7 +93,7 @@ export default function BrandFooter({ slug }: { slug?: string }) {
             boxShadow: "0 12px 30px rgba(255,95,147,0.32)",
           }}
         >
-          Create My Surprise — from ₹199 <ArrowRight size={16} />
+          {referralCode ? "Create one and get ₹50" : "Create My Surprise — from ₹199"} <ArrowRight size={16} />
         </Link>
         <p style={{ color: "#8f8098", fontSize: "0.72rem", lineHeight: 1.6, margin: "24px auto 0", maxWidth: 430 }}>
           Just4You is a product of{" "}

@@ -2,6 +2,10 @@ export const COLLECTIONS = {
   USERS: "users",
   CELEBRATIONS: "celebrations",
   WALLET_WITHDRAWALS: "walletWithdrawals",
+  SOCIAL_REWARD_CLAIMS: "socialRewardClaims",
+  OCCASION_REMINDERS: "occasionReminders",
+  DRAFT_RECOVERIES: "draftRecoveries",
+  ADMIN_AUDIT_LOGS: "adminAuditLogs",
   APP_CONFIG: "appConfig",
   PREBOOK_ORDERS: "prebookOrders",
 } as const;
@@ -48,6 +52,7 @@ export const BASE_PACKAGE = {
     "Up to 5 photos",
     "A preset music track",
     "Guest wishes & reactions wall",
+    "Collaborative messages, photos & voice notes",
     "Shareable link (WhatsApp / Instagram)",
     "Mobile-friendly on all devices",
     "Instant delivery after payment",
@@ -236,6 +241,7 @@ export function formatInr(amount: number): string {
 export const REFERRAL_JOIN_WALLET_BONUS_INR = 50;
 export const REFERRAL_REWARD_INR = 50;
 export const REFERRAL_MILESTONE_COUNT = 3; // every N referrals → a free add-on credit
+export const SOCIAL_SHARE_REWARD_INR = 25; // withdrawable only after Admin verifies the social post
 
 export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical" | "wedding";
 

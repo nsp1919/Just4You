@@ -1,42 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
 import { COLLECTIONS, VALIDITY_DAYS } from "@/lib/constants";
 import { releaseCheckoutBenefits } from "@/lib/referral-server";
+import { requireAdminRequest } from "@/lib/admin-session";
 
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
 
 // Admin-only endpoint to manually activate a celebration after confirmed payment
 // Usage: POST /api/admin/activate-celebration
-// Body: { celebrationId, razorpayPaymentId, adminSecret }
-// Constant-time secret comparison to avoid leaking the secret via timing.
-function secretsMatch(provided: unknown, expected: string | undefined): boolean {
-  if (!expected || typeof provided !== "string") return false;
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
-
-async function requireAdmin(req: NextRequest, adminSecret: unknown): Promise<string> {
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const decoded = await adminAuth.verifyIdToken(authHeader.slice(7));
-    const adminSnap = await adminDb.collection(COLLECTIONS.USERS).doc(decoded.uid).get();
-    if (adminSnap.data()?.role !== "admin") throw new Error("FORBIDDEN");
-    return decoded.uid;
-  }
-  if (secretsMatch(adminSecret, process.env.ADMIN_SECRET)) return "admin-secret";
-  throw new Error("UNAUTHORIZED");
+// Body: { celebrationId, razorpayPaymentId }
+async function requireAdmin(req: NextRequest): Promise<string> {
+  const admin = await requireAdminRequest(req);
+  return admin.uid;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { celebrationId, razorpayPaymentId, adminSecret, waivePayment = false, reason } = body;
-    const adminId = await requireAdmin(req, adminSecret);
+    const { celebrationId, razorpayPaymentId, waivePayment = false, reason } = body;
+    const adminId = await requireAdmin(req);
     const hasLaunchAt = Object.prototype.hasOwnProperty.call(body, "launchAt");
     const launchDate = typeof body.launchAt === "string" && body.launchAt
       ? new Date(body.launchAt)
@@ -130,6 +114,9 @@ export async function POST(req: NextRequest) {
     }
     if (error?.message === "FORBIDDEN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error?.message === "ADMIN_SESSION_REQUIRED") {
+      return NextResponse.json({ error: "Admin session expired" }, { status: 401 });
     }
     console.error("Admin activate error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

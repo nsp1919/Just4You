@@ -19,6 +19,17 @@ export function resolveWithdrawableBalance(profile, referralRewardInr) {
   return Math.min(walletBalance, withdrawableBalance);
 }
 
+/** Credits earnings that become cashable only after a trusted server approval. */
+export function creditWithdrawableEarnings(walletBalance, withdrawableBalance, amountInr) {
+  const total = wholeNonNegative(walletBalance);
+  const cashable = Math.min(total, wholeNonNegative(withdrawableBalance));
+  const credit = wholeNonNegative(amountInr);
+  return {
+    walletBalance: total + credit,
+    walletWithdrawableBalance: cashable + credit,
+  };
+}
+
 /**
  * Applies checkout usage to the total wallet while spending promotional,
  * non-cashable credit before cashable referral earnings.

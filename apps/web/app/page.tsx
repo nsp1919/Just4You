@@ -4,6 +4,7 @@ import PrelaunchPage from "@/components/PrelaunchPage";
 import { adminDb } from "@/lib/firebase-admin";
 import { COLLECTIONS } from "@/lib/constants";
 import { Timestamp } from "firebase-admin/firestore";
+import { getPublicCelebrationProof } from "@/lib/public-proof";
 
 export const dynamic = "force-dynamic";
 
@@ -26,5 +27,6 @@ export default async function Home() {
   if (launchSettings?.prelaunchEnabled === true && launchAt && launchAt.getTime() > Timestamp.now().toMillis()) {
     return <PrelaunchPage launchAt={launchAt.toISOString()} />;
   }
-  return <LandingClient />;
+  const publicProof = await getPublicCelebrationProof(3);
+  return <LandingClient publicProof={publicProof} />;
 }

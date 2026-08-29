@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   MIN_WALLET_WITHDRAWAL_INR,
+  creditWithdrawableEarnings,
   debitWalletForCheckout,
   resolveWithdrawableBalance,
 } from "../../apps/web/lib/wallet-withdrawal.js";
@@ -33,5 +34,12 @@ test("checkout spends promotional credit before cashable earnings", () => {
   assert.deepEqual(debitWalletForCheckout(250, 200, 100), {
     walletBalance: 150,
     walletWithdrawableBalance: 150,
+  });
+});
+
+test("an Admin-verified social reward becomes bank withdrawable", () => {
+  assert.deepEqual(creditWithdrawableEarnings(150, 100, 25), {
+    walletBalance: 175,
+    walletWithdrawableBalance: 125,
   });
 });

@@ -17,6 +17,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const REMINDER_WINDOW_DAYS = 7; // fire when the occasion is within this many days
+const FREE_REMINDER_DAYS = new Set([14, 7, 2]);
+
+function escapeHtml(value: string): string {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
 
 function daysUntilNextOccurrence(eventDateIso: string, today: Date): number | null {
   // eventDateIso is "YYYY-MM-DD"; we only care about month/day recurring yearly.
@@ -119,7 +124,35 @@ async function handle(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, scanned: snap.size, sent, skipped });
+  const freeSnapshot = await adminDb.collection("occasionReminders").where("active", "==", true).get();
+  for (const reminderDoc of freeSnapshot.docs) {
+    const reminder = reminderDoc.data() as any;
+    const days = daysUntilNextOccurrence(reminder.occasionDate, today);
+    if (days === null || !FREE_REMINDER_DAYS.has(days)) { skipped++; continue; }
+    const occurrenceYear = new Date(today.getFullYear(), Number(reminder.occasionDate.slice(5, 7)) - 1, Number(reminder.occasionDate.slice(8, 10))) < new Date(today.getFullYear(), today.getMonth(), today.getDate()) ? today.getFullYear() + 1 : today.getFullYear();
+    const sentKey = `${occurrenceYear}-${days}`;
+    const sentKeys = Array.isArray(reminder.sentKeys) ? reminder.sentKeys : [];
+    if (sentKeys.includes(sentKey) || !reminder.email) { skipped++; continue; }
+
+    const recipientName = escapeHtml(String(reminder.recipientName ?? "someone special").slice(0, 80));
+    const whenText = `in ${days} days`;
+    const unsubscribeUrl = `${siteUrl}/api/occasion-reminders/unsubscribe?token=${encodeURIComponent(reminder.unsubscribeToken ?? "")}`;
+    try {
+      await resend.emails.send({
+        from: fromEmail,
+        to: reminder.email,
+        subject: `${String(reminder.recipientName).replace(/[\r\n]+/g, " ").slice(0, 80)}'s special day is ${whenText}`,
+        html: `<div style="font-family:Segoe UI,sans-serif;max-width:560px;margin:auto;padding:32px;color:#24152b"><p style="color:#a33d67;font-weight:700">JUST4YOU REMINDER</p><h1>${recipientName}'s special day is ${whenText}</h1><p>You saved this date so there would be time to plan something meaningful.</p><a href="${siteUrl}/pricing" style="display:inline-block;background:#ff6f9c;color:white;text-decoration:none;padding:13px 22px;border-radius:8px;font-weight:700">Create a surprise</a><p style="margin-top:28px;font-size:12px"><a href="${unsubscribeUrl}" style="color:#76677b">Stop these reminders</a></p></div>`,
+      });
+      await reminderDoc.ref.update({ sentKeys: [...sentKeys.slice(-8), sentKey] });
+      sent++;
+    } catch (error) {
+      console.error("free reminder delivery failed:", reminderDoc.id, error);
+      skipped++;
+    }
+  }
+
+  return NextResponse.json({ ok: true, scanned: snap.size + freeSnapshot.size, sent, skipped });
 }
 
 export async function GET(req: NextRequest) {

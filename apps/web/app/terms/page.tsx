@@ -94,7 +94,20 @@ export default function TermsPage() {
         </p>
       </InfoSection>
 
-      <InfoSection title="9. Governing law and contact">
+      <InfoSection title="9. Reaction recordings and social rewards">
+        <p>
+          A person who records a reaction must explicitly consent before the video is sent to the celebration creator. Creators may share
+          only recordings carrying that consent and remain responsible for complying with the rules of Instagram, WhatsApp, and applicable law.
+        </p>
+        <p>
+          A social-post reward is limited to one promotional credit per celebration, subject to administrator verification of a genuine
+          public Instagram post or WhatsApp Status screenshot. Duplicate, misleading, inaccessible, deleted, or otherwise unverifiable proof
+          may be rejected. An approved social-post reward becomes wallet earnings and may be withdrawn after the account reaches the current
+          minimum withdrawal amount. Unverified claims and promotional signup credit are not withdrawable.
+        </p>
+      </InfoSection>
+
+      <InfoSection title="10. Governing law and contact">
         <p>
           These terms are governed by the laws of India. Courts with jurisdiction in Hyderabad, Telangana will have jurisdiction, subject
           to applicable consumer-protection law. Questions or complaints may be sent to{" "}

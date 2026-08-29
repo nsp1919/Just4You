@@ -27,7 +27,9 @@ service cloud.firestore {
           'paymentWaived', 'activationSource', 'manualActivationAt',
           'manualActivationReason', 'launchAt', 'launchScheduledBy',
           'launchScheduleUpdatedAt', 'adminOrderEmailClaimedAt',
-          'adminOrderEmailSentAt', 'creditText', 'creditUpdatedAt'
+          'adminOrderEmailSentAt', 'creditText', 'creditUpdatedAt',
+          'reviewMediaUrl', 'reviewMediaType', 'reviewVerified',
+          'reviewVerifiedAt'
         ]);
       }
 
@@ -144,6 +146,35 @@ service cloud.firestore {
                       'referralRewardSettled', 'creditText', 'creditUpdatedAt'
                     ]);
 
+      // ── Collaborative surprise settings (private invite token) ───────────
+      match /collaboration/{settingsId} {
+        allow read: if request.auth != null
+                    && (request.auth.uid == get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.userId
+                        || isAdmin());
+        allow write: if false;
+      }
+
+      // Contributions are created and moderated through the server API. The
+      // public wish page can only query approved items after activation.
+      match /contributions/{contributionId} {
+        allow read: if (request.auth != null
+                        && (request.auth.uid == get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.userId
+                            || isAdmin()))
+                    || (resource.data.status == 'approved'
+                        && get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.isActive == true
+                        && get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.isBlocked == false);
+        allow write: if false;
+      }
+
+      // Recipient reaction videos are written through a validating server API
+      // and remain private to the celebration owner and administrators.
+      match /reactionRecordings/{recordingId} {
+        allow read: if request.auth != null
+                    && (request.auth.uid == get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.userId
+                        || isAdmin());
+        allow write: if false;
+      }
+
       // ── Reactions sub-collection (public guestbook) ────────────────────────
       match /reactions/{reactionId} {
         // PUBLIC READ: Anyone can see reactions on active celebrations
@@ -202,6 +233,26 @@ service cloud.firestore {
       }
     }
 
+    // Social-post reward claims are server-managed. Admin approval performs
+    // the wallet credit transaction; clients cannot self-award credit.
+    match /socialRewardClaims/{claimId} {
+      allow read, write: if false;
+    }
+
+    // Free pre-purchase reminders contain private email addresses and are
+    // created, delivered, and unsubscribed exclusively through server routes.
+    match /occasionReminders/{reminderId} {
+      allow read, write: if false;
+    }
+
+    match /draftRecoveries/{userId} {
+      allow read, write: if false;
+    }
+
+    match /adminAuditLogs/{logId} {
+      allow read, write: if false;
+    }
+
     // ── Users ─────────────────────────────────────────────────────────────────
     match /users/{userId} {
       // Fields that only the server (Admin SDK) may set/change. The Admin SDK
@@ -213,7 +264,8 @@ service cloud.firestore {
                    'referralCredits', 'walletBalance', 'referralJoinBonusGranted',
                    'referralRedeemed', 'referralCount', 'freeAddonCredits',
                    'referralDiscountReservationCelebrationId',
-                   'walletWithdrawableBalance', 'pendingWalletWithdrawalId']);
+                   'walletWithdrawableBalance', 'pendingWalletWithdrawalId',
+                   'socialShareRewardTotal']);
       }
 
       // Users can read only their own document.

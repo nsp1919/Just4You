@@ -485,6 +485,11 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
         </div>
       </div>
 
+      <div className="flex items-start gap-3 p-4 rounded-2xl glass border border-amber-400/20">
+        <input id="recovery-optin" type="checkbox" checked={data.recoveryOptIn ?? false} onChange={(event) => onChange({ ...data, recoveryOptIn: event.target.checked })} className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-amber-400" />
+        <div><label htmlFor="recovery-optin" className="block cursor-pointer text-sm font-semibold">Email me this draft if I stop</label><p className="mt-0.5 text-xs text-[var(--text-muted)]">After 24 hours of inactivity, send one reminder with the recipient name and first preview photo. No discount spam.</p></div>
+      </div>
+
       {/* ── Scheduled delivery (add-on) ── */}
       {features.includes("scheduled_delivery") && (
         <div className="p-4 rounded-2xl glass border border-purple-500/20 space-y-3">
@@ -1489,6 +1494,7 @@ export default function CreatePage() {
     relationCustom: "",
     countdownEnabled: false,
     isPublicOptIn: false,
+    recoveryOptIn: false,
     scheduledDeliveryAt: "",
     recipientEmail: "",
     customLink: "",
@@ -1584,6 +1590,36 @@ export default function CreatePage() {
 
     return () => window.clearTimeout(saveTimer);
   }, [user, draftReady, step, occasionType, celebrationId, formData, photos, musicData]);
+
+  const recoveryWasEnabled = useRef(false);
+  useEffect(() => {
+    if (!user || !draftReady) return;
+    const enabled = formData.recoveryOptIn === true;
+    const timer = window.setTimeout(async () => {
+      if (!enabled && !recoveryWasEnabled.current) return;
+      try {
+        const token = await user.getIdToken();
+        await fetch("/api/draft-recovery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(enabled ? {
+            action: "sync",
+            consent: true,
+            recipientName: formData.recipientName,
+            occasionType,
+            theme: formData.theme,
+            photoUrl: photos[0] ?? "",
+            celebrationId: celebrationId ?? "",
+            step,
+          } : { action: "disable" }),
+        });
+        recoveryWasEnabled.current = enabled;
+      } catch (error) {
+        console.warn("Could not sync draft recovery preference:", error);
+      }
+    }, 1800);
+    return () => window.clearTimeout(timer);
+  }, [user, draftReady, formData.recoveryOptIn, formData.recipientName, formData.theme, occasionType, photos, celebrationId, step]);
 
   const saveDraftNow = () => {
     if (!user) return;

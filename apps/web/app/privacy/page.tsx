@@ -32,6 +32,8 @@ export default function PrivacyPage() {
           <li>Account and contact details, such as your name, email address, and authentication information.</li>
           <li>Order and billing details, including the selected package, amount, payment status, transaction identifiers, and invoice details.</li>
           <li>Content you provide, including recipient names, dates, messages, photos, audio, video, links, and delivery instructions.</li>
+          <li>Optional reaction recordings, recording consent, and social-post evidence submitted for promotional wallet rewards.</li>
+          <li>Optional draft-recovery preferences and a limited preview containing the recipient name, occasion, theme, progress step, and first photo.</li>
           <li>Support communications, feedback, refund requests, and other information you send to us.</li>
           <li>Technical and usage data, such as IP address, browser, device, page activity, referral source, and basic analytics.</li>
         </ul>
@@ -46,6 +48,7 @@ export default function PrivacyPage() {
           <li>To create, host, deliver, and support your personalized digital website.</li>
           <li>To authenticate users, administer accounts, process orders, confirm payments, issue invoices, and handle refunds.</li>
           <li>To send transactional messages, scheduled deliveries, service notices, and responses to support requests.</li>
+          <li>To send one abandoned-draft reminder after 24 hours only when you explicitly request it.</li>
           <li>To secure the service, prevent fraud and misuse, diagnose faults, and enforce our terms.</li>
           <li>To understand service performance and improve features, usability, and customer support.</li>
           <li>To meet accounting, tax, legal, regulatory, and dispute-resolution obligations.</li>
@@ -68,6 +71,11 @@ export default function PrivacyPage() {
           Celebration pages are designed to be shared by link. Anyone who receives an unprotected link may be able to view its content.
           If you enable passcode protection, recipients must enter that passcode, but you should still upload only content you are permitted
           to share. Guest messages and reactions may be visible on the applicable celebration page.
+        </p>
+        <p>
+          Reaction videos are optional and are shared privately with the celebration creator only after the person recording checks the
+          consent box. That consent allows the creator to download and share the branded recording on Instagram or WhatsApp. Social-post
+          screenshots or links submitted for a reward are visible to authorized administrators for verification.
         </p>
       </InfoSection>
 

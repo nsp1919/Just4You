@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { motion, useInView, useReducedMotion, AnimatePresence } from 'framer-motion'
 import "./landing.css"
 import { BUSINESS } from '@/lib/business'
+import type { PublicCelebrationProof } from '@/lib/public-proof'
 import {
-  Sparkles, ArrowRight, Play, Check, Star, ChevronLeft, ChevronRight,
-  Quote, Music2, Images, Lock, Clock, MessageCircle, Gift, Zap, Shield, Share2,
-  Menu, X, Heart, Camera, Mail, Globe2, Palette, Code2, Rocket
+  Sparkles, ArrowRight, Play, Check, Eye,
+  Music2, Images, Lock, Clock, MessageCircle, Gift, Zap, Shield, Share2,
+  Menu, X, Heart, Camera, Mail, Globe2, Palette, Code2, Rocket, UsersRound, PencilLine
 } from 'lucide-react'
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
@@ -55,24 +56,12 @@ const FEATURES = [
   { icon: Music2, title: 'Custom Music & Voice', desc: 'Choose from preset tracks, upload your own song, or record a voice note.', color: '#ff6f9c' },
   { icon: Clock, title: 'Countdown Reveal', desc: 'Lock the site until the big day with an animated countdown timer.', color: '#ffbe3d' },
   { icon: MessageCircle, title: 'Guest Wishes Section', desc: 'Allow friends & family to leave messages on the surprise page.', color: '#ff7d6b' },
+  { icon: UsersRound, title: 'Group Surprise', desc: 'Privately collect messages, photos and voice notes from everyone before the reveal.', color: '#30bdbb' },
   { icon: Lock, title: 'Password Protected', desc: 'Ensure absolute privacy with optional passcode protection.', color: '#f7a83a' },
   { icon: Gift, title: '6 Premium Themes', desc: 'Pick the theme that matches their vibe perfectly.', color: '#fb923c' },
   { icon: Zap, title: 'Instant Delivery Available', desc: 'Launch selected ready-to-go themes instantly, with express delivery for custom touches.', color: '#ff9e4f' },
   { icon: Share2, title: 'Easy Sharing', desc: 'Get one beautiful link to share via WhatsApp, Instagram, or email.', color: '#ff6f9c' },
   { icon: Shield, title: 'Hosted 1 Full Year', desc: 'Secure hosting active for 365 days of celebration.', color: '#ffbe3d' },
-]
-
-const TESTIMONIALS = [
-  { init: 'PM', name: 'Priya Mehta', loc: 'Mumbai', occ: 'Birthday', c: '#ff9e4f', bg: 'rgba(255,158,79,0.14)',
-    text: 'My husband literally cried when he saw it. The photos, the music, the messages from family — it was beyond anything I could have imagined. Pure magic! 🥹', rating: 5 },
-  { init: 'RS', name: 'Rahul Sharma', loc: 'Delhi', occ: 'Proposal', c: '#ff6f9c', bg: 'rgba(255,111,156,0.14)',
-    text: 'I proposed using the website and she said YES! The countdown, the love story, the photos — she was completely speechless. Best decision of my life.', rating: 5 },
-  { init: 'AS', name: 'Arjun & Sneha', loc: 'Bangalore', occ: 'Anniversary', c: '#ff5f8f', bg: 'rgba(255,95,143,0.14)',
-    text: 'For our 10th anniversary, the team created a beautiful timeline of our decade together. Our entire family is still talking about it months later!', rating: 5 },
-  { init: 'KN', name: 'Kavya Nair', loc: 'Kochi', occ: 'Kids Birthday', c: '#ffbe3d', bg: 'rgba(255,190,61,0.14)',
-    text: 'My daughter\'s 5th birthday website had her favourite characters and all her friends\' wishes. She watches it every week — her most treasured memory!', rating: 5 },
-  { init: 'VP', name: 'Vikram Patel', loc: 'Ahmedabad', occ: 'Graduation', c: '#f7a83a', bg: 'rgba(247,168,58,0.14)',
-    text: 'Made a graduation surprise for my sister — prof messages, college memories, achievement showcase. She cried happy tears. Best ₹299 ever spent!', rating: 5 },
 ]
 
 const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
@@ -210,12 +199,14 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
   }, [])
 
   const navItems = [
+    { label: 'Free Cards',   href: '/mini' },
+    { label: 'Reminders',    href: '/reminders' },
     { label: 'How It Works', href: '#how' },
     { label: 'Occasions',    href: '#occasions' },
     { label: 'Features',     href: '#features' },
     { label: 'Custom Sites', href: '#custom-websites' },
     { label: 'Pricing',      href: '#pricing' },
-    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'Real Stories', href: '#testimonials' },
   ]
 
   return (
@@ -396,17 +387,21 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
           <motion.div
             initial={{ opacity:0,y:22 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.7,duration:0.7 }}
             style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center',alignItems:'center',marginBottom:42 }}>
-            <button onClick={onOpenAuth} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>
-              Create My Surprise Website <ArrowRight size={18} />
+            <a href={appUrl('/mini')} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>
+              Create a Free Card <ArrowRight size={18} />
+            </a>
+            <button onClick={onOpenAuth} className="btn btn-ghost" style={{ fontSize:'1.05rem',padding:'15px 32px' }}>
+              Create a Surprise Website
             </button>
-            <a href={appUrl('/demo')} className="btn btn-ghost" style={{ fontSize:'1.05rem',padding:'15px 32px' }}>
-              <div style={{ width:28,height:28,borderRadius:'50%',background:'rgba(255,240,228,0.12)',
-                display:'flex',alignItems:'center',justifyContent:'center' }}>
-                <Play size={12} fill="currentColor" />
-              </div>
-              See Live Demos
+            <a href={appUrl('/demo')} className="hero-demo-link">
+              <Play size={13} fill="currentColor" /> See live demos
             </a>
           </motion.div>
+
+          <motion.p className="hero-free-note"
+            initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.78,duration:0.5 }}>
+            Free · No sign-up · Share instantly on WhatsApp
+          </motion.p>
 
           <motion.div className="hero-story-reel"
             initial={shouldReduceMotion?false:{ opacity:0,y:18 }} animate={{ opacity:1,y:0 }}
@@ -657,80 +652,68 @@ function ThemeShowcase() {
   )
 }
 
-/* ─── TESTIMONIALS ──────────────────────────────────────────────────────────── */
-function Testimonials() {
-  const [cur, setCur] = useState(0)
+/* ─── REAL CUSTOMER PROOF ───────────────────────────────────────────────────── */
+function RealCustomerProof({ items }: { items: PublicCelebrationProof[] }) {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
-  const t = TESTIMONIALS[cur]
+  const birthdayAppUrl = process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL || ''
 
   return (
     <section id="testimonials" ref={ref} style={{ position:'relative',padding:'120px 0',overflow:'hidden',
       background:'#18101e' }}>
       <div className="orb" style={{ width:380,height:380,top:'10%',right:'-8%',background:'radial-gradient(circle,#ff5f93,transparent 70%)',opacity:0.08 }} />
-      <div className="wrap" style={{ maxWidth:780 }}>
-        <SectionHeader label="Real Stories" labelColor="#ff6f9c"
-          title={<>They Cried <span className="g-text">Happy Tears</span></>}
-          sub="Every surprise tells a story. Here are a few of our favourites."
+      <div className="wrap">
+        <SectionHeader label="Wall of Love" labelColor="#ff6f9c"
+          title={<>Real Surprises. <span className="g-text">Real People.</span></>}
+          sub="Shared by creators who chose to make their celebration public. View counts come directly from the live pages."
           inView={inView} />
 
-        <motion.div initial={{ opacity:0,y:30 }} animate={inView?{opacity:1,y:0}:{}} transition={{ duration:0.7,delay:0.2 }}>
-          <AnimatePresence mode="wait">
-            <motion.div key={cur}
-              initial={{ opacity:0,y:16 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0,y:-16 }}
-              transition={{ duration:0.35 }}
-              style={{ borderRadius:24,padding:'48px',background:'rgba(255,240,228,0.03)',border:'1px solid rgba(255,224,196,0.09)' }}>
-              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24 }}>
-                <span style={{ fontSize:'0.8rem',fontWeight:600,padding:'5px 14px',borderRadius:50,background:t.bg,color:t.c,letterSpacing:'0.02em' }}>
-                  {t.occ}
-                </span>
-                <div style={{ display:'flex',gap:4 }}>
-                  {Array.from({length:t.rating}).map((_,i) => <Star key={i} size={14} fill="#fbbf24" color="#fbbf24" />)}
+        {items.length > 0 ? (
+          <div className="proof-grid">
+            {items.map((item, index) => (
+              <motion.article key={item.slug} className="proof-card"
+                initial={{ opacity:0,y:32 }} animate={inView?{opacity:1,y:0}:{}}
+                transition={{ duration:0.6,delay:0.12+index*0.1 }}>
+                <div className="proof-photo">
+                  {item.photoUrl ? <img src={item.photoUrl} alt={`${item.occasionLabel} surprise for ${item.recipientName}`} /> : <span>{item.occasionEmoji}</span>}
+                  <div className="proof-photo-shade" />
+                  <span className="proof-consent"><Check size={11} /> Shared with permission</span>
+                  <div className="proof-photo-meta">
+                    <strong>{item.recipientName}</strong>
+                    <span>{item.occasionEmoji} {item.occasionLabel} · {item.theme}</span>
+                  </div>
                 </div>
-              </div>
-              <Quote size={28} style={{ color:t.c,opacity:0.4,marginBottom:18 }} />
-              <p style={{ color:'#efe1d6',fontSize:'1.1rem',lineHeight:1.8,fontStyle:'italic',marginBottom:32 }}>"{t.text}"</p>
-              <div style={{ display:'flex',alignItems:'center',gap:16 }}>
-                <div style={{ width:46,height:46,borderRadius:'50%',flexShrink:0,
-                  display:'flex',alignItems:'center',justifyContent:'center',
-                  background:t.bg,color:t.c,fontWeight:700,fontSize:'0.9rem',border:`2px solid ${t.c}30` }}>
-                  {t.init}
-                </div>
-                <div>
-                  <div style={{ color:'#fff5ec',fontWeight:600,fontSize:'0.98rem' }}>{t.name}</div>
-                  <div style={{ color:'#8f8098',fontSize:'0.8rem',marginTop:2 }}>{t.loc} · {t.occ} Website</div>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
 
-          {/* Slider Controls */}
-          <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:16,marginTop:32 }}>
-            <button onClick={() => setCur(c => (c-1+TESTIMONIALS.length)%TESTIMONIALS.length)}
-              style={{ width:40,height:40,borderRadius:'50%',background:'rgba(255,240,228,0.05)',
-                border:'1px solid rgba(255,224,196,0.1)',color:'#b9a6be',cursor:'pointer',
-                display:'flex',alignItems:'center',justifyContent:'center',transition:'color 0.2s,border-color 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(255,158,79,0.4)'; e.currentTarget.style.color='#fff5ec' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,224,196,0.1)'; e.currentTarget.style.color='#b9a6be' }}>
-              <ChevronLeft size={18} />
-            </button>
-            <div style={{ display:'flex',gap:8 }}>
-              {TESTIMONIALS.map((_,i) => (
-                <button key={i} onClick={() => setCur(i)}
-                  style={{ width:i===cur?24:8,height:8,borderRadius:4,border:'none',cursor:'pointer',padding:0,
-                    transition:'all 0.3s',background:i===cur?'#ffb877':'rgba(255,224,196,0.16)' }} />
-              ))}
-            </div>
-            <button onClick={() => setCur(c => (c+1)%TESTIMONIALS.length)}
-              style={{ width:40,height:40,borderRadius:'50%',background:'rgba(255,240,228,0.05)',
-                border:'1px solid rgba(255,224,196,0.1)',color:'#b9a6be',cursor:'pointer',
-                display:'flex',alignItems:'center',justifyContent:'center',transition:'color 0.2s,border-color 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(255,158,79,0.4)'; e.currentTarget.style.color='#fff5ec' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,224,196,0.1)'; e.currentTarget.style.color='#b9a6be' }}>
-              <ChevronRight size={18} />
-            </button>
+                {item.reviewMediaUrl && item.reviewMediaType && (
+                  <div className="proof-review-media">
+                    <span>Verified customer reaction</span>
+                    {item.reviewMediaType === 'video'
+                      ? <video src={item.reviewMediaUrl} controls preload="metadata" playsInline />
+                      : <img src={item.reviewMediaUrl} alt={`Verified customer reaction for ${item.recipientName}`} />}
+                  </div>
+                )}
+
+                <div className="proof-card-footer">
+                  <div className="proof-view-count"><Eye size={15} /> <strong>{item.views.toLocaleString('en-IN')}</strong> real views</div>
+                  <a href={`${birthdayAppUrl}/wish/${item.slug}`} target="_blank" rel="noopener noreferrer">
+                    View the real surprise <ArrowRight size={14} />
+                  </a>
+                </div>
+              </motion.article>
+            ))}
           </div>
-        </motion.div>
+        ) : (
+          <motion.div className="proof-empty" initial={{opacity:0,y:20}} animate={inView?{opacity:1,y:0}:{}}>
+            <Heart size={26} />
+            <p>Real customer stories will appear here after creators choose to share them.</p>
+          </motion.div>
+        )}
+
+        <div style={{ textAlign:'center',marginTop:36 }}>
+          <Link href="/gallery" style={{ color:'#ffb877',fontSize:'0.92rem',fontWeight:700,textDecoration:'none' }}>
+            Explore the full Wall of Love <ArrowRight size={14} style={{display:'inline',verticalAlign:'middle'}} />
+          </Link>
+        </div>
       </div>
     </section>
   )
@@ -809,6 +792,15 @@ function Pricing() {
           <p style={{ color:'#6a5d73',fontSize:'0.82rem',fontWeight:500,marginTop:16 }}>
             🔒 Secure payments via Razorpay &nbsp;·&nbsp; 📞 WhatsApp Support &nbsp;·&nbsp; ✅ 1 Year Hosting
           </p>
+        </div>
+
+        <div className="pricing-reassurance" aria-label="Purchase reassurance">
+          <div><Check size={17} /><span><strong>Preview before paying</strong>See the complete experience before checkout.</span></div>
+          <div><Eye size={17} /><span><strong>You approve it first</strong>Nothing activates before you finish preview and checkout.</span></div>
+          <div><PencilLine size={17} /><span><strong>Corrections remain available</strong>Use supported dashboard editing or ask us for help.</span></div>
+          <div><Shield size={17} /><span><strong>Clear cancellation policy</strong><Link href="/refund-policy">Read refunds and corrections</Link>.</span></div>
+          <div><MessageCircle size={17} /><span><strong>WhatsApp assistance</strong><a href={BUSINESS.whatsappUrl} target="_blank" rel="noreferrer">Talk to a real person</a>.</span></div>
+          <div><Clock size={17} /><span><strong>Know the timing</strong>Ready-to-go themes launch after payment processing; custom work follows the agreed schedule.</span></div>
         </div>
       </div>
     </section>
@@ -950,7 +942,7 @@ function Footer() {
 }
 
 /* ─── ROOT APP ───────────────────────────────────────────────────────────────── */
-export default function LandingClient() {
+export default function LandingClient({ publicProof }: { publicProof: PublicCelebrationProof[] }) {
   const router = useRouter()
 
   // "Create / Sign In" CTAs go straight to the web app's real auth pages,
@@ -966,7 +958,7 @@ export default function LandingClient() {
       <ThemeShowcase />
       <FeaturesGrid />
       <CustomWebsiteStudio />
-      <Testimonials />
+      <RealCustomerProof items={publicProof} />
       <Pricing />
       <FinalCTA onOpenAuth={handleOpenAuth} />
       <Footer />

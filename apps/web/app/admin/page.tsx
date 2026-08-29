@@ -7,7 +7,7 @@ import {
   collection, query, orderBy, getDocs, updateDoc, doc, serverTimestamp
 } from "firebase/firestore";
 import { COLLECTIONS, computePriceInr } from "@/lib/constants";
-import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine } from "lucide-react";
+import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine, BadgeCheck, Upload, Trash2, ExternalLink, LockKeyhole, LogOut, LayoutDashboard, Settings2 } from "lucide-react";
 import Link from "next/link";
 
 interface PrebookOrder {
@@ -21,6 +21,20 @@ interface PrebookOrder {
   createdAt: string | null;
 }
 
+interface SocialRewardClaim {
+  id: string;
+  userEmail: string;
+  recipientName: string;
+  platform: "instagram" | "whatsapp";
+  proofUrl: string;
+  reactionVideoUrl: string;
+  rewardInr: number;
+  status: "pending" | "approved" | "rejected";
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  rejectionReason: string;
+}
+
 function toDatetimeLocal(value: string | null): string {
   if (!value) return "";
   const date = new Date(value);
@@ -29,16 +43,19 @@ function toDatetimeLocal(value: string | null): string {
 }
 
 export default function AdminPage() {
-  const { user, userDoc, loading } = useAuth();
+  const { user, userDoc, logout, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"overview" | "orders" | "launch" | "users" | "payouts">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "launch" | "users" | "payouts" | "social">("overview");
   const [celebrations, setCelebrations] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [socialClaims, setSocialClaims] = useState<SocialRewardClaim[]>([]);
   const [fetching, setFetching] = useState(true);
   const [search, setSearch] = useState("");
   const [payoutNotes, setPayoutNotes] = useState<Record<string, string>>({});
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
+  const [socialReviewNotes, setSocialReviewNotes] = useState<Record<string, string>>({});
+  const [processingSocialClaim, setProcessingSocialClaim] = useState<string | null>(null);
   const [withdrawalError, setWithdrawalError] = useState("");
   const [prelaunchEnabled, setPrelaunchEnabled] = useState(false);
   const [launchAt, setLaunchAt] = useState("");
@@ -48,35 +65,64 @@ export default function AdminPage() {
   const [editingCreditId, setEditingCreditId] = useState<string | null>(null);
   const [creditDraft, setCreditDraft] = useState("");
   const [savingCreditId, setSavingCreditId] = useState<string | null>(null);
+  const [uploadingReviewId, setUploadingReviewId] = useState<string | null>(null);
+  const [minimumWithdrawalInr, setMinimumWithdrawalInr] = useState(300);
+  const [minimumWithdrawalRange, setMinimumWithdrawalRange] = useState({ min: 100, max: 10_000 });
+  const [savingWalletSettings, setSavingWalletSettings] = useState(false);
 
   useEffect(() => {
     if (!loading) {
-      if (!user) { router.push("/login"); return; }
-      if (userDoc && userDoc.role !== "admin") { router.push("/dashboard"); return; }
+      if (!user) { router.push("/admin-access"); return; }
+      if (userDoc && userDoc.role !== "admin") { router.push("/admin-access"); return; }
     }
   }, [user, userDoc, loading, router]);
+
+  useEffect(() => {
+    if (!user || userDoc?.role !== "admin") return;
+    const verifySession = async () => {
+      const response = await fetch("/api/admin/session", { cache: "no-store" });
+      if (!response.ok) {
+        await logout();
+        router.replace("/admin-access?reason=expired");
+      }
+    };
+    const interval = window.setInterval(() => void verifySession(), 4 * 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, [user, userDoc?.role, logout, router]);
 
   useEffect(() => {
     if (!user || userDoc?.role !== "admin") return;
     const fetchAll = async () => {
       try {
         const token = await user.getIdToken();
-        const [celebSnap, userSnap, withdrawalResponse, launchResponse] = await Promise.all([
+        const [celebSnap, userSnap, withdrawalResponse, launchResponse, socialResponse, walletSettingsResponse] = await Promise.all([
           getDocs(query(collection(db, COLLECTIONS.CELEBRATIONS), orderBy("createdAt", "desc"))),
           getDocs(query(collection(db, COLLECTIONS.USERS), orderBy("createdAt", "desc"))),
           fetch("/api/admin/wallet-withdrawals", { headers: { Authorization: `Bearer ${token}` } }),
           fetch("/api/admin/site-launch", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/admin/social-rewards", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/admin/wallet-settings", { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         setCelebrations(celebSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setUsers(userSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         const withdrawalResult = await withdrawalResponse.json();
         const launchResult = await launchResponse.json();
+        const socialResult = await socialResponse.json();
+        const walletSettingsResult = await walletSettingsResponse.json();
         if (!launchResponse.ok) throw new Error(launchResult.error || "Unable to load launch settings");
         if (withdrawalResponse.ok) {
           setWithdrawals(Array.isArray(withdrawalResult.requests) ? withdrawalResult.requests : []);
         } else {
           setWithdrawalError(withdrawalResult.error || "Unable to load payouts");
         }
+        if (socialResponse.ok) {
+          setSocialClaims(Array.isArray(socialResult.claims) ? socialResult.claims : []);
+        } else {
+          setWithdrawalError(socialResult.error || "Unable to load social rewards");
+        }
+        if (!walletSettingsResponse.ok) throw new Error(walletSettingsResult.error || "Unable to load wallet settings");
+        setMinimumWithdrawalInr(walletSettingsResult.minimumWithdrawalInr);
+        if (walletSettingsResult.allowedRange) setMinimumWithdrawalRange(walletSettingsResult.allowedRange);
         setPrelaunchEnabled(launchResult.settings?.prelaunchEnabled === true);
         setLaunchAt(toDatetimeLocal(launchResult.settings?.launchAt ?? null));
         setPrebookOrders(Array.isArray(launchResult.orders) ? launchResult.orders : []);
@@ -88,6 +134,36 @@ export default function AdminPage() {
     };
     void fetchAll();
   }, [user, userDoc]);
+
+  const secureLogout = async () => {
+    try {
+      await fetch("/api/admin/session", { method: "DELETE" });
+    } finally {
+      await logout();
+      router.replace("/admin-access");
+    }
+  };
+
+  const saveWalletSettings = async () => {
+    if (!user) return;
+    setSavingWalletSettings(true);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/wallet-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ minimumWithdrawalInr }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to save wallet settings");
+      setMinimumWithdrawalInr(result.minimumWithdrawalInr);
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to save wallet settings");
+    } finally {
+      setSavingWalletSettings(false);
+    }
+  };
 
   const toggleBlockCelebration = async (id: string, current: boolean) => {
     await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, id), { isBlocked: !current });
@@ -102,6 +178,85 @@ export default function AdminPage() {
   const toggleGalleryApproved = async (id: string, current: boolean) => {
     await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, id), { galleryApproved: !current });
     setCelebrations((cs) => cs.map((c) => c.id === id ? { ...c, galleryApproved: !current } : c));
+  };
+
+  const uploadVerifiedReview = async (celebration: any, file: File) => {
+    if (!celebration.isPublicOptIn || !celebration.galleryApproved) {
+      setWithdrawalError("Feature this opted-in celebration before adding review proof.");
+      return;
+    }
+    const mediaType = file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : "";
+    const maxBytes = mediaType === "video" ? 30 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (!mediaType || file.size > maxBytes) {
+      setWithdrawalError(mediaType ? `Review ${mediaType} is too large.` : "Choose an image or video file.");
+      return;
+    }
+
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = mediaType === "video"
+      ? process.env.NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET || process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+      : process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) {
+      setWithdrawalError("Cloudinary uploads are not configured.");
+      return;
+    }
+
+    setUploadingReviewId(celebration.id);
+    setWithdrawalError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+      formData.append("folder", "birthdayglow/verified-reviews");
+      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${mediaType}/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResponse.ok || !uploadResult.secure_url) {
+        throw new Error(uploadResult.error?.message ?? "Review media upload failed.");
+      }
+
+      await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, celebration.id), {
+        reviewMediaUrl: uploadResult.secure_url,
+        reviewMediaType: mediaType,
+        reviewVerified: true,
+        reviewVerifiedAt: serverTimestamp(),
+      });
+      setCelebrations((items) => items.map((item) => item.id === celebration.id ? {
+        ...item,
+        reviewMediaUrl: uploadResult.secure_url,
+        reviewMediaType: mediaType,
+        reviewVerified: true,
+      } : item));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to upload review media.");
+    } finally {
+      setUploadingReviewId(null);
+    }
+  };
+
+  const removeVerifiedReview = async (celebrationId: string) => {
+    setUploadingReviewId(celebrationId);
+    setWithdrawalError("");
+    try {
+      await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, celebrationId), {
+        reviewMediaUrl: "",
+        reviewMediaType: "",
+        reviewVerified: false,
+        reviewVerifiedAt: serverTimestamp(),
+      });
+      setCelebrations((items) => items.map((item) => item.id === celebrationId ? {
+        ...item,
+        reviewMediaUrl: "",
+        reviewMediaType: "",
+        reviewVerified: false,
+      } : item));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to remove review media.");
+    } finally {
+      setUploadingReviewId(null);
+    }
   };
 
   const editCredit = (celebration: any) => {
@@ -171,6 +326,38 @@ export default function AdminPage() {
       setWithdrawalError(error instanceof Error ? error.message : "Unable to process withdrawal");
     } finally {
       setProcessingWithdrawal(null);
+    }
+  };
+
+  const processSocialClaim = async (claimId: string, action: "approved" | "rejected") => {
+    if (!user) return;
+    const rejectionReason = socialReviewNotes[claimId]?.trim() ?? "";
+    if (action === "rejected" && rejectionReason.length < 3) {
+      setWithdrawalError("Enter a reason before rejecting social-post proof.");
+      return;
+    }
+    setProcessingSocialClaim(claimId);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/social-rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ claimId, action, rejectionReason }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to review social reward claim.");
+      setSocialClaims((claims) => claims.map((claim) => claim.id === claimId ? {
+        ...claim,
+        status: action,
+        reviewedAt: new Date().toISOString(),
+        rejectionReason: action === "rejected" ? rejectionReason : "",
+      } : claim));
+      setSocialReviewNotes((notes) => ({ ...notes, [claimId]: "" }));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to review social reward claim.");
+    } finally {
+      setProcessingSocialClaim(null);
     }
   };
 
@@ -269,6 +456,7 @@ export default function AdminPage() {
     })
     .reduce((sum, c) => sum + revenueInr(c), 0);
   const pendingWithdrawals = withdrawals.filter((withdrawal) => withdrawal.status === "pending");
+  const pendingSocialClaims = socialClaims.filter((claim) => claim.status === "pending");
 
   const filteredCelebrations = celebrations.filter((c) =>
     c.recipientName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -282,13 +470,16 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen" style={{ background: "var(--bg-deep)" }}>
       {/* Navbar */}
-      <nav className="border-b border-purple-500/10 px-6 py-4" style={{ background: "rgba(10,6,18,0.95)" }}>
+      <nav className="sticky top-0 z-50 border-b border-emerald-300/10 px-5 py-3" style={{ background: "rgba(7,12,16,0.94)", backdropFilter: "blur(18px)" }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Shield size={20} className="text-purple-400" />
-            <span className="font-bold gradient-text">Admin Panel</span>
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-300 text-[#07120d]"><Shield size={18} /></span>
+            <div><span className="block font-bold text-white">Control Center</span><span className="hidden text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-emerald-300/70 sm:block">Server-verified Admin session</span></div>
           </div>
-          <Link href="/dashboard" className="text-sm text-[var(--text-muted)] hover:text-white">← Dashboard</Link>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold text-white/55 hover:text-white"><LayoutDashboard size={14} /><span className="hidden sm:inline">Customer dashboard</span></Link>
+            <button type="button" onClick={() => void secureLogout()} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-3 text-xs font-semibold text-rose-200 hover:bg-rose-400/10"><LogOut size={14} /><span className="hidden sm:inline">Secure sign out</span></button>
+          </div>
         </div>
       </nav>
 
@@ -311,19 +502,19 @@ export default function AdminPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          {(["overview", "orders", "launch", "users", "payouts"] as const).map((t) => (
+        <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="flex gap-1 overflow-x-auto rounded-lg border border-white/8 bg-white/[0.025] p-1">
+          {(["overview", "orders", "launch", "users", "payouts", "social"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-5 py-2 rounded-xl text-sm font-medium capitalize transition-all ${tab === t ? "text-white" : "text-[var(--text-muted)] hover:text-white"}`}
-              style={tab === t ? { background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.4)" } : { background: "transparent" }}>
+              className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold capitalize transition-all ${tab === t ? "bg-emerald-300 text-[#07120d]" : "text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-white"}`}>
               {t}
             </button>
           ))}
-          <div className="flex-1" />
-          <div className="relative">
+          </div>
+          <div className="relative lg:ml-auto">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..." className="input-field pl-9 py-2 text-sm w-48" />
+              placeholder="Search orders or users" className="input-field w-full py-2 pl-9 text-sm lg:w-56" />
           </div>
         </div>
 
@@ -396,6 +587,10 @@ export default function AdminPage() {
               </div>
               <span className="text-xs font-semibold text-amber-300">{pendingWithdrawals.length} pending</span>
             </div>
+            <div className="flex flex-col gap-4 border-b border-white/10 bg-emerald-300/[0.035] p-4 sm:flex-row sm:items-end sm:justify-between">
+              <div><div className="flex items-center gap-2 text-sm font-semibold text-white"><Settings2 size={16} className="text-emerald-300" /> Bank withdrawal threshold</div><p className="mt-1 text-xs text-[var(--text-muted)]">Applies immediately to new withdrawal requests. Allowed range: ₹{minimumWithdrawalRange.min.toLocaleString("en-IN")}–₹{minimumWithdrawalRange.max.toLocaleString("en-IN")}.</p></div>
+              <div className="flex gap-2"><label className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white/40">₹</span><input type="number" min={minimumWithdrawalRange.min} max={minimumWithdrawalRange.max} step="1" value={minimumWithdrawalInr} onChange={(event) => setMinimumWithdrawalInr(Number(event.target.value))} className="input-field w-36 py-2 pl-7 text-sm" aria-label="Minimum bank withdrawal" /></label><button type="button" onClick={() => void saveWalletSettings()} disabled={savingWalletSettings} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-300 px-4 text-sm font-bold text-[#07120d] disabled:opacity-50">{savingWalletSettings ? <LoaderCircle size={15} className="animate-spin" /> : <Save size={15} />} Save</button></div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -459,6 +654,56 @@ export default function AdminPage() {
           </div>
         )}
 
+        {tab === "social" && (
+          <div className="glass-card mb-6 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-purple-500/10 p-4">
+              <div>
+                <h2 className="font-semibold">Social reward verification</h2>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Confirm the consented branded reaction and live post before adding withdrawable wallet earnings.</p>
+              </div>
+              <span className="text-xs font-semibold text-amber-300">{pendingSocialClaims.length} pending</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-purple-500/10 bg-white/[0.02]">{["Creator", "Surprise", "Platform", "Evidence", "Submitted", "Status", "Action"].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{heading}</th>)}</tr></thead>
+                <tbody>
+                  {socialClaims.map((claim) => (
+                    <tr key={claim.id} className="border-b border-purple-500/5 align-top">
+                      <td className="px-4 py-3 text-xs">{claim.userEmail || "Unknown creator"}</td>
+                      <td className="px-4 py-3 font-medium">{claim.recipientName}</td>
+                      <td className="px-4 py-3 capitalize">{claim.platform}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1.5">
+                          <a href={claim.reactionVideoUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-300"><Eye size={11} /> Reaction video</a>
+                          <a href={claim.proofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200"><ExternalLink size={11} /> Posting proof</a>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--text-muted)]">{claim.submittedAt ? new Date(claim.submittedAt).toLocaleDateString("en-IN") : "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={claim.status === "approved" ? "text-green-400" : claim.status === "rejected" ? "text-red-400" : "text-amber-300"}>{claim.status}</span>
+                        {claim.status === "approved" && <div className="mt-1 text-xs text-green-300">₹{claim.rewardInr} credited</div>}
+                        {claim.rejectionReason && <div className="mt-1 max-w-48 text-xs text-red-300">{claim.rejectionReason}</div>}
+                      </td>
+                      <td className="min-w-64 px-4 py-3">
+                        {claim.status === "pending" ? (
+                          <div className="space-y-2">
+                            <input value={socialReviewNotes[claim.id] ?? ""} onChange={(event) => setSocialReviewNotes((notes) => ({ ...notes, [claim.id]: event.target.value }))} placeholder="Rejection reason if needed" className="input-field w-full py-1.5 text-xs" />
+                            <div className="flex gap-2">
+                              <button type="button" disabled={processingSocialClaim === claim.id} onClick={() => void processSocialClaim(claim.id, "approved")} className="rounded bg-green-500/10 px-2.5 py-1.5 text-xs font-semibold text-green-300 disabled:opacity-50">Approve ₹{claim.rewardInr}</button>
+                              <button type="button" disabled={processingSocialClaim === claim.id} onClick={() => void processSocialClaim(claim.id, "rejected")} className="rounded bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-300 disabled:opacity-50">Reject</button>
+                            </div>
+                          </div>
+                        ) : <span className="text-xs text-[var(--text-muted)]">Processed</span>}
+                      </td>
+                    </tr>
+                  ))}
+                  {!fetching && socialClaims.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-[var(--text-muted)]">No social reward claims yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Orders table */}
         {(tab === "overview" || tab === "orders") && (
           <div className="glass-card overflow-hidden mb-6">
@@ -515,6 +760,33 @@ export default function AdminPage() {
                               title="Feature on the public Wall of Love">
                               💛 {c.galleryApproved ? "Featured" : "Feature"}
                             </button>
+                          )}
+                          {c.isPublicOptIn && c.galleryApproved && (
+                            <label className="flex cursor-pointer items-center gap-1 rounded bg-cyan-500/10 px-2 py-1 text-xs font-medium text-cyan-200 transition hover:bg-cyan-500/20">
+                              {uploadingReviewId === c.id ? <LoaderCircle size={11} className="animate-spin" /> : c.reviewVerified ? <BadgeCheck size={11} /> : <Upload size={11} />}
+                              {c.reviewVerified ? "Replace proof" : "Add review proof"}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                                className="sr-only"
+                                disabled={uploadingReviewId === c.id}
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0];
+                                  if (file) void uploadVerifiedReview(c, file);
+                                  event.currentTarget.value = "";
+                                }}
+                              />
+                            </label>
+                          )}
+                          {c.reviewVerified && c.reviewMediaUrl && (
+                            <>
+                              <a href={c.reviewMediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded bg-white/5 px-2 py-1 text-xs text-[var(--text-muted)] hover:text-white">
+                                <Eye size={11} /> Proof
+                              </a>
+                              <button type="button" onClick={() => void removeVerifiedReview(c.id)} disabled={uploadingReviewId === c.id} className="flex items-center gap-1 rounded bg-red-500/10 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/20 disabled:opacity-50" title="Remove verified review media">
+                                <Trash2 size={11} /> Remove proof
+                              </button>
+                            </>
                           )}
                           <button type="button" onClick={() => editCredit(c)}
                             className="flex items-center gap-1 rounded bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20">

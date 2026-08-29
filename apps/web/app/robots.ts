@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // Keep private/account areas out of the index.
-        disallow: ["/dashboard/", "/admin/", "/api/", "/login", "/register", "/payment-return"],
+        disallow: ["/dashboard/", "/admin/", "/admin-access", "/api/", "/login", "/register", "/payment-return"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

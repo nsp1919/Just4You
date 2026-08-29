@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/firebase";
 import {
   collection, addDoc, onSnapshot, query, orderBy,
-  serverTimestamp, limit, Timestamp,
+  serverTimestamp, limit, Timestamp, where,
 } from "firebase/firestore";
 
 interface Reaction {
@@ -11,6 +11,16 @@ interface Reaction {
   emoji: string;
   name: string;
   message: string;
+  createdAt: Timestamp | null;
+}
+
+interface Contribution {
+  id: string;
+  name: string;
+  relationship?: string;
+  message?: string;
+  photoUrl?: string;
+  voiceUrl?: string;
   createdAt: Timestamp | null;
 }
 
@@ -39,6 +49,7 @@ function FloatingHeart({ emoji, x }: { emoji: string; x: number }) {
 
 export default function ReactionWall({ celebrationId, accentColor = "#a855f7", isDark = true }: Props) {
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
   const [emoji, setEmoji] = useState("❤️");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
@@ -59,20 +70,39 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
   const cardBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
 
   useEffect(() => {
-
-    const q = query(
+    const reactionsQuery = query(
       collection(db, "celebrations", celebrationId, "reactions"),
       orderBy("createdAt", "desc"),
       limit(50)
     );
-    const unsub = onSnapshot(q, (snap) => {
+    const unsubscribeReactions = onSnapshot(reactionsQuery, (snap) => {
       setReactions(
         snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Reaction, "id">) }))
       );
     }, (err) => {
       console.warn("Reaction wall subscription status / permission notice:", err.message);
     });
-    return () => unsub();
+
+    const contributionsQuery = query(
+      collection(db, "celebrations", celebrationId, "contributions"),
+      where("status", "==", "approved"),
+      limit(50),
+    );
+    const unsubscribeContributions = onSnapshot(contributionsQuery, (snap) => {
+      const approved = snap.docs.map((document) => ({
+        id: document.id,
+        ...(document.data() as Omit<Contribution, "id">),
+      }));
+      approved.sort((left, right) => (left.createdAt?.toMillis?.() ?? 0) - (right.createdAt?.toMillis?.() ?? 0));
+      setContributions(approved);
+    }, (err) => {
+      console.warn("Contribution wall subscription status / permission notice:", err.message);
+    });
+
+    return () => {
+      unsubscribeReactions();
+      unsubscribeContributions();
+    };
   }, [celebrationId]);
 
   const spawnFloater = (em: string) => {
@@ -110,6 +140,31 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
       {floaters.map((fl) => <FloatingHeart key={fl.id} emoji={fl.emoji} x={fl.x} />)}
 
       <div className="max-w-3xl mx-auto">
+        {contributions.length > 0 && (
+          <div className="mb-24">
+            <div className="mb-10 text-center">
+              <p className="mb-3 text-xs uppercase tracking-[0.35em]" style={{ color: accentColor }}>✦ Made together ✦</p>
+              <h2 className="mb-3 text-3xl font-bold md:text-5xl" style={{ color: textColor, fontFamily: "Playfair Display, serif" }}>Messages from your people</h2>
+              <p className="text-base" style={{ color: mutedColor }}>A few memories gathered just for you.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {contributions.map((contribution, index) => (
+                <article key={contribution.id} className="reaction-item overflow-hidden rounded-2xl" style={{ background: cardBg, border: `1px solid ${cardBorder}`, animationDelay: `${index * 60}ms` }}>
+                  {contribution.photoUrl && <img src={contribution.photoUrl} alt={`Memory shared by ${contribution.name}`} className="h-52 w-full object-cover" />}
+                  <div className="p-5">
+                    <div className="mb-3 flex items-baseline gap-2">
+                      <strong className="text-sm" style={{ color: textColor }}>{contribution.name}</strong>
+                      {contribution.relationship && <span className="text-xs" style={{ color: mutedColor }}>{contribution.relationship}</span>}
+                    </div>
+                    {contribution.message && <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: textColor }}>{contribution.message}</p>}
+                    {contribution.voiceUrl && <audio controls preload="metadata" className="mt-4 h-10 w-full" src={contribution.voiceUrl} />}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Section header */}
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.35em] mb-3" style={{ color: accentColor }}>

@@ -133,7 +133,7 @@ export default function WalletWithdrawal({ initialWithdrawableBalance }: { initi
                     </div>
                   ) : available < minimum ? (
                     <div className="rounded-lg border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-[var(--text-muted)] mb-5">
-                      Earn {formatInr(minimum - available)} more from completed referrals to unlock bank withdrawal. Promotional signup credit remains available at checkout.
+                      Earn {formatInr(minimum - available)} more from completed referrals or verified social posts to unlock bank withdrawal. Promotional signup credit remains available only at checkout.
                     </div>
                   ) : (
                     <form onSubmit={submit} className="space-y-3 mb-6">
