@@ -21,11 +21,37 @@ function validDate(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+function normalizedOrigin(value: string | undefined): string {
+  if (!value) return "";
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "";
+  }
+}
+
+function requestOriginAllowed(request: NextRequest): boolean {
+  const origin = normalizedOrigin(request.headers.get("origin") ?? undefined);
+  if (/^http:\/\/localhost:\d+$/.test(origin)) return true;
+
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0].trim();
+  const host = forwardedHost || request.headers.get("host")?.split(",")[0].trim();
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim();
+  const protocol = forwardedProto || request.nextUrl.protocol.replace(":", "");
+  const requestOrigin = host ? normalizedOrigin(`${protocol}://${host}`) : "";
+  const allowedOrigins = new Set([
+    normalizedOrigin(process.env.NEXT_PUBLIC_SITE_URL),
+    normalizedOrigin(process.env.NEXT_PUBLIC_APP_URL),
+    normalizedOrigin(request.nextUrl.origin),
+    requestOrigin,
+    "https://just4you.buzz",
+  ].filter(Boolean));
+  return Boolean(origin && allowedOrigins.has(origin));
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const origin = request.headers.get("origin") ?? "";
-    const siteOrigin = new URL(process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin).origin;
-    if (origin !== siteOrigin && !/^http:\/\/localhost:\d+$/.test(origin)) {
+    if (!requestOriginAllowed(request)) {
       return NextResponse.json({ error: "Reminder signup is only available on Just4You." }, { status: 403 });
     }
     const body = await request.json().catch(() => ({}));
