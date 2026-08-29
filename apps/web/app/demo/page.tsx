@@ -1,12 +1,13 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { THEMES } from "@/lib/constants";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
+  path: "/demo",
   title: "Live Demos — See Every Theme | Just4You.buzz",
   description:
     "Explore live, interactive demos of every Just4You celebration website theme — Galaxy, Floral, Neon, Minimal, Retro and Magical. Try before you create.",
-};
+});
 
 const OCCASION_LABEL: Record<string, string> = {
   galaxy: "Birthday",

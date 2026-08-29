@@ -5,7 +5,7 @@ import { CAMPAIGNS } from "@/lib/miniCard";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://just4you.buzz";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+  const contentUpdatedAt = new Date("2026-08-29T00:00:00.000Z");
 
   const staticRoutes = [
     "",
@@ -14,11 +14,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/delivery-policy",
     "/demo",
     "/gallery",
-    "/login",
     "/pricing",
     "/privacy",
     "/refund-policy",
-    "/register",
     "/birthday-website-for-girlfriend",
     "/birthday-surprise-for-best-friend",
     "/anniversary-website-for-husband",
@@ -28,15 +26,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/terms",
   ].map((path) => ({
     url: `${SITE_URL}${path}`,
-    lastModified: now,
+    lastModified: contentUpdatedAt,
     changeFrequency: "weekly" as const,
-    priority: path === "" ? 1 : 0.7,
+    priority: path === "" ? 1 : path === "/pricing" ? 0.9 : path.includes("website") || path.includes("invitation") || path.includes("surprise") ? 0.85 : 0.65,
   }));
 
   const occasionRoutes = ["wedding", "birthday", "proposal", "anniversary", "kids-birthday", "graduation"].map(
     (slug) => ({
       url: `${SITE_URL}/${slug}`,
-      lastModified: now,
+      lastModified: contentUpdatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.9,
     })
@@ -44,23 +42,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const demoRoutes = THEMES.filter((theme) => theme.id !== "wedding").map((t) => ({
     url: `${SITE_URL}/demo/${t.id}`,
-    lastModified: now,
+    lastModified: contentUpdatedAt,
     changeFrequency: "monthly" as const,
     priority: 0.6,
   }));
 
   demoRoutes.push({
     url: `${SITE_URL}/invite/demo`,
-    lastModified: now,
+    lastModified: contentUpdatedAt,
     changeFrequency: "monthly" as const,
     priority: 0.7,
   });
 
   const miniRoutes = [
-    { url: `${SITE_URL}/mini`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 },
+    { url: `${SITE_URL}/mini`, lastModified: contentUpdatedAt, changeFrequency: "weekly" as const, priority: 0.7 },
     ...Object.keys(CAMPAIGNS).map((id) => ({
       url: `${SITE_URL}/mini/${id}`,
-      lastModified: now,
+      lastModified: contentUpdatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })),

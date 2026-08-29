@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, Check, Play } from "lucide-react";
+import { intentPageGraph } from "@/lib/seo";
 
 export interface IntentPageContent {
   eyebrow: string;
+  path: string;
   title: string;
   intro: string;
+  serviceType: string;
+  audience: string;
   demoPath: string;
   demoLabel: string;
   promise: string;
@@ -14,10 +18,17 @@ export interface IntentPageContent {
 }
 
 export default function IntentLandingPage({ content }: { content: IntentPageContent }) {
-  const faqSchema = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: content.faqs.map((faq) => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })) };
+  const pageSchema = intentPageGraph({
+    path: content.path,
+    title: content.title,
+    description: content.intro,
+    serviceType: content.serviceType,
+    audience: content.audience,
+    faqs: content.faqs,
+  });
   return (
     <main className="min-h-screen bg-[#130d19] text-white">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pageSchema) }} />
       <nav className="border-b border-white/10 px-5 py-4"><div className="mx-auto flex max-w-6xl items-center justify-between"><Link href="/" className="font-playfair text-xl font-bold text-[#fff5ec]">Just4You<span className="text-[#ffb877]">.buzz</span></Link><Link href="/pricing" className="text-sm font-bold text-[#ffb877]">Create yours</Link></div></nav>
 
       <section className="px-5 pb-20 pt-16 text-center sm:pt-24">

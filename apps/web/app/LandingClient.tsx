@@ -66,11 +66,11 @@ const FEATURES = [
 
 const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
   id: i,
-  size: Math.random() * 3 + 2,
-  left: Math.random() * 100,
-  delay: Math.random() * 10,
-  dur: Math.random() * 8 + 8,
-  color: ['#ff9e4f', '#ff6f9c', '#ffcf7a', '#ff8a5c', '#ffe6b0'][Math.floor(Math.random() * 5)],
+  size: 2 + ((i * 7) % 30) / 10,
+  left: (i * 37 + 11) % 100,
+  delay: ((i * 19) % 100) / 10,
+  dur: 8 + ((i * 13) % 80) / 10,
+  color: ['#ff9e4f', '#ff6f9c', '#ffcf7a', '#ff8a5c', '#ffe6b0'][(i * 3) % 5],
 }))
 
 /* ─── Reusable: Section Header ─────────────────────────────────────────────── */
@@ -248,11 +248,11 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
 
         {/* CTA Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <a href="/login" className="hide-sm" style={{ background: 'none', border: 'none', color: '#b9a6be', cursor: 'pointer', fontSize: '0.92rem', fontWeight: 600, padding: '10px 8px', transition: 'color 0.2s', textDecoration: 'none' }}
+          <Link href="/login" className="hide-sm" style={{ background: 'none', border: 'none', color: '#b9a6be', cursor: 'pointer', fontSize: '0.92rem', fontWeight: 600, padding: '10px 8px', transition: 'color 0.2s', textDecoration: 'none' }}
             onMouseEnter={e => e.currentTarget.style.color = '#fff5ec'}
             onMouseLeave={e => e.currentTarget.style.color = '#b9a6be'}>
             Sign In
-          </a>
+          </Link>
           <button onClick={onOpenAuth} className="btn btn-main hide-sm" style={{ padding: '12px 24px', fontSize: '0.9rem' }}>
             Create Surprise
           </button>
@@ -275,9 +275,9 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
               ))}
               <hr style={{ borderColor: 'rgba(255,224,196,0.09)' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <a href="/login" onClick={() => setOpen(false)} style={{ background: 'none', border: '1px solid rgba(255,224,196,0.18)', borderRadius: '50px', color: '#fff5ec', cursor: 'pointer', padding: '12px', fontSize: '1rem', fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}>
+                <Link href="/login" onClick={() => setOpen(false)} style={{ background: 'none', border: '1px solid rgba(255,224,196,0.18)', borderRadius: '50px', color: '#fff5ec', cursor: 'pointer', padding: '12px', fontSize: '1rem', fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}>
                   Sign In
-                </a>
+                </Link>
                 <button onClick={() => { setOpen(false); onOpenAuth(); }} className="btn btn-main" style={{ textAlign: 'center', justifyContent: 'center', padding: '14px', fontSize: '1rem' }}>
                   Create Surprise — from ₹199
                 </button>
@@ -294,14 +294,11 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
 function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
   const [currentOcc, setCurrentOcc] = useState(0)
   const shouldReduceMotion = useReducedMotion()
-  // Particles use Math.random(), so generate them only on the client (after
-  // mount) to avoid a server/client hydration mismatch.
-  const [particles, setParticles] = useState<typeof PARTICLES>([])
   useEffect(() => {
-    setParticles(PARTICLES)
     const t = setInterval(() => setCurrentOcc(c => (c + 1) % OCCASIONS.length), 3000)
     return () => clearInterval(t)
   }, [])
+  const particles = PARTICLES
 
   const storyMoments = [
     { Icon: Images, label: 'Favorite photos' },
@@ -849,9 +846,23 @@ function FinalCTA({ onOpenAuth }: { onOpenAuth: () => void }) {
 /* ─── FOOTER ─────────────────────────────────────────────────────────────────── */
 function Footer() {
   const socials = [
-    { Icon: Camera, label: 'Instagram', color: '#f472b6' },
-    { Icon: X,      label: 'Twitter/X', color: '#ffb877' },
+    { Icon: Camera, label: 'Instagram', color: '#f472b6', href: BUSINESS.instagramUrl },
     { Icon: Mail,   label: 'Email',     color: '#fbbf24', href: 'mailto:info@novantixtech.com' },
+  ]
+  const occasionLinks = [
+    { label: 'Wedding Invitations', href: '/wedding' },
+    { label: 'Birthday Websites', href: '/birthday' },
+    { label: 'Anniversary Websites', href: '/anniversary' },
+    { label: 'Proposal Websites', href: '/proposal' },
+    { label: 'Kids Birthday Websites', href: '/kids-birthday' },
+    { label: 'Graduation Websites', href: '/graduation' },
+  ]
+  const popularGuides = [
+    { label: 'Birthday Website for Girlfriend', href: '/birthday-website-for-girlfriend' },
+    { label: 'Birthday Surprise for Best Friend', href: '/birthday-surprise-for-best-friend' },
+    { label: 'Anniversary Website for Husband', href: '/anniversary-website-for-husband' },
+    { label: 'Online Wedding Invitation', href: '/online-wedding-invitation' },
+    { label: 'Last-Minute Birthday Surprise', href: '/last-minute-birthday-surprise' },
   ]
   const companyLinks = [
     { label: 'How It Works', href: '/#how' },
@@ -867,7 +878,7 @@ function Footer() {
   return (
     <footer style={{ background:'#0f0913',borderTop:'1px solid rgba(255,224,196,0.07)',padding:'64px 0 32px' }}>
       <div className="wrap">
-        <div className="two-col" style={{ display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:64,marginBottom:64 }}>
+        <div className="two-col" style={{ display:'grid',gridTemplateColumns:'1.5fr 1fr 1.35fr 1fr',gap:44,marginBottom:64 }}>
           {/* Brand details */}
           <div>
             <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16 }}>
@@ -880,7 +891,7 @@ function Footer() {
               </span>
             </div>
             <p style={{ color:'#8f8098',fontSize:'0.88rem',lineHeight:1.7,maxWidth:300,marginBottom:24 }}>
-              Turning Special Moments Into Beautiful Digital Memories. Premium personalized surprise websites since 2023.
+              Personalized birthday websites, anniversary pages, and interactive online wedding invitations made in India.
             </p>
             <div style={{ display:'flex',gap:12 }}>
               {socials.map(({Icon,label,color,href}) => (
@@ -900,13 +911,27 @@ function Footer() {
           <div>
             <h4 style={{ color:'#efe1d6',fontSize:'0.92rem',fontWeight:700,marginBottom:20 }}>Occasions</h4>
             <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
-              {['Wedding','Birthday','Anniversary','Proposal','Kids Birthday','Graduation','Custom'].map(item => (
-                <a key={item} href="#occasions"
+              {occasionLinks.map(({ label, href }) => (
+                <Link key={href} href={href}
                   style={{ color:'#8f8098',textDecoration:'none',fontSize:'0.88rem',transition:'color 0.2s',fontWeight:500 }}
                   onMouseEnter={e => e.currentTarget.style.color='#ffb877'}
                   onMouseLeave={e => e.currentTarget.style.color='#8f8098'}>
-                  {item} Website
-                </a>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h4 style={{ color:'#efe1d6',fontSize:'0.92rem',fontWeight:700,marginBottom:20 }}>Popular Guides</h4>
+            <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
+              {popularGuides.map(({ label, href }) => (
+                <Link key={href} href={href}
+                  style={{ color:'#8f8098',textDecoration:'none',fontSize:'0.82rem',lineHeight:1.45,transition:'color 0.2s',fontWeight:500 }}
+                  onMouseEnter={e => e.currentTarget.style.color='#ffb877'}
+                  onMouseLeave={e => e.currentTarget.style.color='#8f8098'}>
+                  {label}
+                </Link>
               ))}
             </div>
           </div>

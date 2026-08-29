@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { getPublicCelebrationProof } from "@/lib/public-proof";
+import { publicPageMetadata } from "@/lib/seo";
 
 // Public "Wall of Love" — opt-in, admin-approved creations. Doubles as social
 // proof and evergreen SEO content that funnels visitors into the create flow.
@@ -8,12 +8,12 @@ import { getPublicCelebrationProof } from "@/lib/public-proof";
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
+  path: "/gallery",
   title: "Wall of Love — Real Surprise Websites | Just4You.buzz",
   description:
     "Browse real personalized birthday, anniversary and proposal surprise websites created on Just4You.buzz. Get inspired, then make your own from ₹199.",
-  alternates: { canonical: "/gallery" },
-};
+});
 
 const BIRTHDAY_URL = process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL || "";
 

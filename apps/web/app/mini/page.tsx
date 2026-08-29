@@ -1,13 +1,13 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { CAMPAIGNS } from "@/lib/miniCard";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
+  path: "/mini",
   title: "Free Greeting Cards — Valentine's, Diwali, Rakhi & More | Just4You.buzz",
   description:
     "Send a free personalized greeting card in seconds — Valentine's Day, Diwali, Friendship Day, Raksha Bandhan and birthdays. No sign-up. Share on WhatsApp instantly.",
-  alternates: { canonical: "/mini" },
-};
+});
 
 export default function MiniIndexPage() {
   const list = Object.values(CAMPAIGNS);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { intentPageGraph, publicPageMetadata } from "@/lib/seo";
 
 // SEO-focused occasion landing pages (SSG). Each targets a high-intent search
 // query (e.g. "birthday surprise website maker") and funnels visitors to a live
@@ -183,12 +184,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { occasion } = await params;
   const page = OCCASION_PAGES[occasion];
   if (!page) return {};
-  return {
+  return publicPageMetadata({
+    path: `/${page.slug}`,
     title: page.metaTitle,
     description: page.metaDescription,
-    alternates: { canonical: `/${page.slug}` },
-    openGraph: { title: page.metaTitle, description: page.metaDescription, type: "website" },
-  };
+    keywords: [page.eyebrow.toLowerCase(), `${page.slug.replace("-", " ")} website`, "personalized celebration website India"],
+  });
 }
 
 export default async function OccasionLandingPage({ params }: Props) {
@@ -196,21 +197,20 @@ export default async function OccasionLandingPage({ params }: Props) {
   const page = OCCASION_PAGES[occasion];
   if (!page) return notFound();
 
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: page.faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
+  const pageJsonLd = intentPageGraph({
+    path: `/${page.slug}`,
+    title: `${page.h1} ${page.highlight}`,
+    description: page.metaDescription,
+    serviceType: page.eyebrow,
+    audience: "People planning a personalized digital celebration in India",
+    faqs: page.faqs.map((faq) => ({ question: faq.q, answer: faq.a })),
+  });
 
   return (
     <main className="min-h-screen bg-[#0a0612] text-white">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(pageJsonLd) }}
       />
 
       {/* Hero */}

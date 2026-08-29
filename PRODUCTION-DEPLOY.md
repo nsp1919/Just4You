@@ -28,6 +28,8 @@ NEXT_PUBLIC_INSTAGRAM_URL=https://www.instagram.com/<official-page>/
 ADMIN_EMAIL=<the authorized Firebase Admin account email>
 CRON_SECRET=<new high-entropy random secret>
 WALLET_BANK_ENCRYPTION_KEY=<stable random secret of at least 32 characters>
+GOOGLE_SITE_VERIFICATION=<Search Console HTML-tag content value>
+BING_SITE_VERIFICATION=<Bing msvalidate.01 content value>
 
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=<cloud name>
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=birthdayglow_unsigned

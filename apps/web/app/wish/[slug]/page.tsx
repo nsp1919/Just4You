@@ -71,10 +71,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const description = celeb.message?.slice(0, 155) ?? "A beautiful interactive celebration website made with Just4You";
+  const publicApproved = celeb.isPublicOptIn === true && celeb.galleryApproved === true;
+  const wishOrigin = process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://just4you.buzz";
 
   return {
     title,
     description,
+    alternates: { canonical: `${wishOrigin}/wish/${slug}` },
+    robots: publicApproved
+      ? { index: true, follow: true }
+      : { index: false, follow: false, noarchive: true, nosnippet: true },
     openGraph: {
       title,
       description,
