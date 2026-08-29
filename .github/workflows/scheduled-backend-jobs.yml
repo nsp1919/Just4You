@@ -1,0 +1,61 @@
+name: Scheduled backend jobs
+
+on:
+  schedule:
+    # GitHub schedules use UTC. Offset from the top of the hour to reduce delays.
+    - cron: "17 * * * *"
+    - cron: "10 5 * * *"
+    - cron: "40 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_ORIGIN: https://just4you.buzz
+
+jobs:
+  scheduled-delivery:
+    name: Scheduled delivery
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Run delivery worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 55 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_ORIGIN/api/delivery/run"
+
+  occasion-reminders:
+    name: Occasion reminders
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 5 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Run reminder worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 55 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_ORIGIN/api/reminders/run"
+
+  draft-recovery:
+    name: Draft recovery
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '40 5 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Run draft recovery worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 55 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_ORIGIN/api/draft-recovery/run"

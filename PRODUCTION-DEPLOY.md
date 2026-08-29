@@ -73,21 +73,19 @@ The rules protect collaboration tokens, pending contributions, social reward cla
 
 ## 4. Configure Scheduled Jobs
 
-Hostinger does not execute `apps/web/vercel.json`. Create these external cron commands against the main production origin:
+This Hostinger plan does not expose Cron Jobs and does not execute `apps/web/vercel.json`. Scheduling is provided by `.github/workflows/scheduled-backend-jobs.yml`.
 
-```bash
-curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://just4you.buzz/api/reminders/run
-curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://just4you.buzz/api/draft-recovery/run
-curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://just4you.buzz/api/delivery/run
-```
+In GitHub, open **Settings → Secrets and variables → Actions → New repository secret**. Create `CRON_SECRET` and paste the same value configured in Hostinger. Never add the value to the workflow file.
 
-Recommended schedules:
+Commit and push the workflow to the default branch. Then open **Actions → Scheduled backend jobs → Run workflow**. A manual run executes all three jobs and each must complete successfully.
 
-- `/api/reminders/run`: daily at 06:00 UTC
-- `/api/draft-recovery/run`: daily at 06:30 UTC
-- `/api/delivery/run`: hourly
+The committed UTC schedules are:
 
-A successful request returns HTTP 200 with an `ok` result. HTTP 401 means the bearer secret does not match.
+- `/api/reminders/run`: daily at 05:10 UTC
+- `/api/draft-recovery/run`: daily at 05:40 UTC
+- `/api/delivery/run`: hourly at minute 17
+
+A successful Action step prints an HTTP 200 JSON result with `ok: true`. HTTP 401 means the GitHub repository secret does not match Hostinger. GitHub scheduled workflows run only from the default branch and may start a few minutes late during platform load.
 
 ## 5. Configure External Services
 
