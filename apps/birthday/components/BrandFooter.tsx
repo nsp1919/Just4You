@@ -1,5 +1,5 @@
 "use client";
-import { Sparkles, ArrowRight, Heart, Video } from "lucide-react";
+import { Sparkles, ArrowRight, Heart, Camera } from "lucide-react";
 
 /**
  * BrandFooter — subtle "made with" banner rendered at the bottom of every
@@ -10,6 +10,7 @@ import { Sparkles, ArrowRight, Heart, Video } from "lucide-react";
  * route.
  */
 const MAIN_APP_URL = process.env.NEXT_PUBLIC_MAIN_APP_URL || "https://just4you.buzz";
+const INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL || "https://www.instagram.com/";
 
 interface BrandFooterProps {
   creditText?: string;
@@ -32,18 +33,18 @@ export default function BrandFooter({ creditText, celebrationId, recipientName, 
       <div style={{ maxWidth: 460, margin: "0 auto" }}>
         {celebrationId && (
           <div style={{ marginBottom: 42, paddingBottom: 40, borderBottom: "1px solid rgba(255,224,196,0.12)" }}>
-            <Video size={26} style={{ color: "#ff9e4f", margin: "0 auto 12px" }} />
+            <Camera size={26} style={{ color: "#ff6f9c", margin: "0 auto 12px" }} />
             <span style={{ display: "inline-block", marginBottom: 10, padding: "5px 10px", borderRadius: 999, background: "rgba(52,211,153,0.1)", color: "#6ee7b7", fontSize: "0.7rem", fontWeight: 800 }}>
-              ₹25 VERIFIED WALLET REWARD
+              ₹30 VERIFIED WALLET REWARD
             </span>
             <h3 style={{ color: "#fff5ec", fontSize: "1.35rem", fontWeight: 700, lineHeight: 1.3, margin: "0 0 8px" }}>
-              Record your reaction for the person who made this
+              Send your reaction video on Instagram
             </h3>
             <p style={{ color: "#b9a6be", fontSize: "0.88rem", lineHeight: 1.6, margin: "0 0 18px" }}>
-              Send a private 30-second video{recipientName ? ` after opening ${recipientName}'s surprise` : ""}. If the creator shares your consented branded reaction and the post is verified, they receive ₹25 in withdrawable wallet earnings.
+              Message your reaction{recipientName ? ` after opening ${recipientName}'s surprise` : ""} to our Instagram page. After Admin verifies and publishes the reaction, the creator can receive ₹30 in withdrawable wallet earnings.
             </p>
-            <a href={`${MAIN_APP_URL}/reaction/${celebrationId}`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 22px", borderRadius: 8, color: "#18101e", background: "#ffcf7a", fontSize: "0.9rem", fontWeight: 800, textDecoration: "none" }}>
-              <Video size={16} /> Record my reaction
+            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 22px", borderRadius: 8, color: "#fff", background: "linear-gradient(135deg,#f58529,#dd2a7b,#8134af)", fontSize: "0.9rem", fontWeight: 800, textDecoration: "none" }}>
+              <Camera size={16} /> Open our Instagram page
             </a>
           </div>
         )}

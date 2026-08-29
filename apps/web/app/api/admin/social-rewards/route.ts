@@ -18,8 +18,8 @@ function serializeClaim(document: FirebaseFirestore.QueryDocumentSnapshot) {
     userEmail: data.userEmail ?? "",
     recipientName: data.recipientName ?? "",
     platform: data.platform,
-    proofUrl: data.proofUrl,
-    reactionVideoUrl: data.reactionVideoUrl,
+    instagramHandle: data.instagramHandle ?? "",
+    instagramPostUrl: data.instagramPostUrl ?? data.proofUrl ?? "",
     rewardInr: SOCIAL_SHARE_REWARD_INR,
     status: data.status,
     submittedAt: data.submittedAt?.toDate?.().toISOString?.() ?? null,
@@ -53,9 +53,18 @@ export async function POST(request: NextRequest) {
     const claimId = typeof body.claimId === "string" ? body.claimId.trim() : "";
     const action = body.action === "approved" || body.action === "rejected" ? body.action : "";
     const rejectionReason = typeof body.rejectionReason === "string" ? body.rejectionReason.trim().slice(0, 240) : "";
+    const instagramPostUrl = typeof body.instagramPostUrl === "string" ? body.instagramPostUrl.trim().slice(0, 2048) : "";
     if (!claimId || !action) return NextResponse.json({ error: "Invalid review request." }, { status: 400 });
     if (action === "rejected" && rejectionReason.length < 3) {
       return NextResponse.json({ error: "Enter a rejection reason." }, { status: 400 });
+    }
+    if (action === "approved") {
+      try {
+        const post = new URL(instagramPostUrl);
+        if (post.protocol !== "https:" || !/(^|\.)instagram\.com$/.test(post.hostname)) throw new Error("INVALID_INSTAGRAM_URL");
+      } catch {
+        return NextResponse.json({ error: "Enter the verified public Instagram Reel or post URL before approval." }, { status: 400 });
+      }
     }
 
     const claimRef = adminDb.collection(COLLECTIONS.SOCIAL_REWARD_CLAIMS).doc(claimId);
@@ -88,6 +97,8 @@ export async function POST(request: NextRequest) {
         rewardInr: SOCIAL_SHARE_REWARD_INR,
         reviewedAt: Timestamp.now(),
         reviewedBy: admin.uid,
+        instagramPostUrl: action === "approved" ? instagramPostUrl : "",
+        proofUrl: action === "approved" ? instagramPostUrl : "",
         rejectionReason: action === "rejected" ? rejectionReason : "",
       });
     });

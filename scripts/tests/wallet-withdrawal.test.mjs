@@ -37,9 +37,9 @@ test("checkout spends promotional credit before cashable earnings", () => {
   });
 });
 
-test("an Admin-verified social reward becomes bank withdrawable", () => {
-  assert.deepEqual(creditWithdrawableEarnings(150, 100, 25), {
-    walletBalance: 175,
-    walletWithdrawableBalance: 125,
+test("an Admin-verified ₹30 Instagram reward becomes bank withdrawable", () => {
+  assert.deepEqual(creditWithdrawableEarnings(150, 100, 30), {
+    walletBalance: 180,
+    walletWithdrawableBalance: 130,
   });
 });

@@ -134,7 +134,9 @@ Notes:
     payment.captured).
   - Required additions: NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_MAIN_APP_URL,
     ADMIN_EMAIL, CRON_SECRET, WALLET_BANK_ENCRYPTION_KEY (32+ stable chars),
-    and a video-capable NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET.
+    and NEXT_PUBLIC_INSTAGRAM_URL.
+  - NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET is not used by reaction rewards, but
+    remains required if voice/video message upload features are enabled.
   - Delete the retired ADMIN_SECRET environment variable. It is no longer
     accepted by the application.
   - Deploy firestore.rules separately with Firebase CLI.

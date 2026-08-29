@@ -241,7 +241,7 @@ export function formatInr(amount: number): string {
 export const REFERRAL_JOIN_WALLET_BONUS_INR = 50;
 export const REFERRAL_REWARD_INR = 50;
 export const REFERRAL_MILESTONE_COUNT = 3; // every N referrals → a free add-on credit
-export const SOCIAL_SHARE_REWARD_INR = 25; // withdrawable only after Admin verifies the social post
+export const SOCIAL_SHARE_REWARD_INR = 30; // withdrawable only after Admin verifies the Instagram post
 
 export type Theme = "galaxy" | "floral" | "neon" | "minimal" | "retro" | "magical" | "wedding";
 

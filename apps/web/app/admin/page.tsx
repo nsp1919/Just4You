@@ -25,9 +25,9 @@ interface SocialRewardClaim {
   id: string;
   userEmail: string;
   recipientName: string;
-  platform: "instagram" | "whatsapp";
-  proofUrl: string;
-  reactionVideoUrl: string;
+  platform: "instagram";
+  instagramHandle: string;
+  instagramPostUrl: string;
   rewardInr: number;
   status: "pending" | "approved" | "rejected";
   submittedAt: string | null;
@@ -55,6 +55,7 @@ export default function AdminPage() {
   const [payoutNotes, setPayoutNotes] = useState<Record<string, string>>({});
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
   const [socialReviewNotes, setSocialReviewNotes] = useState<Record<string, string>>({});
+  const [socialPostUrls, setSocialPostUrls] = useState<Record<string, string>>({});
   const [processingSocialClaim, setProcessingSocialClaim] = useState<string | null>(null);
   const [withdrawalError, setWithdrawalError] = useState("");
   const [prelaunchEnabled, setPrelaunchEnabled] = useState(false);
@@ -332,6 +333,7 @@ export default function AdminPage() {
   const processSocialClaim = async (claimId: string, action: "approved" | "rejected") => {
     if (!user) return;
     const rejectionReason = socialReviewNotes[claimId]?.trim() ?? "";
+    const instagramPostUrl = socialPostUrls[claimId]?.trim() ?? "";
     if (action === "rejected" && rejectionReason.length < 3) {
       setWithdrawalError("Enter a reason before rejecting social-post proof.");
       return;
@@ -343,7 +345,7 @@ export default function AdminPage() {
       const response = await fetch("/api/admin/social-rewards", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ claimId, action, rejectionReason }),
+        body: JSON.stringify({ claimId, action, rejectionReason, instagramPostUrl }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to review social reward claim.");
@@ -352,8 +354,10 @@ export default function AdminPage() {
         status: action,
         reviewedAt: new Date().toISOString(),
         rejectionReason: action === "rejected" ? rejectionReason : "",
+        instagramPostUrl: action === "approved" ? instagramPostUrl : "",
       } : claim));
       setSocialReviewNotes((notes) => ({ ...notes, [claimId]: "" }));
+      setSocialPostUrls((urls) => ({ ...urls, [claimId]: "" }));
     } catch (error) {
       setWithdrawalError(error instanceof Error ? error.message : "Unable to review social reward claim.");
     } finally {
@@ -659,24 +663,23 @@ export default function AdminPage() {
             <div className="flex items-center justify-between border-b border-purple-500/10 p-4">
               <div>
                 <h2 className="font-semibold">Social reward verification</h2>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Confirm the consented branded reaction and live post before adding withdrawable wallet earnings.</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Find the reaction DM by Instagram username, publish or verify it, then attach the public post URL before releasing ₹30.</p>
               </div>
               <span className="text-xs font-semibold text-amber-300">{pendingSocialClaims.length} pending</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-purple-500/10 bg-white/[0.02]">{["Creator", "Surprise", "Platform", "Evidence", "Submitted", "Status", "Action"].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{heading}</th>)}</tr></thead>
+                <thead><tr className="border-b border-purple-500/10 bg-white/[0.02]">{["Creator", "Surprise", "Instagram", "Published post", "Submitted", "Status", "Action"].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{heading}</th>)}</tr></thead>
                 <tbody>
                   {socialClaims.map((claim) => (
                     <tr key={claim.id} className="border-b border-purple-500/5 align-top">
                       <td className="px-4 py-3 text-xs">{claim.userEmail || "Unknown creator"}</td>
                       <td className="px-4 py-3 font-medium">{claim.recipientName}</td>
-                      <td className="px-4 py-3 capitalize">{claim.platform}</td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1.5">
-                          <a href={claim.reactionVideoUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-300"><Eye size={11} /> Reaction video</a>
-                          <a href={claim.proofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200"><ExternalLink size={11} /> Posting proof</a>
-                        </div>
+                        <a href={`https://www.instagram.com/${claim.instagramHandle}/`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-pink-300"><ExternalLink size={11} /> @{claim.instagramHandle}</a>
+                      </td>
+                      <td className="px-4 py-3">
+                        {claim.instagramPostUrl ? <a href={claim.instagramPostUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300"><ExternalLink size={11} /> View post</a> : <span className="text-xs text-white/30">Not added</span>}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--text-muted)]">{claim.submittedAt ? new Date(claim.submittedAt).toLocaleDateString("en-IN") : "—"}</td>
                       <td className="px-4 py-3">
@@ -687,6 +690,7 @@ export default function AdminPage() {
                       <td className="min-w-64 px-4 py-3">
                         {claim.status === "pending" ? (
                           <div className="space-y-2">
+                            <input value={socialPostUrls[claim.id] ?? ""} onChange={(event) => setSocialPostUrls((urls) => ({ ...urls, [claim.id]: event.target.value }))} placeholder="https://instagram.com/reel/..." className="input-field w-full py-1.5 text-xs" />
                             <input value={socialReviewNotes[claim.id] ?? ""} onChange={(event) => setSocialReviewNotes((notes) => ({ ...notes, [claim.id]: event.target.value }))} placeholder="Rejection reason if needed" className="input-field w-full py-1.5 text-xs" />
                             <div className="flex gap-2">
                               <button type="button" disabled={processingSocialClaim === claim.id} onClick={() => void processSocialClaim(claim.id, "approved")} className="rounded bg-green-500/10 px-2.5 py-1.5 text-xs font-semibold text-green-300 disabled:opacity-50">Approve ₹{claim.rewardInr}</button>

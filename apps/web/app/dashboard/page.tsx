@@ -368,7 +368,7 @@ export default function DashboardPage() {
                         href={`/dashboard/reactions/${c.id}`}
                         className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/[0.07] px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-300/[0.13]"
                       >
-                        <Clapperboard size={14} /> Reaction videos & reward
+                        <Clapperboard size={14} /> Instagram reaction reward
                       </Link>
                     )}
 

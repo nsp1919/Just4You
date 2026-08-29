@@ -1,6 +1,6 @@
 # Just4You Production Deployment
 
-This runbook covers the growth, collaboration, reaction-recording, wallet, and Admin changes completed on 2026-08-29.
+This runbook covers the growth, collaboration, Instagram reaction reward, wallet, and Admin changes completed on 2026-08-29.
 
 ## 1. Deploy Source Code
 
@@ -23,6 +23,7 @@ NEXT_PUBLIC_SITE_URL=https://just4you.buzz
 NEXT_PUBLIC_APP_URL=https://just4you.buzz
 NEXT_PUBLIC_BIRTHDAY_APP_URL=<production wish-app origin>
 NEXT_PUBLIC_MAIN_APP_URL=https://just4you.buzz
+NEXT_PUBLIC_INSTAGRAM_URL=https://www.instagram.com/<official-page>/
 
 ADMIN_EMAIL=<the authorized Firebase Admin account email>
 CRON_SECRET=<new high-entropy random secret>
@@ -30,7 +31,7 @@ WALLET_BANK_ENCRYPTION_KEY=<stable random secret of at least 32 characters>
 
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=<cloud name>
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=birthdayglow_unsigned
-NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET=<unsigned video-capable preset>
+NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET=<optional unless voice/video uploads are enabled>
 
 RESEND_API_KEY=<production key>
 RESEND_FROM_EMAIL=<verified sender>
@@ -68,7 +69,7 @@ Never rotate `WALLET_BANK_ENCRYPTION_KEY` without a data migration. Existing enc
 firebase deploy --only firestore:rules
 ```
 
-The rules protect collaboration tokens, pending contributions, reaction recordings, reward claims, draft-recovery data, occasion reminders, bank withdrawals, wallet settings, and Admin audit logs.
+The rules protect collaboration tokens, pending contributions, social reward claims, draft-recovery data, occasion reminders, bank withdrawals, wallet settings, and Admin audit logs.
 
 ## 4. Configure Scheduled Jobs
 
@@ -93,8 +94,9 @@ A successful request returns HTTP 200 with an `ok` result. HTTP 401 means the be
 ### Cloudinary
 
 - The image preset must be unsigned and permit browser uploads.
-- The video preset must accept video/audio uploads used by reactions, voice messages, and contributor recordings.
-- Verify uploads to the configured contribution, reaction, social-proof, and review folders.
+- Reaction rewards do not upload video to Cloudinary.
+- A video-capable preset is still required if voice messages, video messages, or contributor audio uploads are enabled.
+- Verify only the media upload features you intend to sell.
 
 ### Resend
 
@@ -132,12 +134,12 @@ Expected behavior:
 
 1. Open Admin > Payouts.
 2. Set the minimum bank withdrawal between ₹100 and ₹10,000.
-3. Submit a consented reaction recording from an active wish page.
-4. Post the branded reaction to Instagram or WhatsApp Status.
-5. Submit posting proof from the creator dashboard.
-6. In Admin > Social, inspect both the reaction and posting evidence.
+3. Send the reaction video to the official Instagram page by direct message.
+4. Submit the sender's Instagram username and featuring consent from the creator dashboard.
+5. In Admin > Social, find and review the Instagram direct message.
+6. Publish or verify the reaction, then paste its public Instagram Reel/post URL.
 7. Approve the claim.
-8. Confirm ₹25 is added to both `walletBalance` and `walletWithdrawableBalance`.
+8. Confirm ₹30 is added to both `walletBalance` and `walletWithdrawableBalance`.
 9. Submit a bank withdrawal after the Admin-set threshold is reached.
 10. Confirm the amount is reserved and only the account suffix is shown to the user.
 11. Transfer manually, then mark paid with the bank reference. A rejected request must refund the reserved balance.
@@ -175,7 +177,7 @@ And an active recipient flow:
 
 ```text
 <wish-origin>/wish/{slug}
-https://just4you.buzz/reaction/{celebrationId}
+https://www.instagram.com/<official-page>/
 ```
 
 ## 9. Manual Package Fallback

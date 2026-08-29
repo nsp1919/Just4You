@@ -166,15 +166,6 @@ service cloud.firestore {
         allow write: if false;
       }
 
-      // Recipient reaction videos are written through a validating server API
-      // and remain private to the celebration owner and administrators.
-      match /reactionRecordings/{recordingId} {
-        allow read: if request.auth != null
-                    && (request.auth.uid == get(/databases/$(database)/documents/celebrations/$(celebrationId)).data.userId
-                        || isAdmin());
-        allow write: if false;
-      }
-
       // ── Reactions sub-collection (public guestbook) ────────────────────────
       match /reactions/{reactionId} {
         // PUBLIC READ: Anyone can see reactions on active celebrations

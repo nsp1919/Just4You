@@ -32,7 +32,7 @@ export default function PrivacyPage() {
           <li>Account and contact details, such as your name, email address, and authentication information.</li>
           <li>Order and billing details, including the selected package, amount, payment status, transaction identifiers, and invoice details.</li>
           <li>Content you provide, including recipient names, dates, messages, photos, audio, video, links, and delivery instructions.</li>
-          <li>Optional reaction recordings, recording consent, and social-post evidence submitted for promotional wallet rewards.</li>
+          <li>Optional Instagram usernames, featuring consent, public post links, and reward-review status.</li>
           <li>Optional draft-recovery preferences and a limited preview containing the recipient name, occasion, theme, progress step, and first photo.</li>
           <li>Support communications, feedback, refund requests, and other information you send to us.</li>
           <li>Technical and usage data, such as IP address, browser, device, page activity, referral source, and basic analytics.</li>
@@ -73,9 +73,9 @@ export default function PrivacyPage() {
           to share. Guest messages and reactions may be visible on the applicable celebration page.
         </p>
         <p>
-          Reaction videos are optional and are shared privately with the celebration creator only after the person recording checks the
-          consent box. That consent allows the creator to download and share the branded recording on Instagram or WhatsApp. Social-post
-          screenshots or links submitted for a reward are visible to authorized administrators for verification.
+          Reaction videos for the Instagram reward are sent directly through Instagram and are not uploaded to Just4You or Cloudinary.
+          We store the creator&apos;s submitted Instagram username, featuring consent, public post link added by Admin, and reward-review status.
+          The video and Instagram conversation remain subject to Instagram&apos;s privacy controls and policies.
         </p>
       </InfoSection>
 

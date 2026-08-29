@@ -96,14 +96,14 @@ export default function TermsPage() {
 
       <InfoSection title="9. Reaction recordings and social rewards">
         <p>
-          A person who records a reaction must explicitly consent before the video is sent to the celebration creator. Creators may share
-          only recordings carrying that consent and remain responsible for complying with the rules of Instagram, WhatsApp, and applicable law.
+          Reaction videos for this reward are sent directly to the official Just4You Instagram page. The submitting creator must have
+          permission from the person shown and explicitly consent to Just4You reviewing and featuring the reaction on Instagram.
         </p>
         <p>
-          A social-post reward is limited to one promotional credit per celebration, subject to administrator verification of a genuine
-          public Instagram post or WhatsApp Status screenshot. Duplicate, misleading, inaccessible, deleted, or otherwise unverifiable proof
-          may be rejected. An approved social-post reward becomes wallet earnings and may be withdrawn after the account reaches the current
-          minimum withdrawal amount. Unverified claims and promotional signup credit are not withdrawable.
+          The ₹30 reward is limited to one approved claim per celebration. Admin must verify the Instagram direct message and attach a valid
+          public Instagram Reel or post URL before approval. Duplicate, misleading, inaccessible, deleted, unauthorized, or otherwise
+          unverifiable submissions may be rejected. An approved reward becomes wallet earnings and may be withdrawn after the account reaches
+          the current minimum withdrawal amount. Unverified claims and promotional signup credit are not withdrawable.
         </p>
       </InfoSection>
 
