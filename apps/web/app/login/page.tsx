@@ -3,7 +3,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { AlertCircle, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight } from "lucide-react";
+import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import CustomerAuthShell from "@/components/auth/CustomerAuthShell";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -45,6 +46,15 @@ export default function LoginPage() {
   return (
     <>
       <style>{`
+        .auth-page,
+        .auth-page *,
+        .auth-page::before,
+        .auth-page::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+
         /* ── Page ── */
         .auth-page {
           min-height: 100vh;
@@ -287,79 +297,41 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <main className="auth-page">
-        <div className="auth-orb a" />
-        <div className="auth-orb b" />
+      <CustomerAuthShell
+        eyebrow="Welcome back"
+        title="Sign in to your celebrations"
+        description="Continue a website, check your wishes, or create a new surprise from your dashboard."
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <p role="alert" className="flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.08] px-4 py-3 text-sm text-rose-200"><AlertCircle size={16} />{error}</p>}
 
-        <div className="login">
-          <div className="brand-badge">
-            <Sparkles size={22} color="#fff" />
-          </div>
+          <label className="block text-sm font-semibold text-white/65">
+            Email address
+            <span className="relative mt-2 block">
+              <Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+              <input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-white outline-none focus:border-[#ff9e4f]/60" />
+            </span>
+          </label>
 
-          <span className="h1">
-            Welcome back to <span className="ui">Just4You</span>
-          </span>
-          <p className="subtitle">
-            Sign in to pick up where you left off and craft your next surprise.
-          </p>
+          <label className="block text-sm font-semibold text-white/65">
+            Password
+            <span className="relative mt-2 block">
+              <Lock size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+              <input type={showPassword ? "text" : "password"} required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-12 text-white outline-none focus:border-[#ff9e4f]/60" />
+              <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center text-white/35 hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+            </span>
+          </label>
 
-          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-            {error && (
-              <div className="auth-error">
-                <AlertCircle size={15} />
-                <span>{error}</span>
-              </div>
-            )}
+          <button type="submit" disabled={loading} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#ffb877] via-[#ff8a5c] to-[#ff5f93] px-5 font-bold text-[#27131b] disabled:opacity-50">
+            {loading ? "Signing in..." : <><span>Sign In</span><ArrowRight size={17} /></>}
+          </button>
+        </form>
 
-            <div className="field">
-              <Mail size={17} className="field-icon" />
-              <input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="field">
-              <Lock size={17} className="field-icon" />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="pw-toggle"
-                onClick={() => setShowPassword((s) => !s)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
-            </div>
-
-            <button type="submit" disabled={loading} className="btn">
-              {loading ? (
-                "Signing you in…"
-              ) : (
-                <>
-                  Sign In <ArrowRight size={17} />
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="switch-row">
-            New to Just4You?{" "}
-            <Link href="/register">Create an account</Link>
-          </div>
+        <div className="mt-7 flex items-center justify-between border-t border-white/10 pt-5 text-sm text-white/40">
+          <span>New to Just4You?</span>
+          <Link href="/register" className="font-bold text-[#ffb877] hover:text-[#ffd1a8]">Create an account</Link>
         </div>
-      </main>
+      </CustomerAuthShell>
     </>
   );
 }

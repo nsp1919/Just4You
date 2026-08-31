@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { AlertCircle, Check } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Gift, Lock, Mail, UserRound } from "lucide-react";
 import { captureReferralFromUrl, clearStoredReferral, getStoredReferral } from "@/lib/referral";
 import { useReferralRewards } from "@/lib/use-referral-rewards";
+import CustomerAuthShell from "@/components/auth/CustomerAuthShell";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -20,6 +21,7 @@ export default function RegisterPage() {
     return new URLSearchParams(window.location.search).get("email") ?? "";
   });
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -83,6 +85,15 @@ export default function RegisterPage() {
   return (
     <>
       <style>{`
+        .auth-page,
+        .auth-page *,
+        .auth-page::before,
+        .auth-page::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+
         /* ── Page ── */
         .auth-page {
           min-height: 100vh;
@@ -325,126 +336,47 @@ export default function RegisterPage() {
 
       `}</style>
 
-      <main className="auth-page">
-        <div className="login">
-          <span className="h1">
-            Sign Up to <span className="ui">Just4You</span>
-          </span>
+      <CustomerAuthShell
+        eyebrow="Create an account"
+        title="Start your celebration space"
+        description="Create an account to save your work, manage every surprise, and share it when the moment is right."
+      >
+        {referral && <div className="mb-4 flex items-start gap-3 rounded-lg border border-green-400/25 bg-green-400/[0.08] px-4 py-3 text-sm text-green-300"><Gift size={17} className="mt-0.5 shrink-0" /><span>A friend invited you. <strong>{`₹${joinBonusInr}`}</strong> will be added to your wallet.</span></div>}
+        {error && <p role="alert" className="mb-4 flex items-center gap-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.08] px-4 py-3 text-sm text-rose-200"><AlertCircle size={16} />{error}</p>}
 
-          {referral && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 14px",
-                borderRadius: 12,
-                background: "rgba(34,197,94,0.12)",
-                border: "1px solid rgba(34,197,94,0.35)",
-                color: "#4ade80",
-                fontSize: "0.82rem",
-                fontWeight: 600,
-                textAlign: "center",
-              }}
-            >
-              🎁 A friend invited you — ₹{joinBonusInr} will be added to your wallet!
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="block text-sm font-semibold text-white/65">
+            Your name
+            <span className="relative mt-2 block"><UserRound size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" /><input type="text" required autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-white outline-none focus:border-[#ff9e4f]/60" /></span>
+          </label>
 
-          {error && (
-            <div className="auth-error">
-              <AlertCircle size={14} />
-              <span style={{ marginLeft: 6 }}>{error}</span>
-            </div>
-          )}
+          <label className="block text-sm font-semibold text-white/65">
+            Email address
+            <span className="relative mt-2 block"><Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" /><input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-white outline-none focus:border-[#ff9e4f]/60" /></span>
+          </label>
 
-          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-            <input
-              type="text"
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoComplete="name"
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-            />
+          <label className="block text-sm font-semibold text-white/65">
+            Password
+            <span className="relative mt-2 block"><Lock size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" /><input type={showPassword ? "text" : "password"} required autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-12 text-white outline-none focus:border-[#ff9e4f]/60" /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center text-white/35 hover:text-white" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></span>
+          </label>
 
-            {/* Password strength */}
-            {password.length > 0 && (
-              <div className="strength-row">
-                <div className="strength-bars">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="strength-bar"
-                      style={{
-                        background:
-                          i <= strength
-                            ? strengthColor[strength]
-                            : "rgba(255,255,255,0.08)",
-                      }}
-                    />
-                  ))}
-                </div>
-                <span className="strength-label" style={{ color: strengthColor[strength] }}>
-                  {strengthLabel[strength]}
-                </span>
-              </div>
-            )}
+          {password.length > 0 && <div className="flex items-center gap-3" aria-label={`Password strength: ${strengthLabel[strength]}`}><div className="grid flex-1 grid-cols-4 gap-1">{[1, 2, 3, 4].map((level) => <span key={level} className="h-1 rounded-full" style={{ background: level <= strength ? strengthColor[strength] : "rgba(255,255,255,0.08)" }} />)}</div><span className="text-xs font-semibold" style={{ color: strengthColor[strength] }}>{strengthLabel[strength]}</span></div>}
 
-            {/* Terms checkbox */}
-            <label className="checkbox-row">
-              <div
-                className="checkbox-box"
-                onClick={() => setAgreed(!agreed)}
-                style={{
-                  background: agreed
-                    ? "linear-gradient(135deg, #ff8a5c, #ff5f93)"
-                    : "rgba(255,255,255,0.04)",
-                  border: agreed ? "none" : "1.5px solid rgba(255,224,196,0.2)",
-                }}
-              >
-                {agreed && <Check size={11} color="#fff" strokeWidth={3} />}
-              </div>
-              <span className="checkbox-text">
-                I agree to the{" "}
-                <Link href="/terms" target="_blank">Terms of Service</Link>
-                {" "}and{" "}
-                <Link href="/privacy" target="_blank">Privacy Policy</Link>
-              </span>
-            </label>
+          <label className="flex cursor-pointer items-start gap-3 text-xs leading-5 text-white/45">
+            <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#ff8a5c]" />
+            <span>I agree to the <Link href="/terms" target="_blank" className="font-semibold text-[#ffb877]">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="font-semibold text-[#ffb877]">Privacy Policy</Link>.</span>
+          </label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn"
-              style={{ marginTop: 8 }}
-            >
-              {loading ? "Confirming..." : "Confirm!"}
-            </button>
-          </form>
+          <button type="submit" disabled={loading} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#ffb877] via-[#ff8a5c] to-[#ff5f93] px-5 font-bold text-[#27131b] disabled:opacity-50">
+            {loading ? "Creating account..." : <><span>Create Account</span><ArrowRight size={17} /></>}
+          </button>
+        </form>
 
-          <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.72rem' }}>
-            <span style={{ color: '#8f8098' }}>Already have an account? </span>
-            <Link href="/login" style={{ color: '#ff9e4f', fontWeight: 700, textDecoration: 'underline' }}>
-              Log in
-            </Link>
-          </div>
+        <div className="mt-7 flex items-center justify-between border-t border-white/10 pt-5 text-sm text-white/40">
+          <span>Already have an account?</span>
+          <Link href="/login" className="font-bold text-[#ffb877] hover:text-[#ffd1a8]">Sign in</Link>
         </div>
-      </main>
+      </CustomerAuthShell>
     </>
   );
 }

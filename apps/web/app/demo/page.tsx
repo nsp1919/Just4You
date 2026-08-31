@@ -6,7 +6,7 @@ export const metadata = publicPageMetadata({
   path: "/demo",
   title: "Live Demos — See Every Theme | Just4You.buzz",
   description:
-    "Explore live, interactive demos of every Just4You celebration website theme — Galaxy, Floral, Neon, Minimal, Retro and Magical. Try before you create.",
+    "Explore live, interactive demos of every Just4You celebration website theme and the complete Wedding Invitation experience. Try before you create.",
 });
 
 const OCCASION_LABEL: Record<string, string> = {
@@ -16,6 +16,7 @@ const OCCASION_LABEL: Record<string, string> = {
   minimal: "Birthday",
   retro: "Birthday",
   magical: "Kids Birthday",
+  wedding: "Wedding",
 };
 
 export default function DemoIndexPage() {
@@ -39,7 +40,7 @@ export default function DemoIndexPage() {
           {THEMES.map((t) => (
             <Link
               key={t.id}
-              href={`/demo/${t.id}`}
+              href={t.id === "wedding" ? "/invite/demo" : `/demo/${t.id}`}
               className="group rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all bg-white/[0.03] hover:-translate-y-1"
             >
               <div

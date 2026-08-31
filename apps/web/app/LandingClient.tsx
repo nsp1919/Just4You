@@ -201,14 +201,10 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
   }, [])
 
   const navItems = [
-    { label: 'Free Cards',   href: '/mini' },
-    { label: 'Reminders',    href: '/reminders' },
     { label: 'How It Works', href: '#how' },
     { label: 'Occasions',    href: '#occasions' },
-    { label: 'Features',     href: '#features' },
-    { label: 'Custom Sites', href: '#custom-websites' },
     { label: 'Pricing',      href: '#pricing' },
-    { label: 'Real Stories', href: '#testimonials' },
+    { label: 'Stories',      href: '#testimonials' },
   ]
 
   return (
@@ -237,7 +233,7 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
         </a>
 
         {/* Desktop nav */}
-        <nav className="hide-sm" style={{ display: 'flex', gap: 36, alignItems: 'center' }}>
+        <nav className="hide-sm" style={{ display: 'flex', gap: 30, alignItems: 'center' }}>
           {navItems.map(n => (
             <a key={n.label} href={n.href}
               style={{ color: '#b9a6be', fontSize: '0.92rem', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s' }}
@@ -250,11 +246,11 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
 
         {/* CTA Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <a href="/login" className="hide-sm" style={{ background: 'none', border: 'none', color: '#b9a6be', cursor: 'pointer', fontSize: '0.92rem', fontWeight: 600, padding: '10px 8px', transition: 'color 0.2s', textDecoration: 'none' }}
+          <Link href="/login" className="hide-sm" style={{ background: 'none', border: 'none', color: '#b9a6be', cursor: 'pointer', fontSize: '0.92rem', fontWeight: 600, padding: '10px 8px', transition: 'color 0.2s', textDecoration: 'none' }}
             onMouseEnter={e => e.currentTarget.style.color = '#fff5ec'}
             onMouseLeave={e => e.currentTarget.style.color = '#b9a6be'}>
             Sign In
-          </a>
+          </Link>
           <button onClick={onOpenAuth} className="btn btn-main hide-sm" style={{ padding: '12px 24px', fontSize: '0.9rem' }}>
             Create Surprise
           </button>
@@ -277,9 +273,9 @@ function Navbar({ onOpenAuth }: { onOpenAuth: () => void }) {
               ))}
               <hr style={{ borderColor: 'rgba(255,224,196,0.09)' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <a href="/login" onClick={() => setOpen(false)} style={{ background: 'none', border: '1px solid rgba(255,224,196,0.18)', borderRadius: '50px', color: '#fff5ec', cursor: 'pointer', padding: '12px', fontSize: '1rem', fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}>
+                <Link href="/login" onClick={() => setOpen(false)} style={{ background: 'none', border: '1px solid rgba(255,224,196,0.18)', borderRadius: '50px', color: '#fff5ec', cursor: 'pointer', padding: '12px', fontSize: '1rem', fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}>
                   Sign In
-                </a>
+                </Link>
                 <button onClick={() => { setOpen(false); onOpenAuth(); }} className="btn btn-main" style={{ textAlign: 'center', justifyContent: 'center', padding: '14px', fontSize: '1rem' }}>
                   Create Surprise — from ₹199
                 </button>
@@ -476,7 +472,7 @@ function HowItWorks({ onOpenAuth }: { onOpenAuth: () => void }) {
 }
 
 /* ─── OCCASIONS ─────────────────────────────────────────────────────────────── */
-function Occasions({ onOpenAuth }: { onOpenAuth: () => void }) {
+function Occasions() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
   return (
@@ -495,16 +491,9 @@ function Occasions({ onOpenAuth }: { onOpenAuth: () => void }) {
               initial={{ opacity:0, y:38 }} animate={inView?{opacity:1,y:0}:{}}
               transition={{ duration:0.55, delay:(i%3)*0.1 }}
               whileHover={{ y:-6, transition:{ duration:0.22 } }}
-              style={{ padding:'32px',borderRadius:20,cursor:'pointer',
+              style={{ padding:'32px',borderRadius:20,
                 background:occ.bg,border:`1px solid ${occ.border}`,
-                display:'flex',flexDirection:'column',gap:16,position:'relative' }}
-              onClick={() => {
-                if ("href" in occ && occ.href) {
-                  window.location.href = occ.href
-                  return
-                }
-                onOpenAuth()
-              }}>
+                display:'flex',flexDirection:'column',gap:16,position:'relative' }}>
               {/* Tag */}
               <span style={{ position:'absolute',top:18,right:18,fontSize:'0.75rem',fontWeight:600,
                 padding:'4px 12px',borderRadius:50,background:`${occ.c}15`,color:occ.c }}>{occ.tag}</span>
@@ -516,10 +505,10 @@ function Occasions({ onOpenAuth }: { onOpenAuth: () => void }) {
                 <h3 className="serif" style={{ color:'#fff5ec',fontSize:'1.15rem',fontWeight:700,marginBottom:10 }}>{occ.title}</h3>
                 <p style={{ color:'#b9a6be',fontSize:'0.9rem',lineHeight:1.65 }}>{occ.desc}</p>
               </div>
-              <span style={{ display:'flex',alignItems:'center',gap:5,color:occ.c,
-                fontSize:'0.88rem',fontWeight:600,marginTop:'auto',paddingTop:12 }}>
+              <Link href={("href" in occ && occ.href) ? occ.href : '/login?next=/pricing'} style={{ display:'flex',alignItems:'center',gap:5,color:occ.c,
+                fontSize:'0.88rem',fontWeight:600,marginTop:'auto',paddingTop:12,textDecoration:'none' }}>
                 Create Surprise Website →
-              </span>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -962,14 +951,14 @@ export default function LandingClient({ publicProof }: { publicProof: PublicCele
 
   // "Create / Sign In" CTAs go straight to the web app's real auth pages,
   // which then lead into the dashboard after login/signup.
-  const handleOpenAuth = () => router.push('/register')
+  const handleOpenAuth = () => router.push('/login?next=/pricing')
 
   return (
     <div className="landing-scope" style={{ background: '#18101e', minHeight: '100vh' }}>
       <Navbar onOpenAuth={handleOpenAuth} />
       <Hero onOpenAuth={handleOpenAuth} />
       <HowItWorks onOpenAuth={handleOpenAuth} />
-      <Occasions onOpenAuth={handleOpenAuth} />
+      <Occasions />
       <ThemeShowcase />
       <FeaturesGrid />
       <CustomWebsiteStudio />

@@ -501,12 +501,14 @@
 }
 
 /* ─── Mobile helpers ───────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .hide-sm { display: none !important; }
+}
+@media (max-width: 768px) {
   .two-col { grid-template-columns: 1fr !important; }
   .three-col { grid-template-columns: 1fr !important; }
 }
-@media (min-width: 769px) {
+@media (min-width: 961px) {
   .show-sm { display: none !important; }
 }
 

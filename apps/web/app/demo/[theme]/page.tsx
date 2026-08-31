@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { ComponentType } from "react";
 import type { Metadata } from "next";
 import GalaxyTheme from "@/components/themes/GalaxyTheme";
@@ -99,6 +99,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DemoThemePage({ params }: Props) {
   const { theme } = await params;
+  if (theme === "wedding") redirect("/invite/demo");
   const Theme = THEME_COMPONENTS[theme];
   const content = DEMO_CONTENT[theme];
   if (!Theme || !content) return notFound();
