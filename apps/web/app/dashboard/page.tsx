@@ -7,11 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { COLLECTIONS, OCCASIONS, OccasionType, formatInr } from "@/lib/constants";
-import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList, ImagePlus, UsersRound, Clapperboard } from "lucide-react";
+import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, LogOut, CreditCard, Flame, ClipboardList, ImagePlus, UsersRound, Clapperboard, Globe2 } from "lucide-react";
 import ReferralCard from "@/components/ReferralCard";
 import QRCodeCard from "@/components/QRCodeCard";
 import ShareAssetGenerator from "@/components/ShareAssetGenerator";
-import { TiltCard, AnimatedCounter } from "@/components/TiltCard";
 
 interface Celebration {
   id: string;
@@ -118,26 +117,11 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
-    <main className="min-h-screen relative" style={{ background: "var(--bg-deep)" }}>
-      {/* Ambient animated aurora */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
-        <motion.div
-          className="absolute -top-56 left-1/2 w-[900px] h-[560px] rounded-full"
-          style={{ background: "radial-gradient(ellipse at center, rgba(255,124,110,0.11), transparent 68%)", filter: "blur(72px)", x: "-50%" }}
-          animate={{ opacity: [0.5, 0.8, 0.5] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute top-40 -right-40 w-[460px] h-[460px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(255,95,147,0.09), transparent 70%)", filter: "blur(72px)" }}
-          animate={{ y: [0, -24, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
+    <main className="min-h-screen relative" style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,138,92,0.07), transparent 34rem), var(--bg-deep)" }}>
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-40 border-b border-[rgba(255,158,79,0.1)] px-6 py-3.5"
-        style={{ background: "rgba(21,13,30,0.8)", backdropFilter: "blur(20px)" }}>
+      <nav className="sticky top-0 z-40 border-b border-white/[0.07] px-4 py-3 sm:px-6"
+        style={{ background: "rgba(21,13,30,0.92)", backdropFilter: "blur(20px)" }}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <motion.span
@@ -146,7 +130,7 @@ export default function DashboardPage() {
               whileHover={{ rotate: [0, -12, 12, 0], scale: 1.08 }}
               transition={{ duration: 0.5 }}
             >✨</motion.span>
-            <span className="text-xl font-bold gradient-text font-playfair">Just4You</span>
+            <span className="text-lg font-bold text-[#fff5ec] font-playfair">Just4You</span>
           </Link>
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2.5 pl-1 pr-3 py-1 rounded-full"
@@ -157,67 +141,59 @@ export default function DashboardPage() {
               </div>
               <span className="text-sm text-[var(--text-muted)] max-w-[160px] truncate">{user.displayName ?? user.email}</span>
             </div>
-            <button onClick={logout} className="btn-ghost py-2 px-4 text-sm">
-              <LogOut size={15} /> Sign out
+            <button onClick={logout} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-white/10 px-3 text-sm font-semibold text-white/65 transition-colors hover:border-white/20 hover:text-white">
+              <LogOut size={15} /> <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-10 relative" style={{ zIndex: 1 }}>
+      <div className="max-w-6xl mx-auto px-4 py-7 sm:px-6 sm:py-9 relative" style={{ zIndex: 1 }}>
         {/* Welcome header */}
         <motion.div
-          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10"
+          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5 mb-7"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <div>
-            <p className="text-sm text-[var(--text-muted)] mb-1">
-              {greeting}, welcome back 👋
+            <p className="text-sm text-[var(--text-muted)] mb-1.5">
+              {greeting}, {user.displayName?.split(" ")[0] ?? "welcome back"}
             </p>
-            <h1 className="text-3xl sm:text-4xl font-bold font-playfair">
-              {(user.displayName?.split(" ")[0]) ?? "Your"} <span className="gradient-text">Dashboard</span>
+            <h1 className="text-3xl sm:text-4xl font-bold font-playfair text-[#fff5ec]">
+              Your celebration workspace
             </h1>
           </div>
           <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }} className="self-start sm:self-auto">
-            <Link href="/pricing" id="create-new-btn" className="btn-primary py-2.5 px-6 glow-purple">
+            <Link href="/pricing" id="create-new-btn" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-[#ff8a5c] to-[#ff5f93] px-5 text-sm font-bold text-white shadow-[0_10px_28px_rgba(255,95,147,0.22)] transition-transform hover:-translate-y-0.5">
               <Plus size={17} /> Create New Website
             </Link>
           </motion.div>
         </motion.div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Summary rail */}
+        <section className="grid grid-cols-2 overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.025] mb-6 lg:grid-cols-4" aria-label="Website summary">
           {[
-            { label: "Total Websites", value: celebrations.length, icon: "🌐", tint: "rgba(255,138,92,0.14)", ring: "rgba(255,138,92,0.28)" },
-            { label: "Active Now", value: activeCelebrations.length, icon: "✅", tint: "rgba(74,222,128,0.13)", ring: "rgba(74,222,128,0.24)" },
-            { label: "Total Views", value: totalViews, icon: "👁️", tint: "rgba(255,184,119,0.14)", ring: "rgba(255,184,119,0.28)" },
-            { label: "Trending", value: celebrations.filter((c) => (c.views ?? 0) >= 50).length, icon: "🔥", tint: "rgba(255,95,147,0.14)", ring: "rgba(255,95,147,0.26)" },
+            { label: "Websites", value: celebrations.length, icon: <Globe2 size={17} />, color: "#ff9e4f" },
+            { label: "Active", value: activeCelebrations.length, icon: <CheckCircle size={17} />, color: "#4ade80" },
+            { label: "Views", value: totalViews, icon: <Eye size={17} />, color: "#ffb877" },
+            { label: "Trending", value: celebrations.filter((c) => (c.views ?? 0) >= 50).length, icon: <Flame size={17} />, color: "#fb7185" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 24, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.12 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.08 + i * 0.05 }}
+              className="flex min-h-20 items-center gap-3 border-white/[0.07] px-4 py-3 even:border-l lg:border-l lg:first:border-l-0"
             >
-              <TiltCard
-                className="p-5 relative overflow-hidden h-full rounded-2xl"
-                style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(12px)" }}
-                max={10}
-              >
-                <div className="relative flex flex-col gap-3.5" style={{ transform: "translateZ(34px)" }}>
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl"
-                    style={{ background: stat.tint, border: `1px solid ${stat.ring}` }}>{stat.icon}</div>
-                  <div>
-                    <AnimatedCounter value={stat.value} className="text-[2rem] leading-none font-bold block" style={{ color: "#fff5ec" }} />
-                    <div className="text-xs text-[var(--text-muted)] mt-2 font-medium">{stat.label}</div>
-                  </div>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.045]" style={{ color: stat.color }}>{stat.icon}</span>
+              <div>
+                <div className="text-xl font-bold leading-none text-[#fff5ec]">{stat.value.toLocaleString()}</div>
+                <div className="mt-1.5 text-xs font-medium text-[var(--text-muted)]">{stat.label}</div>
                 </div>
-              </TiltCard>
             </motion.div>
           ))}
-        </div>
+        </section>
 
         {/* Refer & Earn */}
         {user && (
@@ -272,7 +248,7 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-9">
             {groupedCelebrations.map((group) => (
               <section key={group.occasion.id}>
                 {/* Category header */}
@@ -289,7 +265,7 @@ export default function DashboardPage() {
                     {group.items.length}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {group.items.map((c, i) => {
               const expired = isExpired(c.expiresAt);
               const url = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${c.slug}`;
@@ -302,13 +278,12 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: Math.min(i * 0.06, 0.5), ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <TiltCard
-                    className="glass-card overflow-hidden group h-full hover:border-[rgba(255,158,79,0.4)] transition-colors"
-                    max={7}
-                    style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}
+                  <article
+                    className="glass-card overflow-hidden group h-full hover:border-[rgba(255,158,79,0.32)] transition-colors"
+                    style={{ borderRadius: 8, boxShadow: "0 8px 28px rgba(0,0,0,0.18)" }}
                   >
                   {/* Image header with overlays */}
-                  <div className="relative w-full h-40 overflow-hidden">
+                  <div className="relative w-full h-36 overflow-hidden">
                     {c.photos?.[0] ? (
                       <img src={c.photos[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
@@ -334,15 +309,15 @@ export default function DashboardPage() {
                       {!c.isActive ? "Pending" : expired ? "Expired" : "Active"}
                     </div>
                     {/* name overlaid on image bottom */}
-                    <div className="absolute bottom-3 left-4 right-4" style={{ transform: "translateZ(45px)" }}>
+                    <div className="absolute bottom-3 left-4 right-4">
                       <h3 className="font-bold text-lg leading-tight drop-shadow-md">{c.recipientName}</h3>
-                      <p className="text-xs text-white/70 mt-0.5">{displayDate}</p>
+                      <p className="text-xs text-white/70 mt-0.5">{new Date(`${displayDate}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                   </div>
 
                   {/* Body */}
-                  <div className="p-5" style={{ transform: "translateZ(28px)" }}>
-                    <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] mb-4">
+                  <div className="p-4">
+                    <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] mb-3">
                       <Link href={`/dashboard/analytics/${c.id}`} className="flex items-center gap-1 hover:text-white transition-colors" title="View analytics">
                         <Eye size={12} />
                         <span style={{ color: (c.views ?? 0) >= 50 ? "#fb7185" : undefined }}>
@@ -356,57 +331,35 @@ export default function DashboardPage() {
                       <div>{c.photos?.length ?? 0} photos</div>
                     </div>
 
-                    <Link
-                      href={`/dashboard/collaborate/${c.id}`}
-                      className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-pink-300/25 bg-pink-300/[0.08] px-3 py-2 text-xs font-semibold text-pink-200 transition-colors hover:bg-pink-300/[0.14]"
-                    >
-                      <UsersRound size={14} /> Collect group memories
-                    </Link>
-
-                    {c.isActive && (
+                    <div className="mb-3 grid grid-cols-2 gap-2">
                       <Link
-                        href={`/dashboard/reactions/${c.id}`}
-                        className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/[0.07] px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-300/[0.13]"
+                        href={`/dashboard/collaborate/${c.id}`}
+                        className="flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-xs font-semibold text-white/65 transition-colors hover:border-pink-300/25 hover:text-pink-200"
                       >
-                        <Clapperboard size={14} /> Instagram reaction reward
+                        <UsersRound size={14} className="text-pink-300" /> Collect memories
                       </Link>
-                    )}
-
-                    {c.occasionType === "wedding" && c.weddingData?.rsvpEnabled && (
-                      <Link
-                        href={`/dashboard/rsvp/${c.id}`}
-                        className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.08] px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-400/[0.14]"
-                      >
-                        <ClipboardList size={14} /> View guest RSVPs
-                      </Link>
-                    )}
-
-                    {c.occasionType === "wedding" && c.paymentStatus === "paid" && (
-                      <Link
-                        href={`/dashboard/edit/${c.id}`}
-                        className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-amber-400/25 bg-amber-400/[0.08] px-3 py-2 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/[0.14]"
-                      >
-                        <ImagePlus size={14} /> Edit details & posters
-                      </Link>
-                    )}
+                      {c.isActive && <Link href={`/dashboard/reactions/${c.id}`} className="flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-xs font-semibold text-white/65 transition-colors hover:border-cyan-300/25 hover:text-cyan-200"><Clapperboard size={14} className="text-cyan-300" /> Reaction reward</Link>}
+                      {c.occasionType === "wedding" && c.weddingData?.rsvpEnabled && <Link href={`/dashboard/rsvp/${c.id}`} className="flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-xs font-semibold text-white/65 transition-colors hover:border-emerald-300/25 hover:text-emerald-200"><ClipboardList size={14} className="text-emerald-300" /> Guest RSVPs</Link>}
+                      {c.occasionType === "wedding" && c.paymentStatus === "paid" && <Link href={`/dashboard/edit/${c.id}`} className="flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-xs font-semibold text-white/65 transition-colors hover:border-amber-300/25 hover:text-amber-200"><ImagePlus size={14} className="text-amber-300" /> Edit invitation</Link>}
+                    </div>
 
                     {c.isActive && c.slug && (
                       <div className="flex gap-2">
                         <a href={url} target="_blank" rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all hover:brightness-110"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all hover:brightness-110"
                           style={{ background: "rgba(255,138,92,0.15)", border: "1px solid rgba(255,138,92,0.32)", color: "#ff9e4f" }}>
                           <ExternalLink size={12} /> View
                         </a>
                         <button
                           onClick={() => copyLink(c.slug)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all glass hover:brightness-125"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all glass hover:brightness-125"
                           style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
                           {copied === c.slug ? <><CheckCircle size={12} className="text-green-400" /> Copied!</> : <><Copy size={12} /> Copy</>}
                         </button>
                         <button
                           onClick={() => shareWhatsApp(c.slug, c.recipientName, c.occasionType)}
-                          className="flex items-center justify-center p-2 rounded-xl transition-all hover:brightness-110"
-                          style={{ background: "rgba(37,211,102,0.15)", border: "1px solid rgba(37,211,102,0.3)", color: "#25d366" }}>
+                          className="flex items-center justify-center p-2 rounded-lg transition-all hover:brightness-110"
+                          style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.24)", color: "#25d366" }} title="Share on WhatsApp" aria-label={`Share ${c.recipientName}'s website on WhatsApp`}>
                           <Share2 size={14} />
                         </button>
                         <ShareAssetGenerator
@@ -428,7 +381,7 @@ export default function DashboardPage() {
                       </Link>
                     )}
                   </div>
-                  </TiltCard>
+                  </article>
                 </motion.div>
               );
             })}

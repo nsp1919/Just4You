@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Copy, Check, Gift, Trophy } from "lucide-react";
+import { Copy, Check, ChevronDown, Gift, Trophy } from "lucide-react";
 import { referralLinkFor } from "@/lib/referral";
-import { REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
+import { formatInr, REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
 import { useReferralRewards } from "@/lib/use-referral-rewards";
 import WalletWithdrawal from "@/components/WalletWithdrawal";
 
@@ -67,64 +67,55 @@ export default function ReferralCard({
 
   return (
     <div
-      className="rounded-2xl p-6 mb-10 relative overflow-hidden"
+      className="rounded-lg p-4 mb-7 relative overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, rgba(255,138,92,0.12), rgba(255,95,147,0.10))",
-        border: "1px solid rgba(255,138,92,0.28)",
+        background: "rgba(255,138,92,0.055)",
+        border: "1px solid rgba(255,138,92,0.2)",
       }}
     >
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
         {/* Left: refer & earn */}
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Gift size={18} style={{ color: "#ff8a5c" }} />
-            <h3 className="font-bold text-lg">Friend gets ₹{joinBonusInr}, you get ₹{referrerRewardInr}</h3>
-            <span id="wallet-balance" className="ml-1 text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/25 whitespace-nowrap">
-              Wallet Balance: ₹{walletBalance}
-            </span>
-          </div>
-          <p className="text-sm text-[var(--text-muted)] max-w-md mb-3">
-            Friends receive ₹{joinBonusInr} in their wallet when they join. You receive
-            ₹{referrerRewardInr} in your wallet after their first successful purchase. Verified referral and social-post earnings can be withdrawn after reaching the current Admin-set minimum shown in the bank withdrawal form.
-          </p>
-          {/* Milestone progress */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-[var(--text-muted)]">
-                {freeAddonCredits > 0
-                  ? `${freeAddonCredits} free premium add-on${freeAddonCredits > 1 ? "s" : ""} available`
-                  : `${toNextMilestone} more referral${toNextMilestone > 1 ? "s" : ""} → a FREE premium add-on`}
-              </span>
-              <span className="font-semibold text-orange-300">{referralCount % REFERRAL_MILESTONE_COUNT}/{REFERRAL_MILESTONE_COUNT}</span>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${((referralCount % REFERRAL_MILESTONE_COUNT) / REFERRAL_MILESTONE_COUNT) * 100}%`, background: "linear-gradient(90deg,#ff8a5c,#ff5f93)" }}
-              />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-orange-300/10 text-orange-300"><Gift size={18} /></span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h3 className="font-bold text-[#fff5ec]">Refer &amp; Earn</h3>
+                <span id="wallet-balance" className="text-xs font-bold text-green-400 whitespace-nowrap">
+                  Wallet {formatInr(walletBalance)}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Friend gets <strong className="text-white/80">{formatInr(joinBonusInr)}</strong> on joining. You earn <strong className="text-white/80">{formatInr(referrerRewardInr)}</strong> after their first purchase.
+              </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:max-w-md">
-            <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 bg-black/25 border border-white/10 flex-1">
-              <span className="text-xs text-white/70 truncate flex-1">{link}</span>
-              <button onClick={copy} className="shrink-0 text-white/80 hover:text-white" title="Copy link">
-                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
-              </button>
-            </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:mt-0 lg:hidden">
+            <button onClick={copy} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.025] px-3 text-sm font-semibold text-white/70 hover:border-white/20 hover:text-white">
+              {copied ? <Check size={15} className="text-green-400" /> : <Copy size={15} />} {copied ? "Copied" : "Copy link"}
+            </button>
             <button
               onClick={shareWhatsApp}
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white shrink-0"
+              className="min-h-10 rounded-lg px-4 text-sm font-semibold text-white"
               style={{ background: "#25D366" }}
             >
-              Share on WhatsApp
+              Share link
             </button>
-            <WalletWithdrawal initialWithdrawableBalance={withdrawableBalance} />
+            <div className="col-span-2 sm:col-span-1 [&>button]:w-full"><WalletWithdrawal initialWithdrawableBalance={withdrawableBalance} /></div>
           </div>
         </div>
 
+        <div className="hidden shrink-0 items-center gap-2 lg:flex">
+          <button onClick={copy} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 px-3 text-sm font-semibold text-white/70 hover:border-white/20 hover:text-white">
+            {copied ? <Check size={15} className="text-green-400" /> : <Copy size={15} />} {copied ? "Copied" : "Copy link"}
+          </button>
+          <button onClick={shareWhatsApp} className="min-h-10 rounded-lg bg-[#25D366] px-4 text-sm font-semibold text-white">Share</button>
+          <WalletWithdrawal initialWithdrawableBalance={withdrawableBalance} />
+        </div>
+
         {/* Right: leaderboard */}
-        {leaders.length > 0 && (
-          <div className="lg:w-64 rounded-xl p-4" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.08)" }}>
+        {leaders.length > 0 && false && (
+          <div className="lg:w-64 rounded-lg p-4" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <div className="flex items-center gap-1.5 mb-3">
               <Trophy size={15} className="text-amber-400" />
               <h4 className="font-semibold text-sm">Top Referrers</h4>
@@ -143,6 +134,21 @@ export default function ReferralCard({
           </div>
         )}
       </div>
+
+      <details className="group mt-3 border-t border-white/[0.07] pt-3">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold text-white/55 hover:text-white/80">
+          <span>{referralCount} completed referral{referralCount === 1 ? "" : "s"} · {freeAddonCredits > 0 ? `${freeAddonCredits} premium add-on credit${freeAddonCredits === 1 ? "" : "s"}` : `${toNextMilestone} to next premium add-on`}</span>
+          <ChevronDown size={15} className="transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_16rem]">
+          <div>
+            <div className="mb-1.5 flex items-center justify-between text-xs text-[var(--text-muted)]"><span>Premium add-on progress</span><span>{referralCount % REFERRAL_MILESTONE_COUNT}/{REFERRAL_MILESTONE_COUNT}</span></div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-[#ff8a5c] to-[#ff5f93]" style={{ width: `${((referralCount % REFERRAL_MILESTONE_COUNT) / REFERRAL_MILESTONE_COUNT) * 100}%` }} /></div>
+            <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">Verified referral and social-post earnings can be withdrawn after reaching the bank-transfer minimum.</p>
+          </div>
+          {leaders.length > 0 && <div className="rounded-lg border border-white/[0.07] bg-black/15 p-3"><div className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><Trophy size={14} className="text-amber-400" /> Top referrers</div>{leaders.slice(0, 3).map((leader) => <div key={leader.rank} className="flex justify-between py-1 text-xs text-white/60"><span>{leader.rank}. {leader.name}</span><span className="text-green-400">{formatInr(leader.walletBalance)}</span></div>)}</div>}
+        </div>
+      </details>
     </div>
   );
 }
