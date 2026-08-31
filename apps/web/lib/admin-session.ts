@@ -46,10 +46,9 @@ export async function verifyAdminIdToken(idToken: string): Promise<VerifiedAdmin
     const expectedEmail = configuredAdminEmail();
     const email = decoded.email?.toLowerCase() ?? "";
     if (
-      !profile.exists
-      || profile.data()?.role !== "admin"
+      !expectedEmail
+      || email !== expectedEmail
       || profile.data()?.isBlocked === true
-      || (expectedEmail && email !== expectedEmail)
     ) {
       return null;
     }

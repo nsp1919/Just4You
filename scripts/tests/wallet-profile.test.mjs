@@ -21,6 +21,18 @@ test("an already-granted join bonus is idempotent", () => {
   );
 });
 
+test("an Admin-configured join bonus is granted exactly once", () => {
+  assert.deepEqual(resolveProfileWallet({ walletBalance: 0 }, true, 175), {
+    walletBalance: 175,
+    shouldGrantJoinBonus: true,
+    needsWalletWrite: true,
+  });
+  assert.equal(
+    resolveProfileWallet({ walletBalance: 175, referralJoinBonusGranted: true }, true, 175).walletBalance,
+    175,
+  );
+});
+
 test("legacy referral credits migrate without losing balance", () => {
   assert.deepEqual(resolveProfileWallet({ referralCredits: 200 }, false, 50), {
     walletBalance: 200,

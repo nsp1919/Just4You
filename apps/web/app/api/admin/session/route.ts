@@ -6,19 +6,54 @@ import { COLLECTIONS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
+function normalizedOrigin(value: string | undefined): string {
+  if (!value) return "";
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "";
+  }
+}
+
 function requestOriginAllowed(request: NextRequest): boolean {
-  const origin = request.headers.get("origin") ?? "";
-  const expected = new URL(process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin).origin;
-  return origin === expected || /^http:\/\/localhost:\d+$/.test(origin);
+  const origin = normalizedOrigin(request.headers.get("origin") ?? undefined);
+  if (/^http:\/\/localhost:\d+$/.test(origin)) return true;
+
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0].trim();
+  const host = forwardedHost || request.headers.get("host")?.split(",")[0].trim();
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim();
+  const protocol = forwardedProto || request.nextUrl.protocol.replace(":", "");
+  const requestOrigin = host ? normalizedOrigin(`${protocol}://${host}`) : "";
+  const allowedOrigins = new Set([
+    normalizedOrigin(process.env.NEXT_PUBLIC_SITE_URL),
+    normalizedOrigin(process.env.NEXT_PUBLIC_APP_URL),
+    normalizedOrigin(request.nextUrl.origin),
+    requestOrigin,
+    "https://just4you.buzz",
+  ].filter(Boolean));
+  return Boolean(origin && allowedOrigins.has(origin));
 }
 
 export async function POST(request: NextRequest) {
   try {
-    if (!requestOriginAllowed(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!requestOriginAllowed(request)) {
+      return NextResponse.json({ error: "Admin sign-in was rejected because the site address did not match. Refresh this page and try again." }, { status: 403 });
+    }
     const body = await request.json().catch(() => ({}));
     const idToken = typeof body.idToken === "string" ? body.idToken : "";
     const admin = await verifyAdminIdToken(idToken);
-    if (!admin) return NextResponse.json({ error: "Admin access denied. Sign in again with the authorized account." }, { status: 403 });
+    if (!admin) {
+      return NextResponse.json({ error: "This account is not the configured Admin account, or it has been blocked." }, { status: 403 });
+    }
+
+    const adminProfileRef = adminDb.collection(COLLECTIONS.USERS).doc(admin.uid);
+    const adminProfile = await adminProfileRef.get();
+    await adminProfileRef.set({
+      uid: admin.uid,
+      email: admin.email,
+      role: "admin",
+      ...(!adminProfile.exists ? { name: admin.email.split("@")[0] || "Admin", isBlocked: false, createdAt: new Date() } : {}),
+    }, { merge: true });
 
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn: ADMIN_SESSION_MAX_AGE_SECONDS * 1000,
@@ -46,7 +81,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!requestOriginAllowed(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!requestOriginAllowed(request)) {
+    return NextResponse.json({ error: "Admin sign-out was rejected because the site address did not match." }, { status: 403 });
+  }
   const cookieStore = await cookies();
   cookieStore.set(ADMIN_SESSION_COOKIE, "", {
     httpOnly: true,

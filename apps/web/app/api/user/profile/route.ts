@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { COLLECTIONS, REFERRAL_JOIN_WALLET_BONUS_INR } from "@/lib/constants";
+import { COLLECTIONS } from "@/lib/constants";
 import { normalizeReferralCode, referralCodeFor } from "@/lib/referral-code";
 import { resolveProfileWallet } from "@/lib/wallet-profile";
 import { resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
+import { getWalletSettings } from "@/lib/wallet-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
     const userRef = adminDb.collection(COLLECTIONS.USERS).doc(decoded.uid);
     const configuredAdminEmail = (process.env.ADMIN_EMAIL ?? process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "").trim().toLowerCase();
     const isConfiguredAdmin = Boolean(decoded.email && decoded.email.toLowerCase() === configuredAdminEmail);
+    const { joinBonusInr } = await getWalletSettings();
 
     let validReferrerId: string | null = null;
     if (submittedCode && submittedCode !== ownCode) {
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
           isBlocked: false,
           referralCode: ownCode,
           referralCredits: 0,
-          walletBalance: validReferrerId ? REFERRAL_JOIN_WALLET_BONUS_INR : 0,
+          walletBalance: validReferrerId ? joinBonusInr : 0,
           walletWithdrawableBalance: 0,
           referralJoinBonusGranted: Boolean(validReferrerId),
           referralCount: 0,
@@ -100,7 +102,7 @@ export async function POST(req: NextRequest) {
       const wallet = resolveProfileWallet(
         existing ?? {},
         hasStoredReferral || attachingReferral,
-        REFERRAL_JOIN_WALLET_BONUS_INR,
+        joinBonusInr,
       );
 
       if (wallet.needsWalletWrite) {

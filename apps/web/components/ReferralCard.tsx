@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { Copy, Check, Gift, Trophy } from "lucide-react";
 import { referralLinkFor } from "@/lib/referral";
-import { REFERRAL_JOIN_WALLET_BONUS_INR, REFERRAL_REWARD_INR, REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
+import { REFERRAL_MILESTONE_COUNT } from "@/lib/constants";
+import { useReferralRewards } from "@/lib/use-referral-rewards";
 import WalletWithdrawal from "@/components/WalletWithdrawal";
 
 interface Leader {
@@ -31,12 +32,13 @@ export default function ReferralCard({
   referralCount?: number;
   freeAddonCredits?: number;
 }) {
+  const { referrerRewardInr, joinBonusInr } = useReferralRewards();
   const [copied, setCopied] = useState(false);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const link = referralLinkFor(uid);
   const withdrawableBalance = Math.min(
     walletBalance,
-    walletWithdrawableBalance ?? referralCount * REFERRAL_REWARD_INR,
+    walletWithdrawableBalance ?? referralCount * referrerRewardInr,
   );
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function ReferralCard({
   };
 
   const shareWhatsApp = () => {
-    const text = `I made an amazing personalized surprise website on Just4You.buzz 🎉 Join with my link and get ₹${REFERRAL_JOIN_WALLET_BONUS_INR} in your wallet:\n\n${link}`;
+    const text = `I made an amazing personalized surprise website on Just4You.buzz 🎉 Join with my link and get ₹${joinBonusInr} in your wallet:\n\n${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -76,14 +78,14 @@ export default function ReferralCard({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1.5">
             <Gift size={18} style={{ color: "#ff8a5c" }} />
-            <h3 className="font-bold text-lg">Friend gets ₹{REFERRAL_JOIN_WALLET_BONUS_INR}, you get ₹{REFERRAL_REWARD_INR}</h3>
+            <h3 className="font-bold text-lg">Friend gets ₹{joinBonusInr}, you get ₹{referrerRewardInr}</h3>
             <span id="wallet-balance" className="ml-1 text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/25 whitespace-nowrap">
               Wallet Balance: ₹{walletBalance}
             </span>
           </div>
           <p className="text-sm text-[var(--text-muted)] max-w-md mb-3">
-            Friends receive ₹{REFERRAL_JOIN_WALLET_BONUS_INR} in their wallet when they join. You receive
-            ₹{REFERRAL_REWARD_INR} in your wallet after their first successful purchase. Verified referral and social-post earnings can be withdrawn after reaching the current Admin-set minimum shown in the bank withdrawal form.
+            Friends receive ₹{joinBonusInr} in their wallet when they join. You receive
+            ₹{referrerRewardInr} in your wallet after their first successful purchase. Verified referral and social-post earnings can be withdrawn after reaching the current Admin-set minimum shown in the bank withdrawal form.
           </p>
           {/* Milestone progress */}
           <div className="mb-4">

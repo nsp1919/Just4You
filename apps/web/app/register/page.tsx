@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { AlertCircle, Check } from "lucide-react";
 import { captureReferralFromUrl, clearStoredReferral, getStoredReferral } from "@/lib/referral";
-import { REFERRAL_JOIN_WALLET_BONUS_INR } from "@/lib/constants";
+import { useReferralRewards } from "@/lib/use-referral-rewards";
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const { joinBonusInr } = useReferralRewards();
   const router = useRouter();
   const [name, setName] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -344,7 +345,7 @@ export default function RegisterPage() {
                 textAlign: "center",
               }}
             >
-              🎁 A friend invited you — ₹{REFERRAL_JOIN_WALLET_BONUS_INR} will be added to your wallet!
+              🎁 A friend invited you — ₹{joinBonusInr} will be added to your wallet!
             </div>
           )}
 

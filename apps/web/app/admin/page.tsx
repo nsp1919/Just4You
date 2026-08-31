@@ -69,6 +69,9 @@ export default function AdminPage() {
   const [uploadingReviewId, setUploadingReviewId] = useState<string | null>(null);
   const [minimumWithdrawalInr, setMinimumWithdrawalInr] = useState(300);
   const [minimumWithdrawalRange, setMinimumWithdrawalRange] = useState({ min: 100, max: 10_000 });
+  const [referrerRewardInr, setReferrerRewardInr] = useState(50);
+  const [joinBonusInr, setJoinBonusInr] = useState(50);
+  const [referralAmountRange, setReferralAmountRange] = useState({ min: 0, max: 10_000 });
   const [savingWalletSettings, setSavingWalletSettings] = useState(false);
 
   useEffect(() => {
@@ -123,7 +126,10 @@ export default function AdminPage() {
         }
         if (!walletSettingsResponse.ok) throw new Error(walletSettingsResult.error || "Unable to load wallet settings");
         setMinimumWithdrawalInr(walletSettingsResult.minimumWithdrawalInr);
-        if (walletSettingsResult.allowedRange) setMinimumWithdrawalRange(walletSettingsResult.allowedRange);
+        setReferrerRewardInr(walletSettingsResult.referrerRewardInr);
+        setJoinBonusInr(walletSettingsResult.joinBonusInr);
+        if (walletSettingsResult.withdrawalAllowedRange) setMinimumWithdrawalRange(walletSettingsResult.withdrawalAllowedRange);
+        if (walletSettingsResult.referralAllowedRange) setReferralAmountRange(walletSettingsResult.referralAllowedRange);
         setPrelaunchEnabled(launchResult.settings?.prelaunchEnabled === true);
         setLaunchAt(toDatetimeLocal(launchResult.settings?.launchAt ?? null));
         setPrebookOrders(Array.isArray(launchResult.orders) ? launchResult.orders : []);
@@ -154,11 +160,13 @@ export default function AdminPage() {
       const response = await fetch("/api/admin/wallet-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ minimumWithdrawalInr }),
+        body: JSON.stringify({ minimumWithdrawalInr, referrerRewardInr, joinBonusInr }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to save wallet settings");
       setMinimumWithdrawalInr(result.minimumWithdrawalInr);
+      setReferrerRewardInr(result.referrerRewardInr);
+      setJoinBonusInr(result.joinBonusInr);
     } catch (error) {
       setWithdrawalError(error instanceof Error ? error.message : "Unable to save wallet settings");
     } finally {
@@ -590,6 +598,15 @@ export default function AdminPage() {
                 <p className="text-xs text-[var(--text-muted)] mt-1">Transfer through your bank, then record the reference here.</p>
               </div>
               <span className="text-xs font-semibold text-amber-300">{pendingWithdrawals.length} pending</span>
+            </div>
+            <div className="border-b border-white/10 bg-orange-300/[0.035] p-4">
+              <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-white"><Gift size={16} className="text-orange-300" /> Refer &amp; Earn rewards</div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+                <label className="text-xs font-medium text-white/70">Referrer reward after friend&apos;s first purchase<span className="relative mt-1.5 block"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white/40">₹</span><input type="number" min={referralAmountRange.min} max={referralAmountRange.max} step="1" value={referrerRewardInr} onChange={(event) => setReferrerRewardInr(Number(event.target.value))} className="input-field w-full py-2 pl-7 text-sm" aria-label="Referrer reward" /></span></label>
+                <label className="text-xs font-medium text-white/70">New member bonus when joining by referral<span className="relative mt-1.5 block"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white/40">₹</span><input type="number" min={referralAmountRange.min} max={referralAmountRange.max} step="1" value={joinBonusInr} onChange={(event) => setJoinBonusInr(Number(event.target.value))} className="input-field w-full py-2 pl-7 text-sm" aria-label="New member referral bonus" /></span></label>
+                <button type="button" onClick={() => void saveWalletSettings()} disabled={savingWalletSettings} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-300 px-4 text-sm font-bold text-[#18101e] disabled:opacity-50">{savingWalletSettings ? <LoaderCircle size={15} className="animate-spin" /> : <Save size={15} />} Save rewards</button>
+              </div>
+              <p className="mt-3 text-xs text-[var(--text-muted)]">Applies to future referral joins and future first purchases. Existing wallet balances are not recalculated. Set an amount to ₹0 to disable that reward.</p>
             </div>
             <div className="flex flex-col gap-4 border-b border-white/10 bg-emerald-300/[0.035] p-4 sm:flex-row sm:items-end sm:justify-between">
               <div><div className="flex items-center gap-2 text-sm font-semibold text-white"><Settings2 size={16} className="text-emerald-300" /> Bank withdrawal threshold</div><p className="mt-1 text-xs text-[var(--text-muted)]">Applies immediately to new withdrawal requests. Allowed range: ₹{minimumWithdrawalRange.min.toLocaleString("en-IN")}–₹{minimumWithdrawalRange.max.toLocaleString("en-IN")}.</p></div>

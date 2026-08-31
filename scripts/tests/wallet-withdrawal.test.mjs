@@ -43,3 +43,10 @@ test("an Admin-verified ₹30 Instagram reward becomes bank withdrawable", () =>
     walletWithdrawableBalance: 130,
   });
 });
+
+test("an Admin-configured referrer reward becomes fully withdrawable", () => {
+  assert.deepEqual(creditWithdrawableEarnings(50, 0, 225), {
+    walletBalance: 275,
+    walletWithdrawableBalance: 225,
+  });
+});

@@ -12,7 +12,8 @@ import {
 } from "@/lib/constants";
 import { normalizeReferralCode } from "@/lib/referral-code";
 import { calculateWalletCheckout } from "@/lib/wallet-checkout";
-import { debitWalletForCheckout, resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
+import { creditWithdrawableEarnings, debitWalletForCheckout, resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
+import { getWalletSettings } from "@/lib/wallet-settings";
 
 export interface CheckoutBenefits {
   reservationId: string;
@@ -248,6 +249,7 @@ export async function releaseCheckoutBenefits(
 }
 
 export async function settlePaidReferralBenefits(celebrationId: string): Promise<void> {
+  const { referrerRewardInr } = await getWalletSettings();
   const celebRef = adminDb.collection(COLLECTIONS.CELEBRATIONS).doc(celebrationId);
   const before = await celebRef.get();
   const celebrationBefore = before.data();
@@ -287,11 +289,13 @@ export async function settlePaidReferralBenefits(celebrationId: string): Promise
         0,
         Number(referrerSnap.data()?.walletBalance ?? referrerSnap.data()?.referralCredits) || 0,
       );
+      const referrerBalances = creditWithdrawableEarnings(
+        referrerWalletBalance,
+        resolveWithdrawableBalance(referrerSnap.data() ?? {}, REFERRAL_REWARD_INR),
+        referrerRewardInr,
+      );
       const referrerUpdate: Record<string, unknown> = {
-        walletBalance: referrerWalletBalance + REFERRAL_REWARD_INR,
-        walletWithdrawableBalance:
-          resolveWithdrawableBalance(referrerSnap.data() ?? {}, REFERRAL_REWARD_INR)
-          + REFERRAL_REWARD_INR,
+        ...referrerBalances,
         referralCount: FieldValue.increment(1),
       };
       if (newCount % REFERRAL_MILESTONE_COUNT === 0) {
@@ -302,6 +306,7 @@ export async function settlePaidReferralBenefits(celebrationId: string): Promise
         referralRedeemed: true,
         referralDiscountReservationCelebrationId: FieldValue.delete(),
       });
+      celebrationUpdate.referralRewardInr = referrerRewardInr;
     }
 
     transaction.update(celebRef, celebrationUpdate);

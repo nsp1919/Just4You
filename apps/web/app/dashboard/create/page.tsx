@@ -1835,7 +1835,7 @@ export default function CreatePage() {
           <ArrowLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold font-playfair gradient-text">Create {currentOccasion.label} Website</h1>
+          <h1 className="text-2xl font-bold font-playfair gradient-text">Create Your Perfect Celebration</h1>
           <p className="text-sm text-[var(--text-muted)]">Customize your interactive website</p>
         </div>
       </div>
