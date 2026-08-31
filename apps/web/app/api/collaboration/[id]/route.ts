@@ -8,6 +8,11 @@ const SETTINGS_DOC = "settings";
 const MAX_CONTRIBUTIONS = 100;
 const VALID_STATUSES = new Set(["approved", "rejected", "pending"]);
 
+function getPublicAppOrigin(request: NextRequest): string {
+  const configuredUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  return (configuredUrl || request.nextUrl.origin).replace(/\/$/, "");
+}
+
 interface ContributionInput {
   token?: unknown;
   name?: unknown;
@@ -115,13 +120,14 @@ export async function GET(
     const contributions = contributionsSnapshot.docs
       .map(serializeContribution)
       .sort((left, right) => (right.createdAt ?? "").localeCompare(left.createdAt ?? ""));
+    const publicAppOrigin = getPublicAppOrigin(request);
 
     return NextResponse.json({
       recipientName: cleanText(owned.snapshot.data()?.recipientName, 80),
       occasionType: cleanText(owned.snapshot.data()?.occasionType, 30) || "birthday",
       inviteEnabled: settings?.enabled === true,
       inviteUrl: settings?.token
-        ? `${request.nextUrl.origin}/contribute/${id}/${settings.token}`
+        ? `${publicAppOrigin}/contribute/${id}/${settings.token}`
         : null,
       contributions,
     });
@@ -152,7 +158,7 @@ export async function POST(
 
       return NextResponse.json({
         inviteEnabled: true,
-        inviteUrl: `${request.nextUrl.origin}/contribute/${id}/${token}`,
+        inviteUrl: `${getPublicAppOrigin(request)}/contribute/${id}/${token}`,
       });
     }
 

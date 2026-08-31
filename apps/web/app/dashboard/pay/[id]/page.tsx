@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { COLLECTIONS, FEATURE_ADDONS, PRICE_INR, computePriceInr, formatInr } from "@/lib/constants";
+import { usePricingSettings } from "@/lib/use-pricing-settings";
 import { ArrowLeft, CreditCard, Camera, Sparkles } from "lucide-react";
 
 interface WalletCheckoutPreview {
@@ -226,6 +227,7 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
 export default function PayPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { pricing } = usePricingSettings();
   const params = useParams();
   const celebrationId = params.id as string;
 
@@ -303,7 +305,7 @@ export default function PayPage() {
           theme={celebration.theme}
           photoCount={celebration.photos?.length ?? 0}
           occasionType={celebration.occasionType}
-          priceInr={computePriceInr(celebration.selectedFeatures ?? [])}
+          priceInr={computePriceInr(celebration.selectedFeatures ?? [], pricing)}
           onSuccess={(slug) => router.push(`/dashboard/success?slug=${slug}`)}
         />
       </div>

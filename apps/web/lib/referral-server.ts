@@ -9,11 +9,13 @@ import {
   MAX_WEDDING_CEREMONIES,
   computeWeddingPriceInr,
   computePricePaise,
+  type PricingSettings,
 } from "@/lib/constants";
 import { normalizeReferralCode } from "@/lib/referral-code";
 import { calculateWalletCheckout } from "@/lib/wallet-checkout";
 import { creditWithdrawableEarnings, debitWalletForCheckout, resolveWithdrawableBalance } from "@/lib/wallet-withdrawal";
 import { getWalletSettings } from "@/lib/wallet-settings";
+import { getPricingSettings } from "@/lib/pricing-settings";
 
 export interface CheckoutBenefits {
   reservationId: string;
@@ -28,13 +30,13 @@ export interface CheckoutBenefits {
 
 export type CheckoutBenefitsPreview = Omit<CheckoutBenefits, "reservationId" | "referredBy">;
 
-function bestFreeAddon(features: string[]): { id: string; pricePaise: number } | null {
+function bestFreeAddon(features: string[], pricing: PricingSettings): { id: string; pricePaise: number } | null {
   const selected = FEATURE_ADDONS.filter((addon) => features.includes(addon.id));
   if (selected.length === 0) return null;
   const addon = selected.reduce((best, candidate) =>
-    candidate.priceInr > best.priceInr ? candidate : best
+    pricing.addonPrices[candidate.id] > pricing.addonPrices[best.id] ? candidate : best
   );
-  return { id: addon.id, pricePaise: addon.priceInr * 100 };
+  return { id: addon.id, pricePaise: pricing.addonPrices[addon.id] * 100 };
 }
 
 function calculateCheckoutBenefits(
@@ -42,9 +44,10 @@ function calculateCheckoutBenefits(
   features: string[],
   basePaise: number,
   allowFreeAddon: boolean,
+  pricing: PricingSettings,
 ): CheckoutBenefitsPreview {
   const freeAddonCredits = Math.max(0, Number(user?.freeAddonCredits) || 0);
-  const freeAddon = allowFreeAddon && freeAddonCredits > 0 ? bestFreeAddon(features) : null;
+  const freeAddon = allowFreeAddon && freeAddonCredits > 0 ? bestFreeAddon(features, pricing) : null;
   const walletBalance = Math.max(0, Number(user?.walletBalance ?? user?.referralCredits) || 0);
   const payment = calculateWalletCheckout(basePaise, walletBalance, freeAddon?.pricePaise ?? 0);
 
@@ -61,9 +64,10 @@ function calculateCheckoutBenefits(
 function authoritativeCheckoutPrice(
   celebration: FirebaseFirestore.DocumentData,
   features: string[],
+  pricing: PricingSettings,
 ): { basePaise: number; allowFreeAddon: boolean } {
   if (celebration.occasionType !== "wedding") {
-    return { basePaise: computePricePaise(features), allowFreeAddon: true };
+    return { basePaise: computePricePaise(features, pricing), allowFreeAddon: true };
   }
 
   const ceremonies = Array.isArray(celebration.weddingData?.ceremonies)
@@ -78,7 +82,7 @@ function authoritativeCheckoutPrice(
     ceremonyCount: ceremonies.length,
     rsvpEnabled: celebration.weddingData?.rsvpEnabled === true,
     customMusicCount,
-  }) * 100;
+  }, pricing) * 100;
 
   return { basePaise, allowFreeAddon: false };
 }
@@ -91,6 +95,7 @@ export async function previewCheckoutBenefits(
   const userRef = adminDb.collection(COLLECTIONS.USERS).doc(userId);
   const celebRef = adminDb.collection(COLLECTIONS.CELEBRATIONS).doc(celebrationId);
   const [userSnap, celebSnap] = await Promise.all([userRef.get(), celebRef.get()]);
+  const pricingSettings = await getPricingSettings();
   const celebration = celebSnap.data();
 
   if (!userSnap.exists) throw new Error("USER_PROFILE_REQUIRED");
@@ -99,8 +104,8 @@ export async function previewCheckoutBenefits(
 
   if (celebration?.referralBenefitsStatus === "reserved") {
     return {
-      basePaise: Number(celebration.pricePaise) || computePricePaise(features),
-      amountPaise: Math.max(100, Number(celebration.chargedPaise) || computePricePaise(features)),
+      basePaise: Number(celebration.pricePaise) || computePricePaise(features, pricingSettings),
+      amountPaise: Math.max(100, Number(celebration.chargedPaise) || computePricePaise(features, pricingSettings)),
       referralDiscountPaise: Math.max(0, Number(celebration.referralDiscountPaise) || 0),
       walletAppliedInr: Math.max(
         0,
@@ -111,8 +116,8 @@ export async function previewCheckoutBenefits(
     };
   }
 
-  const pricing = authoritativeCheckoutPrice(celebration!, features);
-  return calculateCheckoutBenefits(userSnap.data(), features, pricing.basePaise, pricing.allowFreeAddon);
+  const pricing = authoritativeCheckoutPrice(celebration!, features, pricingSettings);
+  return calculateCheckoutBenefits(userSnap.data(), features, pricing.basePaise, pricing.allowFreeAddon, pricingSettings);
 }
 
 export async function reserveCheckoutBenefits(
@@ -124,6 +129,7 @@ export async function reserveCheckoutBenefits(
   const celebRef = adminDb.collection(COLLECTIONS.CELEBRATIONS).doc(celebrationId);
   const userBefore = await userRef.get();
   if (!userBefore.exists) throw new Error("USER_PROFILE_REQUIRED");
+  const pricingSettings = await getPricingSettings();
 
   const referredBy = normalizeReferralCode(userBefore.data()?.referredBy);
   const [referrerMatch, paidMatch] = await Promise.all([
@@ -163,8 +169,8 @@ export async function reserveCheckoutBenefits(
       throw new Error("CHECKOUT_ALREADY_PENDING");
     }
 
-    const pricing = authoritativeCheckoutPrice(celebration!, features);
-    const benefits = calculateCheckoutBenefits(user, features, pricing.basePaise, pricing.allowFreeAddon);
+    const pricing = authoritativeCheckoutPrice(celebration!, features, pricingSettings);
+    const benefits = calculateCheckoutBenefits(user, features, pricing.basePaise, pricing.allowFreeAddon, pricingSettings);
     const withdrawableBalance = resolveWithdrawableBalance(user ?? {}, REFERRAL_REWARD_INR);
     const walletAfterCheckout = debitWalletForCheckout(
       walletBalance,

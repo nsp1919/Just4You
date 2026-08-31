@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import { Download, ImageDown, X } from "lucide-react";
 
@@ -143,7 +144,7 @@ export default function ShareAssetGenerator({ url, recipientName, eventDate, pho
         <ImageDown size={13} /> Story
       </button>
 
-      {open && (
+      {open && createPortal(
         <div className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto bg-black/80 px-4 py-8 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div className="w-full max-w-xl rounded-lg border border-white/10 bg-[#17101e] p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="mb-6 flex items-start justify-between gap-4">
@@ -168,7 +169,8 @@ export default function ShareAssetGenerator({ url, recipientName, eventDate, pho
             </div>
             <p className="mt-3 text-center text-xs text-white/30">Both downloads are optimized at 1080 × 1920.</p>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

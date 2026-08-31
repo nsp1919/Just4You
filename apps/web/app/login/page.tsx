@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -7,7 +7,7 @@ import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import CustomerAuthShell from "@/components/auth/CustomerAuthShell";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { user, loading: authLoading, login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -25,13 +25,17 @@ export default function LoginPage() {
       : "/dashboard";
   };
 
+  useEffect(() => {
+    if (!authLoading && user) router.replace(destinationAfterLogin());
+  }, [authLoading, router, user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
       await login(email, password);
-      router.push(destinationAfterLogin());
+      router.replace(destinationAfterLogin());
     } catch (err: any) {
       const msg =
         err.code === "auth/invalid-credential"
@@ -42,6 +46,8 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading || user) return null;
 
   return (
     <>

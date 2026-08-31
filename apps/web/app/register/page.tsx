@@ -9,7 +9,7 @@ import { useReferralRewards } from "@/lib/use-referral-rewards";
 import CustomerAuthShell from "@/components/auth/CustomerAuthShell";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { user, loading: authLoading, register } = useAuth();
   const { joinBonusInr } = useReferralRewards();
   const router = useRouter();
   const [name, setName] = useState(() => {
@@ -43,6 +43,10 @@ export default function RegisterPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!authLoading && user) router.replace("/dashboard");
+  }, [authLoading, router, user]);
+
   const strength = (() => {
     if (password.length === 0) return 0;
     let s = 0;
@@ -67,7 +71,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(name, email, password);
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (err: any) {
       const msg =
         err.code === "auth/email-already-in-use"
@@ -81,6 +85,8 @@ export default function RegisterPage() {
 
   const strengthLabel = ["", "Weak", "Fair", "Good", "Strong"];
   const strengthColor = ["", "#ef4444", "#f59e0b", "#84cc16", "#22c55e"];
+
+  if (authLoading || user) return null;
 
   return (
     <>

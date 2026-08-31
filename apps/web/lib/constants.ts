@@ -5,6 +5,7 @@ export const COLLECTIONS = {
   SOCIAL_REWARD_CLAIMS: "socialRewardClaims",
   OCCASION_REMINDERS: "occasionReminders",
   DRAFT_RECOVERIES: "draftRecoveries",
+  CELEBRATION_EDIT_REQUESTS: "celebrationEditRequests",
   ADMIN_AUDIT_LOGS: "adminAuditLogs",
   APP_CONFIG: "appConfig",
   PREBOOK_ORDERS: "prebookOrders",
@@ -133,6 +134,28 @@ export const FEATURE_ADDONS: FeatureAddon[] = [
   },
 ];
 
+export interface PricingSettings {
+  basePriceInr: number;
+  addonPrices: Record<FeatureId, number>;
+  weddingBasePriceInr: number;
+  weddingAdditionalCeremonyPriceInr: number;
+  weddingRsvpPriceInr: number;
+  weddingCustomRevealMusicPriceInr: number;
+}
+
+export const DEFAULT_PRICING_SETTINGS: PricingSettings = {
+  basePriceInr: BASE_PACKAGE.priceInr,
+  addonPrices: Object.fromEntries(FEATURE_ADDONS.map((addon) => [addon.id, addon.priceInr])) as Record<FeatureId, number>,
+  weddingBasePriceInr: 199,
+  weddingAdditionalCeremonyPriceInr: 49,
+  weddingRsvpPriceInr: 49,
+  weddingCustomRevealMusicPriceInr: 29,
+};
+
+export function featureAddonsWithPricing(pricing: PricingSettings = DEFAULT_PRICING_SETTINGS): FeatureAddon[] {
+  return FEATURE_ADDONS.map((addon) => ({ ...addon, priceInr: pricing.addonPrices[addon.id] ?? addon.priceInr }));
+}
+
 // Hosting tiers are mutually exclusive in the cart (pick at most one).
 export const HOSTING_FEATURE_IDS: FeatureId[] = ["hosting_3yr", "hosting_lifetime"];
 
@@ -185,17 +208,17 @@ export function photoLimitFor(features: string[] = []): number {
 }
 
 /** Total price in rupees for a set of selected add-on feature ids. */
-export function computePriceInr(features: string[] = []): number {
-  const addons = FEATURE_ADDONS.filter((a) => features.includes(a.id)).reduce(
+export function computePriceInr(features: string[] = [], pricing: PricingSettings = DEFAULT_PRICING_SETTINGS): number {
+  const addons = featureAddonsWithPricing(pricing).filter((a) => features.includes(a.id)).reduce(
     (sum, a) => sum + a.priceInr,
     0
   );
-  return BASE_PACKAGE.priceInr + addons;
+  return pricing.basePriceInr + addons;
 }
 
 /** Server-authoritative total in paise for a set of selected feature ids. */
-export function computePricePaise(features: string[] = []): number {
-  return computePriceInr(features) * 100;
+export function computePricePaise(features: string[] = [], pricing: PricingSettings = DEFAULT_PRICING_SETTINGS): number {
+  return computePriceInr(features, pricing) * 100;
 }
 
 export const WEDDING_BASE_PRICE_INR = 199;
@@ -210,23 +233,23 @@ export interface WeddingPriceInput {
   customMusicCount: number;
 }
 
-export function computeWeddingPriceInr(input: WeddingPriceInput): number {
+export function computeWeddingPriceInr(input: WeddingPriceInput, pricing: PricingSettings = DEFAULT_PRICING_SETTINGS): number {
   const ceremonyCount = Math.max(1, Math.min(MAX_WEDDING_CEREMONIES, Math.floor(input.ceremonyCount)));
   const customMusicCount = Math.max(0, Math.min(ceremonyCount, Math.floor(input.customMusicCount)));
-  return WEDDING_BASE_PRICE_INR
-    + Math.max(0, ceremonyCount - 1) * WEDDING_ADDITIONAL_CEREMONY_PRICE_INR
-    + (input.rsvpEnabled ? WEDDING_RSVP_PRICE_INR : 0)
-    + customMusicCount * WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR;
+  return pricing.weddingBasePriceInr
+    + Math.max(0, ceremonyCount - 1) * pricing.weddingAdditionalCeremonyPriceInr
+    + (input.rsvpEnabled ? pricing.weddingRsvpPriceInr : 0)
+    + customMusicCount * pricing.weddingCustomRevealMusicPriceInr;
 }
 
-export function weddingPriceBreakdown(input: WeddingPriceInput): { label: string; amountInr: number }[] {
+export function weddingPriceBreakdown(input: WeddingPriceInput, pricing: PricingSettings = DEFAULT_PRICING_SETTINGS): { label: string; amountInr: number }[] {
   const ceremonyCount = Math.max(1, Math.min(MAX_WEDDING_CEREMONIES, Math.floor(input.ceremonyCount)));
   const customMusicCount = Math.max(0, Math.min(ceremonyCount, Math.floor(input.customMusicCount)));
   return [
-    { label: "Wedding invitation · 1 ceremony", amountInr: WEDDING_BASE_PRICE_INR },
-    ...(ceremonyCount > 1 ? [{ label: `${ceremonyCount - 1} additional ${ceremonyCount === 2 ? "ceremony" : "ceremonies"}`, amountInr: (ceremonyCount - 1) * WEDDING_ADDITIONAL_CEREMONY_PRICE_INR }] : []),
-    ...(input.rsvpEnabled ? [{ label: "WhatsApp RSVP", amountInr: WEDDING_RSVP_PRICE_INR }] : []),
-    ...(customMusicCount > 0 ? [{ label: `${customMusicCount} custom reveal ${customMusicCount === 1 ? "track" : "tracks"}`, amountInr: customMusicCount * WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR }] : []),
+    { label: "Wedding invitation · 1 ceremony", amountInr: pricing.weddingBasePriceInr },
+    ...(ceremonyCount > 1 ? [{ label: `${ceremonyCount - 1} additional ${ceremonyCount === 2 ? "ceremony" : "ceremonies"}`, amountInr: (ceremonyCount - 1) * pricing.weddingAdditionalCeremonyPriceInr }] : []),
+    ...(input.rsvpEnabled ? [{ label: "WhatsApp RSVP", amountInr: pricing.weddingRsvpPriceInr }] : []),
+    ...(customMusicCount > 0 ? [{ label: `${customMusicCount} custom reveal ${customMusicCount === 1 ? "track" : "tracks"}`, amountInr: customMusicCount * pricing.weddingCustomRevealMusicPriceInr }] : []),
   ];
 }
 

@@ -6,9 +6,10 @@ import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, computeWeddingPriceInr, weddingPriceBreakdown, MAX_WEDDING_CEREMONIES, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
-import type { Theme, OccasionType, FeatureId, WeddingDataDraft } from "@/lib/constants";
+import type { Theme, OccasionType, FeatureId, WeddingDataDraft, PricingSettings } from "@/lib/constants";
 import { loadCartFeatures } from "@/lib/cart";
-import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff, Save } from "lucide-react";
+import { usePricingSettings } from "@/lib/use-pricing-settings";
+import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff, Save, Video } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import GalaxyTheme from "@/components/themes/GalaxyTheme";
@@ -51,6 +52,13 @@ const PREVIEW_THEME_COMPONENTS: Record<string, ComponentType<any>> = {
   magical: MagicalTheme,
 };
 
+function resolveBackgroundMusicType(musicData: any): "none" | "preset" | "upload" {
+  if (["none", "preset", "upload"].includes(musicData?.musicType)) return musicData.musicType;
+  if (musicData?.musicUploadUrl) return "upload";
+  if (musicData?.musicPresetId) return "preset";
+  return "none";
+}
+
 // ─── Live Preview Modal ───────────────────────────────────────────────────────
 // Renders the ACTUAL selected theme full-screen with the user's real content,
 // overlaid with a watermark, so buyers experience their finished page before
@@ -85,10 +93,10 @@ function LivePreviewModal({
     occasionType,
     relation: data.relation,
     relationCustom: data.relationCustom,
-    musicType: musicData?.musicType === "voice" ? "none" : musicData?.musicType ?? "none",
+    musicType: resolveBackgroundMusicType(musicData),
     musicPresetId: musicData?.musicPresetId,
     musicUploadUrl: musicData?.musicUploadUrl,
-    voiceMessageUrl: musicData?.musicType === "voice" ? musicData?.voiceMessageUrl : "",
+    voiceMessageUrl: musicData?.voiceMessageUrl || "",
     videoMessageUrl: musicData?.videoMessageUrl || "",
     expiresAt: oneYear.toISOString(),
     views: 0,
@@ -877,6 +885,43 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
   };
 
   const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const backgroundMusicType = resolveBackgroundMusicType(musicData);
+  const selectedTrack = PRESET_TRACKS.find((track) => track.id === musicData.musicPresetId);
+  const mediaStatuses = [
+    {
+      id: "music",
+      label: "Background music",
+      detail: uploading
+        ? "Uploading song..."
+        : backgroundMusicType === "upload" && musicData.musicUploadUrl
+          ? "Custom song ready"
+          : backgroundMusicType === "preset"
+            ? `${selectedTrack?.label ?? "Preset track"} ready`
+            : "No music selected",
+      ready: !uploading && (backgroundMusicType === "none" || backgroundMusicType === "preset" || Boolean(musicData.musicUploadUrl)),
+      busy: uploading,
+      icon: Music,
+      visible: true,
+    },
+    {
+      id: "voice",
+      label: "Voice message",
+      detail: voiceUploading ? "Uploading voice..." : musicData.voiceMessageUrl ? "Voice message ready" : "Not added yet",
+      ready: Boolean(musicData.voiceMessageUrl),
+      busy: voiceUploading,
+      icon: Mic,
+      visible: features.includes("voice_message") || Boolean(musicData.voiceMessageUrl),
+    },
+    {
+      id: "video",
+      label: "Video message",
+      detail: videoUploading ? "Uploading video..." : musicData.videoMessageUrl ? "Video message ready" : "Not added yet",
+      ready: Boolean(musicData.videoMessageUrl),
+      busy: videoUploading,
+      icon: Video,
+      visible: features.includes("video_message") || Boolean(musicData.videoMessageUrl),
+    },
+  ].filter((item) => item.visible);
 
   return (
     <div className="space-y-6 step-enter">
@@ -898,7 +943,13 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
                 window.location.href = "/pricing";
                 return;
               }
-              onChange({ ...musicData, musicType: tab.id });
+              if (tab.id === "none") {
+                onChange({ ...musicData, musicType: "none", musicPresetId: "", musicUploadUrl: "" });
+              } else if (tab.id === "preset") {
+                onChange({ ...musicData, musicType: "preset", musicUploadUrl: "" });
+              } else {
+                onChange({ ...musicData, musicType: tab.id });
+              }
             }}
             title={tab.locked ? "Add this feature to your package" : undefined}
             className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all min-w-fit ${musicData.musicType === tab.id ? "border text-white" : "glass text-[var(--text-muted)]"
@@ -1072,13 +1123,42 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
           )}
         </div>
       )}
+      {occasionType !== "wedding" && (
+        <section className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.025]" aria-label="Your selected media">
+          <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] px-4 py-3">
+            <div>
+              <div className="text-sm font-semibold text-white">Your media</div>
+              <div className="mt-0.5 text-xs text-[var(--text-muted)]">Everything added to this surprise stays visible here.</div>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-emerald-300">{mediaStatuses.filter((item) => item.ready).length}/{mediaStatuses.length} ready</span>
+          </div>
+          <div className="flex flex-col divide-y divide-white/[0.08] sm:flex-row sm:divide-x sm:divide-y-0">
+            {mediaStatuses.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.id} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3">
+                  <span className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-lg ${item.ready ? "bg-emerald-400/10 text-emerald-300" : "bg-white/[0.05] text-white/40"}`}>
+                    <Icon size={17} />
+                    {item.ready && <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-400 text-[#102219]"><Check size={10} strokeWidth={3} /></span>}
+                    {item.busy && <span className="absolute inset-0 animate-pulse rounded-lg ring-1 ring-purple-400/60" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-semibold text-white/80">{item.label}</span>
+                    <span className={`mt-0.5 block truncate text-xs ${item.ready ? "text-emerald-300/80" : item.busy ? "text-purple-300" : "text-white/35"}`}>{item.detail}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
       {occasionType === "wedding" && <WeddingRevealMusicEditor value={weddingData} onChange={onWeddingChange} />}
     </div>
   );
 }
 
 // ─── Step 4: Preview ──────────────────────────────────────────────────────────
-function Step4({ data, photos, occasionType, features, priceInr, onEditWeddingDetails }: { data: any; photos: string[]; occasionType: OccasionType; features: string[]; priceInr: number; onEditWeddingDetails: () => void }) {
+function Step4({ data, photos, occasionType, features, priceInr, pricing, onEditWeddingDetails }: { data: any; photos: string[]; occasionType: OccasionType; features: string[]; priceInr: number; pricing: PricingSettings; onEditWeddingDetails: () => void }) {
   const theme = THEMES.find((t) => t.id === data.theme) ?? THEMES[0];
   const track = PRESET_TRACKS.find((t) => t.id === data.musicData?.musicPresetId);
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
@@ -1088,7 +1168,7 @@ function Step4({ data, photos, occasionType, features, priceInr, onEditWeddingDe
     ceremonyCount: selectedWeddingCeremonies.length,
     rsvpEnabled: Boolean(data.weddingData?.rsvpEnabled),
     customMusicCount: selectedWeddingCeremonies.filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.revealMusicUrl).length,
-  });
+  }, pricing);
 
   return (
     <div className="space-y-6 step-enter">
@@ -1141,11 +1221,12 @@ function Step4({ data, photos, occasionType, features, priceInr, onEditWeddingDe
             label: "Music", value:
               occasionType === "wedding"
                 ? `${data.weddingData.ceremonies.filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.selected && ceremony.revealMusicUrl).length} reveal tracks`
-                : data.musicData?.musicType === "preset" ? (track?.label ?? "Selected") :
-                data.musicData?.musicType === "upload" ? "Custom song" :
-                  data.musicData?.musicType === "voice" ? "Voice Message 🎤" : // BUG-12 fix
-                    "No music"
+                : resolveBackgroundMusicType(data.musicData) === "preset" ? (track?.label ?? "Selected") :
+                resolveBackgroundMusicType(data.musicData) === "upload" ? "Custom song" :
+                  "No music"
           },
+          ...(occasionType !== "wedding" && data.musicData?.voiceMessageUrl ? [{ label: "Voice message", value: "Added and ready" }] : []),
+          ...(occasionType !== "wedding" && data.musicData?.videoMessageUrl ? [{ label: "Video message", value: "Added and ready" }] : []),
         ].map((item) => (
           <div key={item.label} className="glass-card p-4">
             <div className="text-xs text-[var(--text-muted)] mb-1">{item.label}</div>
@@ -1482,6 +1563,7 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
 export default function CreatePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { pricing } = usePricingSettings();
   const [step, setStep] = useState(0);
   const [occasionType, setOccasionType] = useState<OccasionType>("birthday");
   const [celebrationId, setCelebrationId] = useState<string | null>(null);
@@ -1654,8 +1736,8 @@ export default function CreatePage() {
   const activeFeatures = occasionType === "wedding" ? [] : features;
   const hasFeature = (id: FeatureId) => activeFeatures.includes(id);
   const priceInr = occasionType === "wedding"
-    ? computeWeddingPriceInr({ ceremonyCount: selectedWeddingCeremonies.length, rsvpEnabled: formData.weddingData.rsvpEnabled, customMusicCount: weddingCustomMusicCount })
-    : computePriceInr(activeFeatures);
+    ? computeWeddingPriceInr({ ceremonyCount: selectedWeddingCeremonies.length, rsvpEnabled: formData.weddingData.rsvpEnabled, customMusicCount: weddingCustomMusicCount }, pricing)
+    : computePriceInr(activeFeatures, pricing);
 
   const canProceed = (() => {
     if (step === 0) return !!occasionType;
@@ -1716,6 +1798,7 @@ export default function CreatePage() {
       setSaving(true);
       try {
         const selectedWeddingCeremonies = formData.weddingData.ceremonies.filter((ceremony) => ceremony.selected);
+        const backgroundMusicType = resolveBackgroundMusicType(musicData);
         const weddingData = occasionType === "wedding" ? {
           couple: {
             partnerOne: formData.weddingData.partnerOne.trim(),
@@ -1761,11 +1844,11 @@ export default function CreatePage() {
           deliveredAt: null,
           // Custom memorable link (only when the add-on is purchased).
           vanitySlug: hasFeature("custom_link") && formData.customLink ? formData.customLink : "",
-          // Spread music fields; voice & video are separate media, so a
-          // voice/video selection disables background music.
-          ...(musicData.musicType === "voice" || musicData.musicType === "video" ? { musicType: "none", musicPresetId: "", musicUploadUrl: "" } : musicData),
-          // Voice / video message URLs (separate from background music)
-          voiceMessageUrl: musicData.musicType === "voice" ? (musicData.voiceMessageUrl ?? "") : "",
+          // Background music, voice, and video are independent media choices.
+          musicType: backgroundMusicType,
+          musicPresetId: backgroundMusicType === "preset" ? (musicData.musicPresetId ?? "") : "",
+          musicUploadUrl: backgroundMusicType === "upload" ? (musicData.musicUploadUrl ?? "") : "",
+          voiceMessageUrl: musicData.voiceMessageUrl ?? "",
           videoMessageUrl: musicData.videoMessageUrl ?? "",
           // Selected paid features + a display copy of the price. The charged
           // amount is always recomputed server-side from selectedFeatures.
@@ -1775,7 +1858,7 @@ export default function CreatePage() {
             rsvpEnabled: formData.weddingData.rsvpEnabled,
             customMusicCount: weddingCustomMusicCount,
           } : null,
-          pricePaise: occasionType === "wedding" ? priceInr * 100 : computePricePaise(activeFeatures),
+          pricePaise: occasionType === "wedding" ? priceInr * 100 : computePricePaise(activeFeatures, pricing),
         };
 
         if (celebrationId) {
@@ -1876,7 +1959,7 @@ export default function CreatePage() {
           {step === 1 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} features={activeFeatures} />}
           {step === 2 && <Step2 photos={photos} onPhotos={setPhotos} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
           {step === 3 && <Step3 musicData={musicData} onChange={setMusicData} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
-          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={activeFeatures} priceInr={priceInr} onEditWeddingDetails={() => setStep(1)} />}
+          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={activeFeatures} priceInr={priceInr} pricing={pricing} onEditWeddingDetails={() => setStep(1)} />}
           {step === 5 && celebrationId && (
             <Step5
               celebrationId={celebrationId}

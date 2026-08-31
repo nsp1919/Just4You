@@ -9,6 +9,7 @@ import {
   BUNDLES,
   HOSTING_FEATURE_IDS,
   computePriceInr,
+  featureAddonsWithPricing,
   formatInr,
   type FeatureId,
 } from "@/lib/constants";
@@ -16,6 +17,7 @@ import { saveCartFeatures } from "@/lib/cart";
 import { trackEvent } from "@/lib/analytics";
 import { BUSINESS } from "@/lib/business";
 import { PublicSiteFooter, PublicSiteHeader } from "@/components/PublicInfoPage";
+import { usePricingSettings } from "@/lib/use-pricing-settings";
 
 function sameSet(a: FeatureId[], b: FeatureId[]) {
   if (a.length !== b.length) return false;
@@ -26,8 +28,10 @@ function sameSet(a: FeatureId[], b: FeatureId[]) {
 export default function PricingPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<FeatureId[]>([]);
+  const { pricing } = usePricingSettings();
+  const pricedAddons = useMemo(() => featureAddonsWithPricing(pricing), [pricing]);
 
-  const total = useMemo(() => computePriceInr(selected), [selected]);
+  const total = useMemo(() => computePriceInr(selected, pricing), [pricing, selected]);
   const activeBundle = useMemo(
     () => BUNDLES.find((b) => sameSet(b.addons, selected))?.id ?? null,
     [selected]
@@ -70,7 +74,7 @@ export default function PricingPage() {
               One beautiful base. <span className="text-[#ffc979]">Only the extras you want.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-[#cdbfce] sm:text-lg 2xl:text-xl 2xl:leading-9">
-              Start at {formatInr(BASE_PACKAGE.priceInr)}, shape the surprise around your story, and see the exact total before checkout.
+              Start at {formatInr(pricing.basePriceInr)}, shape the surprise around your story, and see the exact total before checkout.
             </p>
             <div className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-[#a99baa]">
               <span className="inline-flex items-center gap-2"><Check size={16} className="text-[#ffc979]" /> One-time payment</span>
@@ -92,7 +96,7 @@ export default function PricingPage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {BUNDLES.map((bundle) => {
-              const price = computePriceInr(bundle.addons);
+              const price = computePriceInr(bundle.addons, pricing);
               const isActive = activeBundle === bundle.id;
               return (
                 <button
@@ -133,7 +137,7 @@ export default function PricingPage() {
                 <h2 className="mt-2 font-playfair text-3xl font-bold">{BASE_PACKAGE.label}</h2>
               </div>
               <div className="sm:text-right">
-                <p className="text-3xl font-extrabold text-[#b44552]">{formatInr(BASE_PACKAGE.priceInr)}</p>
+                <p className="text-3xl font-extrabold text-[#b44552]">{formatInr(pricing.basePriceInr)}</p>
                 <p className="mt-1 text-xs font-semibold text-[#8b7d89]">one-time base price</p>
               </div>
             </div>
@@ -154,7 +158,7 @@ export default function PricingPage() {
               <p className="mt-2 text-sm leading-6 text-[#756876]">Select only what fits your celebration. Your total updates instantly.</p>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              {FEATURE_ADDONS.map((addon) => {
+              {pricedAddons.map((addon) => {
                 const isSelected = selected.includes(addon.id);
                 return (
                   <button
@@ -194,9 +198,9 @@ export default function PricingPage() {
 
             <div className="mt-5 space-y-3 text-sm">
               <div className="flex justify-between gap-4 text-[#f5eaf2]">
-                <span>{BASE_PACKAGE.label}</span><span className="font-bold">{formatInr(BASE_PACKAGE.priceInr)}</span>
+                <span>{BASE_PACKAGE.label}</span><span className="font-bold">{formatInr(pricing.basePriceInr)}</span>
               </div>
-              {FEATURE_ADDONS.filter((addon) => selected.includes(addon.id)).map((addon) => (
+              {pricedAddons.filter((addon) => selected.includes(addon.id)).map((addon) => (
                 <div key={addon.id} className="flex justify-between gap-4 text-[#cdbfce]">
                   <span className="min-w-0">{addon.icon} {addon.label}</span><span className="shrink-0">+{formatInr(addon.priceInr)}</span>
                 </div>

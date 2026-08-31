@@ -240,6 +240,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Minor name/date corrections are submitted and reviewed through
+    // authenticated server APIs. Clients cannot alter or approve requests.
+    match /celebrationEditRequests/{requestId} {
+      allow read, write: if false;
+    }
+
     match /adminAuditLogs/{logId} {
       allow read, write: if false;
     }

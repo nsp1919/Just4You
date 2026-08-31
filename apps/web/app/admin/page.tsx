@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import {
   collection, query, orderBy, getDocs, updateDoc, doc, serverTimestamp
 } from "firebase/firestore";
-import { COLLECTIONS, computePriceInr } from "@/lib/constants";
+import { COLLECTIONS, computePriceInr, DEFAULT_PRICING_SETTINGS, FEATURE_ADDONS, type PricingSettings } from "@/lib/constants";
 import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine, BadgeCheck, Upload, Trash2, ExternalLink, LockKeyhole, LogOut, LayoutDashboard, Settings2 } from "lucide-react";
 import Link from "next/link";
 
@@ -35,6 +35,19 @@ interface SocialRewardClaim {
   rejectionReason: string;
 }
 
+interface CelebrationEditRequest {
+  id: string;
+  celebrationId: string;
+  userEmail: string;
+  occasionType: string;
+  status: "pending" | "approved" | "rejected";
+  currentValues: Record<string, string>;
+  requestedValues: Record<string, string>;
+  adminNote: string;
+  createdAt: string | null;
+  processedAt: string | null;
+}
+
 function toDatetimeLocal(value: string | null): string {
   if (!value) return "";
   const date = new Date(value);
@@ -45,7 +58,7 @@ function toDatetimeLocal(value: string | null): string {
 export default function AdminPage() {
   const { user, userDoc, logout, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"overview" | "orders" | "launch" | "users" | "payouts" | "social">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "launch" | "users" | "payouts" | "social" | "pricing" | "edits">("overview");
   const [celebrations, setCelebrations] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -73,6 +86,12 @@ export default function AdminPage() {
   const [joinBonusInr, setJoinBonusInr] = useState(50);
   const [referralAmountRange, setReferralAmountRange] = useState({ min: 0, max: 10_000 });
   const [savingWalletSettings, setSavingWalletSettings] = useState(false);
+  const [pricingSettings, setPricingSettings] = useState<PricingSettings>(DEFAULT_PRICING_SETTINGS);
+  const [pricingRange, setPricingRange] = useState({ minBase: 1, minFeature: 0, max: 100_000 });
+  const [savingPricing, setSavingPricing] = useState(false);
+  const [editRequests, setEditRequests] = useState<CelebrationEditRequest[]>([]);
+  const [editReviewNotes, setEditReviewNotes] = useState<Record<string, string>>({});
+  const [processingEditRequest, setProcessingEditRequest] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading) {
@@ -99,13 +118,15 @@ export default function AdminPage() {
     const fetchAll = async () => {
       try {
         const token = await user.getIdToken();
-        const [celebSnap, userSnap, withdrawalResponse, launchResponse, socialResponse, walletSettingsResponse] = await Promise.all([
+        const [celebSnap, userSnap, withdrawalResponse, launchResponse, socialResponse, walletSettingsResponse, pricingResponse, editRequestsResponse] = await Promise.all([
           getDocs(query(collection(db, COLLECTIONS.CELEBRATIONS), orderBy("createdAt", "desc"))),
           getDocs(query(collection(db, COLLECTIONS.USERS), orderBy("createdAt", "desc"))),
           fetch("/api/admin/wallet-withdrawals", { headers: { Authorization: `Bearer ${token}` } }),
           fetch("/api/admin/site-launch", { headers: { Authorization: `Bearer ${token}` } }),
           fetch("/api/admin/social-rewards", { headers: { Authorization: `Bearer ${token}` } }),
           fetch("/api/admin/wallet-settings", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/admin/pricing-settings", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/admin/celebration-edit-requests", { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         setCelebrations(celebSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setUsers(userSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -113,6 +134,8 @@ export default function AdminPage() {
         const launchResult = await launchResponse.json();
         const socialResult = await socialResponse.json();
         const walletSettingsResult = await walletSettingsResponse.json();
+        const pricingResult = await pricingResponse.json();
+        const editRequestsResult = await editRequestsResponse.json();
         if (!launchResponse.ok) throw new Error(launchResult.error || "Unable to load launch settings");
         if (withdrawalResponse.ok) {
           setWithdrawals(Array.isArray(withdrawalResult.requests) ? withdrawalResult.requests : []);
@@ -125,11 +148,16 @@ export default function AdminPage() {
           setWithdrawalError(socialResult.error || "Unable to load social rewards");
         }
         if (!walletSettingsResponse.ok) throw new Error(walletSettingsResult.error || "Unable to load wallet settings");
+        if (!pricingResponse.ok) throw new Error(pricingResult.error || "Unable to load pricing settings");
+        if (!editRequestsResponse.ok) throw new Error(editRequestsResult.error || "Unable to load edit requests");
         setMinimumWithdrawalInr(walletSettingsResult.minimumWithdrawalInr);
         setReferrerRewardInr(walletSettingsResult.referrerRewardInr);
         setJoinBonusInr(walletSettingsResult.joinBonusInr);
         if (walletSettingsResult.withdrawalAllowedRange) setMinimumWithdrawalRange(walletSettingsResult.withdrawalAllowedRange);
         if (walletSettingsResult.referralAllowedRange) setReferralAmountRange(walletSettingsResult.referralAllowedRange);
+        setPricingSettings(pricingResult.settings);
+        if (pricingResult.allowedRange) setPricingRange(pricingResult.allowedRange);
+        setEditRequests(Array.isArray(editRequestsResult.requests) ? editRequestsResult.requests : []);
         setPrelaunchEnabled(launchResult.settings?.prelaunchEnabled === true);
         setLaunchAt(toDatetimeLocal(launchResult.settings?.launchAt ?? null));
         setPrebookOrders(Array.isArray(launchResult.orders) ? launchResult.orders : []);
@@ -171,6 +199,72 @@ export default function AdminPage() {
       setWithdrawalError(error instanceof Error ? error.message : "Unable to save wallet settings");
     } finally {
       setSavingWalletSettings(false);
+    }
+  };
+
+  const savePricingSettings = async () => {
+    if (!user) return;
+    setSavingPricing(true);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/pricing-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ settings: pricingSettings }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to save pricing settings");
+      setPricingSettings(result.settings);
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to save pricing settings");
+    } finally {
+      setSavingPricing(false);
+    }
+  };
+
+  const setPrice = (field: keyof Omit<PricingSettings, "addonPrices">, value: number) => {
+    setPricingSettings((current) => ({ ...current, [field]: value }));
+  };
+
+  const setAddonPrice = (id: keyof PricingSettings["addonPrices"], value: number) => {
+    setPricingSettings((current) => ({ ...current, addonPrices: { ...current.addonPrices, [id]: value } }));
+  };
+
+  const processEditRequest = async (request: CelebrationEditRequest, action: "approved" | "rejected") => {
+    if (!user) return;
+    const adminNote = editReviewNotes[request.id]?.trim() ?? "";
+    if (action === "rejected" && adminNote.length < 3) {
+      setWithdrawalError("Enter a reason before rejecting the edit request.");
+      return;
+    }
+    setProcessingEditRequest(request.id);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/celebration-edit-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ requestId: request.id, action, adminNote }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to process edit request");
+      setEditRequests((requests) => requests.map((item) => item.id === request.id ? { ...item, status: action, adminNote, processedAt: new Date().toISOString() } : item));
+      if (action === "approved") {
+        setCelebrations((orders) => orders.map((order) => order.id === request.celebrationId ? {
+          ...order,
+          recipientName: request.occasionType === "wedding"
+            ? `${request.requestedValues.partnerOne} & ${request.requestedValues.partnerTwo}`
+            : request.requestedValues.recipientName,
+          birthdayDate: request.requestedValues.eventDate,
+          eventDate: request.requestedValues.eventDate,
+        } : order));
+      }
+      setEditReviewNotes((notes) => ({ ...notes, [request.id]: "" }));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to process edit request");
+    } finally {
+      setProcessingEditRequest(null);
     }
   };
 
@@ -469,6 +563,7 @@ export default function AdminPage() {
     .reduce((sum, c) => sum + revenueInr(c), 0);
   const pendingWithdrawals = withdrawals.filter((withdrawal) => withdrawal.status === "pending");
   const pendingSocialClaims = socialClaims.filter((claim) => claim.status === "pending");
+  const pendingEditRequests = editRequests.filter((request) => request.status === "pending");
 
   const filteredCelebrations = celebrations.filter((c) =>
     c.recipientName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -516,7 +611,7 @@ export default function AdminPage() {
         {/* Tabs */}
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex gap-1 overflow-x-auto rounded-lg border border-white/8 bg-white/[0.025] p-1">
-          {(["overview", "orders", "launch", "users", "payouts", "social"] as const).map((t) => (
+          {(["overview", "orders", "launch", "users", "pricing", "edits", "payouts", "social"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold capitalize transition-all ${tab === t ? "bg-emerald-300 text-[#07120d]" : "text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-white"}`}>
               {t}
@@ -534,6 +629,91 @@ export default function AdminPage() {
           <div className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {withdrawalError}
           </div>
+        )}
+
+        {tab === "pricing" && (
+          <section className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.025]">
+            <div className="flex flex-col gap-4 border-b border-white/[0.08] p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-emerald-300"><DollarSign size={18} /><h2 className="font-semibold text-white">Feature pricing</h2></div>
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--text-muted)]">Prices apply to new, unreserved checkouts immediately. Existing paid orders and already-created Razorpay reservations keep their recorded amounts.</p>
+              </div>
+              <button type="button" onClick={() => void savePricingSettings()} disabled={savingPricing} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-300 px-4 text-sm font-bold text-[#07120d] disabled:opacity-50">
+                {savingPricing ? <LoaderCircle size={15} className="animate-spin" /> : <Save size={15} />} Save prices
+              </button>
+            </div>
+
+            <div className="border-b border-white/[0.08] p-5">
+              <h3 className="text-sm font-semibold text-white">Core packages</h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  { field: "basePriceInr" as const, label: "Base website", minimum: pricingRange.minBase },
+                  { field: "weddingBasePriceInr" as const, label: "Wedding · first ceremony", minimum: pricingRange.minBase },
+                  { field: "weddingAdditionalCeremonyPriceInr" as const, label: "Wedding · additional ceremony", minimum: pricingRange.minFeature },
+                  { field: "weddingRsvpPriceInr" as const, label: "Wedding · WhatsApp RSVP", minimum: pricingRange.minFeature },
+                  { field: "weddingCustomRevealMusicPriceInr" as const, label: "Wedding · reveal music per ceremony", minimum: pricingRange.minFeature },
+                ].map((item) => (
+                  <label key={item.field} className="text-xs font-medium text-white/65">{item.label}
+                    <span className="relative mt-1.5 block"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35">₹</span><input type="number" min={item.minimum} max={pricingRange.max} step="1" value={pricingSettings[item.field]} onChange={(event) => setPrice(item.field, Number(event.target.value))} className="input-field w-full py-2 pl-7 text-sm" /></span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-5">
+              <h3 className="text-sm font-semibold text-white">Birthday and celebration add-ons</h3>
+              <div className="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                {FEATURE_ADDONS.map((addon) => (
+                  <label key={addon.id} className="text-xs font-medium text-white/65"><span className="mr-1" aria-hidden="true">{addon.icon}</span>{addon.label}
+                    <span className="relative mt-1.5 block"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35">₹</span><input type="number" min={pricingRange.minFeature} max={pricingRange.max} step="1" value={pricingSettings.addonPrices[addon.id]} onChange={(event) => setAddonPrice(addon.id, Number(event.target.value))} className="input-field w-full py-2 pl-7 text-sm" /></span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-5 text-xs text-white/35">Use ₹0 to make an add-on free. Base prices must remain at least ₹{pricingRange.minBase}.</p>
+            </div>
+          </section>
+        )}
+
+        {tab === "edits" && (
+          <section className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.025]">
+            <div className="flex items-center justify-between border-b border-white/[0.08] p-5">
+              <div>
+                <div className="flex items-center gap-2"><PencilLine size={17} className="text-amber-300" /><h2 className="font-semibold">Minor edit requests</h2></div>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Approve only recipient/couple names and the main event date. Media and design changes are never included.</p>
+              </div>
+              <span className="text-xs font-semibold text-amber-300">{pendingEditRequests.length} pending</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-white/[0.08] bg-white/[0.02]">{["Customer", "Current", "Requested", "Submitted", "Status", "Action"].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{heading}</th>)}</tr></thead>
+                <tbody>
+                  {editRequests.map((request) => {
+                    const currentName = request.occasionType === "wedding" ? `${request.currentValues.partnerOne} & ${request.currentValues.partnerTwo}` : request.currentValues.recipientName;
+                    const requestedName = request.occasionType === "wedding" ? `${request.requestedValues.partnerOne} & ${request.requestedValues.partnerTwo}` : request.requestedValues.recipientName;
+                    return (
+                      <tr key={request.id} className="border-b border-white/[0.06] align-top">
+                        <td className="px-4 py-3"><div className="font-medium">{request.userEmail || "Unknown user"}</div><div className="mt-1 font-mono text-[0.68rem] text-white/30">{request.celebrationId}</div></td>
+                        <td className="px-4 py-3"><div>{currentName}</div><div className="mt-1 text-xs text-white/40">{request.currentValues.eventDate}</div></td>
+                        <td className="px-4 py-3"><div className="font-semibold text-amber-100">{requestedName}</div><div className="mt-1 text-xs text-amber-300/70">{request.requestedValues.eventDate}</div></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--text-muted)]">{request.createdAt ? new Date(request.createdAt).toLocaleDateString("en-IN") : "—"}</td>
+                        <td className="px-4 py-3"><span className={request.status === "approved" ? "text-emerald-300" : request.status === "rejected" ? "text-rose-300" : "text-amber-300"}>{request.status}</span>{request.adminNote && <div className="mt-1 max-w-48 text-xs text-white/40">{request.adminNote}</div>}</td>
+                        <td className="min-w-64 px-4 py-3">
+                          {request.status === "pending" ? <div className="space-y-2">
+                            <input value={editReviewNotes[request.id] ?? ""} onChange={(event) => setEditReviewNotes((notes) => ({ ...notes, [request.id]: event.target.value }))} maxLength={200} placeholder="Optional approval note / rejection reason" className="input-field w-full py-1.5 text-xs" />
+                            <div className="flex gap-2">
+                              <button type="button" disabled={processingEditRequest === request.id} onClick={() => void processEditRequest(request, "approved")} className="rounded bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-300 disabled:opacity-50">Approve edit</button>
+                              <button type="button" disabled={processingEditRequest === request.id} onClick={() => void processEditRequest(request, "rejected")} className="rounded bg-rose-500/10 px-2.5 py-1.5 text-xs font-semibold text-rose-300 disabled:opacity-50">Reject</button>
+                            </div>
+                          </div> : <span className="text-xs text-[var(--text-muted)]">Processed</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!fetching && editRequests.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-[var(--text-muted)]">No edit requests yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </section>
         )}
 
         {tab === "launch" && (

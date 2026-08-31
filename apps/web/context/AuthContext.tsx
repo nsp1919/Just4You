@@ -16,6 +16,8 @@ import {
   GoogleAuthProvider,
   signOut,
   updateProfile,
+  browserLocalPersistence,
+  setPersistence,
 } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -106,16 +108,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const login = async (email: string, password: string) => {
+    await setPersistence(auth, browserLocalPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const register = async (name: string, email: string, password: string) => {
+    await setPersistence(auth, browserLocalPersistence);
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     await createUserDoc(cred.user, name);
   };
 
   const loginWithGoogle = async () => {
+    await setPersistence(auth, browserLocalPersistence);
     const provider = new GoogleAuthProvider();
     const cred = await signInWithPopup(auth, provider);
     await createUserDoc(cred.user, cred.user.displayName ?? "User");

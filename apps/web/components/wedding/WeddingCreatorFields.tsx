@@ -5,13 +5,10 @@ import { useState } from "react";
 import {
   DEFAULT_WEDDING_CEREMONIES,
   MAX_WEDDING_CEREMONIES,
-  WEDDING_ADDITIONAL_CEREMONY_PRICE_INR,
-  WEDDING_BASE_PRICE_INR,
-  WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR,
-  WEDDING_RSVP_PRICE_INR,
   type WeddingCeremonyDraft,
   type WeddingDataDraft,
 } from "@/lib/constants";
+import { usePricingSettings } from "@/lib/use-pricing-settings";
 
 interface WeddingDataProps {
   value: WeddingDataDraft;
@@ -55,6 +52,7 @@ export function WeddingDetailsEditor({
   message: string;
   onMessageChange: (message: string) => void;
 }) {
+  const { pricing } = usePricingSettings();
   const setField = <Key extends keyof WeddingDataDraft>(field: Key, nextValue: WeddingDataDraft[Key]) => {
     onChange({ ...value, [field]: nextValue });
   };
@@ -107,7 +105,7 @@ export function WeddingDetailsEditor({
         <label className="flex cursor-pointer items-start gap-3">
           <input type="checkbox" checked={value.rsvpEnabled} onChange={(event) => setField("rsvpEnabled", event.target.checked)} className="mt-1 h-4 w-4" style={{ accentColor: "#22c55e" }} />
           <span>
-            <strong className="block text-sm">Add WhatsApp RSVP · ₹49</strong>
+            <strong className="block text-sm">Add WhatsApp RSVP · ₹{pricing.weddingRsvpPriceInr}</strong>
             <small className="mt-1 block text-[var(--text-muted)]">Guests can confirm attendance, ceremonies and guest count through WhatsApp.</small>
           </span>
         </label>
@@ -152,26 +150,26 @@ export function WeddingDetailsEditor({
           <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] p-3">
             <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-emerald-300">First festival</span>
             <strong className="mt-1 block text-lg text-white">Included</strong>
-            <small className="text-white/45">in ₹{WEDDING_BASE_PRICE_INR} base</small>
+            <small className="text-white/45">in ₹{pricing.weddingBasePriceInr} base</small>
           </div>
           <div className="rounded-xl border border-amber-400/30 bg-amber-400/[0.08] p-3">
             <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-amber-200">Each extra festival</span>
-            <strong className="mt-1 block text-xl text-amber-300">+₹{WEDDING_ADDITIONAL_CEREMONY_PRICE_INR}</strong>
+            <strong className="mt-1 block text-xl text-amber-300">+₹{pricing.weddingAdditionalCeremonyPriceInr}</strong>
           </div>
           <div className="rounded-xl border border-fuchsia-400/25 bg-fuchsia-400/[0.07] p-3">
             <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-fuchsia-200">Custom music</span>
-            <strong className="mt-1 block text-xl text-fuchsia-300">+₹{WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR}</strong>
+            <strong className="mt-1 block text-xl text-fuchsia-300">+₹{pricing.weddingCustomRevealMusicPriceInr}</strong>
             <small className="text-white/45">per festival</small>
           </div>
           <div className="rounded-xl border border-green-400/25 bg-green-400/[0.07] p-3">
             <span className="block text-[0.62rem] font-bold uppercase tracking-wider text-green-200">WhatsApp RSVP</span>
-            <strong className="mt-1 block text-xl text-green-300">+₹{WEDDING_RSVP_PRICE_INR}</strong>
+            <strong className="mt-1 block text-xl text-green-300">+₹{pricing.weddingRsvpPriceInr}</strong>
           </div>
         </div>
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">Choose wedding celebrations *</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">The first ceremony is included. Every ceremony after it adds ₹49.</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">The first ceremony is included. Every ceremony after it adds ₹{pricing.weddingAdditionalCeremonyPriceInr}.</p>
           </div>
           <span className="text-xs font-semibold text-amber-300">{selectedCount} selected</span>
         </div>
@@ -187,7 +185,7 @@ export function WeddingDetailsEditor({
                 className={`relative min-h-24 rounded-xl border px-3 pb-3 pt-8 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${ceremony.selected ? "border-amber-400/60 bg-amber-400/10 text-white" : "border-white/10 bg-white/[0.03] text-white/55"}`}
               >
                 <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[0.62rem] font-extrabold ${isIncluded ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-300"}`}>
-                  {isIncluded ? "Included" : `+₹${WEDDING_ADDITIONAL_CEREMONY_PRICE_INR}`}
+                  {isIncluded ? "Included" : `+₹${pricing.weddingAdditionalCeremonyPriceInr}`}
                 </span>
                 <span className="flex items-center gap-1.5 text-sm font-bold">
                   {ceremony.selected && <Check size={13} className="text-amber-300" />}
@@ -294,6 +292,7 @@ export function WeddingPosterEditor({ value, onChange }: WeddingDataProps) {
 }
 
 export function WeddingRevealMusicEditor({ value, onChange }: WeddingDataProps) {
+  const { pricing } = usePricingSettings();
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selected = value.ceremonies.filter((ceremony) => ceremony.selected);
@@ -321,7 +320,7 @@ export function WeddingRevealMusicEditor({ value, onChange }: WeddingDataProps) 
         <Music className="text-amber-300" size={22} />
         <div>
           <h3 className="font-semibold">Music for each festival reveal</h3>
-          <p className="text-xs text-[var(--text-muted)]">Optional · ₹29 each. The selected track starts when that poster opens. Without one, default music is used.</p>
+          <p className="text-xs text-[var(--text-muted)]">Optional · ₹{pricing.weddingCustomRevealMusicPriceInr} each. The selected track starts when that poster opens. Without one, default music is used.</p>
         </div>
       </div>
       {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
@@ -331,7 +330,7 @@ export function WeddingRevealMusicEditor({ value, onChange }: WeddingDataProps) 
             <div className="min-w-32">
               <strong className="block text-sm">{ceremony.name}</strong>
               <span className="mt-1 inline-block rounded-full bg-fuchsia-400/15 px-2 py-0.5 text-[0.62rem] font-extrabold text-fuchsia-300">
-                +₹{WEDDING_CUSTOM_REVEAL_MUSIC_PRICE_INR} custom music
+                +₹{pricing.weddingCustomRevealMusicPriceInr} custom music
               </span>
             </div>
             {ceremony.revealMusicUrl ? (

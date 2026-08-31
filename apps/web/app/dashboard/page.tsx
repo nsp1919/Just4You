@@ -11,6 +11,7 @@ import { Plus, ExternalLink, Copy, Share2, Eye, Clock, CheckCircle, XCircle, Log
 import ReferralCard from "@/components/ReferralCard";
 import QRCodeCard from "@/components/QRCodeCard";
 import ShareAssetGenerator from "@/components/ShareAssetGenerator";
+import CelebrationEditRequest, { type MinorEditRequest } from "@/components/CelebrationEditRequest";
 
 interface Celebration {
   id: string;
@@ -31,6 +32,7 @@ interface Celebration {
   weddingData?: {
     rsvpEnabled?: boolean;
     videoUrl?: string;
+    couple?: { partnerOne?: string; partnerTwo?: string };
   };
 }
 
@@ -40,6 +42,7 @@ export default function DashboardPage() {
   const [celebrations, setCelebrations] = useState<Celebration[]>([]);
   const [fetching, setFetching] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [editRequests, setEditRequests] = useState<Record<string, MinorEditRequest>>({});
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -55,7 +58,11 @@ export default function DashboardPage() {
           // Note: orderBy("createdAt") removed — requires composite index.
           // Sorting is handled client-side below instead.
         );
-        const snap = await getDocs(q);
+        const token = await user.getIdToken();
+        const [snap, editRequestsResponse] = await Promise.all([
+          getDocs(q),
+          fetch("/api/celebration-edit-requests", { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
         const docs = snap.docs
           .map((d) => ({ id: d.id, ...d.data() } as Celebration))
           .sort((a, b) => {
@@ -64,6 +71,11 @@ export default function DashboardPage() {
             return bTime - aTime; // newest first
           });
         setCelebrations(docs);
+        if (editRequestsResponse.ok) {
+          const result = await editRequestsResponse.json();
+          const requests = Array.isArray(result.requests) ? result.requests as MinorEditRequest[] : [];
+          setEditRequests(Object.fromEntries(requests.map((request) => [request.celebrationId, request])));
+        }
       } catch (err) {
         console.error("Failed to fetch celebrations:", err);
       } finally {
@@ -339,6 +351,7 @@ export default function DashboardPage() {
                         <UsersRound size={14} className="text-pink-300" /> Collect memories
                       </Link>
                       {c.isActive && <Link href={`/dashboard/reactions/${c.id}`} className="flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-xs font-semibold text-white/65 transition-colors hover:border-cyan-300/25 hover:text-cyan-200"><Clapperboard size={14} className="text-cyan-300" /> Reaction reward</Link>}
+                      {c.isActive && <CelebrationEditRequest celebration={c} request={editRequests[c.id]} onSubmitted={(request) => setEditRequests((current) => ({ ...current, [c.id]: request }))} />}
                       {c.occasionType === "wedding" && c.weddingData?.rsvpEnabled && <Link href={`/dashboard/rsvp/${c.id}`} className="flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-xs font-semibold text-white/65 transition-colors hover:border-emerald-300/25 hover:text-emerald-200"><ClipboardList size={14} className="text-emerald-300" /> Guest RSVPs</Link>}
                       {c.occasionType === "wedding" && c.paymentStatus === "paid" && <Link href={`/dashboard/edit/${c.id}`} className="flex min-h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-2.5 text-xs font-semibold text-white/65 transition-colors hover:border-amber-300/25 hover:text-amber-200"><ImagePlus size={14} className="text-amber-300" /> Edit invitation</Link>}
                     </div>
