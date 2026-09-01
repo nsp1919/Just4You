@@ -39,7 +39,7 @@ export default function LivePreviewModal({ data, photos, musicData, occasionType
   oneYear.setFullYear(oneYear.getFullYear() + 1);
 
   const previewCelebration = {
-    id: "preview",
+    id: "demo-preview",
     recipientName: data.recipientName || "Your Loved One",
     birthdayDate: data.birthdayDate || "2000-01-01",
     eventDate: data.birthdayDate || "2000-01-01",

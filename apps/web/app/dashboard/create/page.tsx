@@ -2,8 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, computeWeddingPriceInr, weddingPriceBreakdown, MAX_WEDDING_CEREMONIES, formatInr, FEATURE_ADDONS, BASE_PACKAGE, HOSTING_FEATURE_IDS, featureAddonsWithPricing, hostingYearsFor } from "@/lib/constants";
 import type { Theme, OccasionType, FeatureId, WeddingDataDraft, PricingSettings } from "@/lib/constants";
 import { loadCartFeatures, saveCartFeatures } from "@/lib/cart";
@@ -1772,28 +1771,22 @@ export default function CreatePage() {
           pricePaise: occasionType === "wedding" ? priceInr * 100 : computePricePaise(activeFeatures, pricing),
         };
 
-        if (celebrationId) {
-          await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, celebrationId), draftData);
-        } else {
-          const docRef = await addDoc(collection(db, COLLECTIONS.CELEBRATIONS), {
-            ...draftData,
-            userId: user.uid,
-            paymentStatus: "pending",
-            isActive: false,
-            isBlocked: false,
-            views: 0,
-            razorpayOrderId: "",
-            slug: "",
-            createdAt: serverTimestamp(),
-            expiresAt: null,
-          });
-          setCelebrationId(docRef.id);
+        const token = await user.getIdToken();
+        const response = await fetch("/api/celebrations/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ celebrationId, draft: draftData }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || typeof result.celebrationId !== "string") {
+          throw new Error(result.error ?? "Unable to save this celebration.");
         }
+        setCelebrationId(result.celebrationId);
         setStep(6);
         trackEvent("checkout_started", { occasionType, theme: formData.theme });
       } catch (err) {
-        console.error("Firestore save error:", err);
-        alert("Failed to save celebration. Please try again.");
+        console.error("Celebration save error:", err);
+        alert(err instanceof Error ? err.message : "Failed to save celebration. Please try again.");
       } finally {
         setSaving(false);
       }

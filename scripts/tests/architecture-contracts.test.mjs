@@ -37,3 +37,13 @@ test("browser uploads use signed authorization instead of unsigned presets", asy
   }
   assert.match(uploadSources.join("\n"), /uploadCloudinaryFile\(/);
 });
+
+test("checkout drafts use the authenticated server boundary and previews stay offline", async () => {
+  const [createPage, preview] = await Promise.all([
+    source("apps/web/app/dashboard/create/page.tsx"),
+    source("apps/web/components/create-flow/LivePreviewModal.tsx"),
+  ]);
+  assert.match(createPage, /fetch\("\/api\/celebrations\/draft"/);
+  assert.doesNotMatch(createPage, /addDoc\(|updateDoc\(/);
+  assert.match(preview, /id:\s*"demo-preview"/);
+});
