@@ -6,6 +6,7 @@ import { getOccasionContent } from "../../lib/occasionContent";
 import StoryCardModal from "../StoryCardModal";
 import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
+import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
 
@@ -14,6 +15,7 @@ interface Celebration {
   recipientName: string; birthdayDate: string; message: string;
   photos: string[]; musicType: string; musicPresetId?: string; musicUploadUrl?: string;
   voiceMessageUrl?: string;
+  videoMessageUrl?: string;
   occasionType?: any; relation?: any; relationCustom?: any;
   views?: number;
 }
@@ -138,7 +140,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
   const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
-  return (<><audio ref={audioRef} src={url} loop /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 flex items-center justify-center transition-all hover:scale-110" style={{ background: "rgba(201,170,122,0.15)", border: "2px solid #8b5a2b", borderRadius: 0 }}>{playing ? <Volume2 size={18} color="#c9aa7a" /> : <VolumeX size={18} color="#c9aa7a" />}</button></>);
+  return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 flex items-center justify-center transition-all hover:scale-110" style={{ background: "rgba(201,170,122,0.15)", border: "2px solid #8b5a2b", borderRadius: 0 }}>{playing ? <Volume2 size={18} color="#c9aa7a" /> : <VolumeX size={18} color="#c9aa7a" />}</button></>);
 }
 
 function ShareBar({ name }: { name: string }) {
@@ -320,6 +322,9 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
           </div>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#c9a84c" isDark={true} label="A voice note, sealed with love 📜" />
+          )}
+          {celebration.videoMessageUrl && (
+            <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#c9a84c" isDark={true} label="A moving picture, just for you 🎞️" />
           )}
         </div>
       </section>

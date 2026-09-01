@@ -73,11 +73,11 @@ export default function BrandFooter({ slug, celebrationId, recipientName, referr
           {referralCode ? "Loved your surprise? Make one for someone else." : "Want to surprise someone you love?"}
         </h3>
         <p style={{ color: "#b9a6be", fontSize: "0.92rem", lineHeight: 1.6, margin: "0 0 22px" }}>
-          {referralCode ? "Join through this surprise and get ₹50 promotional credit toward your first creation." : "Create your own personalized celebration website in minutes — photos, music and heartfelt messages they'll treasure forever."}
+          {referralCode ? "Join through this surprise and get ₹50 promotional credit toward your first creation." : "Choose the occasion, build your package, then add the details that make it personal."}
         </p>
 
         <Link
-          href={referralCode ? `/register?ref=${encodeURIComponent(referralCode)}` : "/dashboard/create"}
+          href={referralCode ? `/register?ref=${encodeURIComponent(referralCode)}&next=${encodeURIComponent("/dashboard/create")}` : "/dashboard/create"}
           onClick={() => trackEvent("viral_footer_cta_click", { slug })}
           style={{
             display: "inline-flex",

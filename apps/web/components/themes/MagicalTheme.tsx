@@ -99,7 +99,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
   const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
-  return (<><audio ref={audioRef} src={url} loop /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg border-2 border-rose-400 bg-white">{playing ? <Volume2 size={18} className="text-rose-500" /> : <VolumeX size={18} className="text-rose-500" />}</button></>);
+  return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg border-2 border-rose-400 bg-white">{playing ? <Volume2 size={18} className="text-rose-500" /> : <VolumeX size={18} className="text-rose-500" />}</button></>);
 }
 
 function ShareBar({ name }: { name: string }) {
@@ -368,7 +368,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
             </p>
           </AnimLine>
           <AnimLine delay={600} className="text-lg text-rose-400 font-comic opacity-80">
-            This magical card was built just for you — save it forever! 🧸
+            This magical card was built just for you — visit again whenever you want! 🧸
           </AnimLine>
           <AnimLine delay={700} className="text-sm text-slate-400 mt-4">
             Made with ❤️ on <a href="https://just4you.in" className="text-rose-500 font-bold hover:underline">Just4You</a>

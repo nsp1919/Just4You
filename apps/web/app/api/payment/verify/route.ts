@@ -4,7 +4,8 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
-import { VALIDITY_DAYS } from "@/lib/constants";
+import { hostingExpiryDateFor } from "@/lib/constants";
+import { getCelebrationUrl } from "@/lib/celebration-url";
 import { settlePaidReferralBenefits } from "@/lib/referral-server";
 import { notifyAdminOfPaidOrder } from "@/lib/order-notification";
 
@@ -80,25 +81,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Payment does not match this celebration" }, { status: 400 });
     }
     if (celebSnap.data()?.paymentStatus === "paid" && celebSnap.data()?.slug) {
+      const paidCelebration = celebSnap.data()!;
       return NextResponse.json({
         success: true,
-        slug: celebSnap.data()!.slug,
-        url: `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${celebSnap.data()!.slug}`,
+        slug: paidCelebration.slug,
+        vanitySlug: paidCelebration.checkoutVanitySlug ?? "",
+        url: getCelebrationUrl(paidCelebration.slug, paidCelebration.checkoutVanitySlug),
       });
     }
 
-    // Hosting length depends on the purchased hosting tier (default 1 year).
-    const hostingFeatures: string[] = Array.isArray(celebSnap.data()?.selectedFeatures)
-      ? celebSnap.data()!.selectedFeatures
+    // Use the immutable checkout snapshot. Older orders fall back to the draft field.
+    const hostingFeatures: string[] = Array.isArray(celebSnap.data()?.checkoutFeatures)
+      ? celebSnap.data()!.checkoutFeatures
+      : Array.isArray(celebSnap.data()?.selectedFeatures)
+        ? celebSnap.data()!.selectedFeatures
       : [];
-    const hostingDays = hostingFeatures.includes("hosting_lifetime")
-      ? 36500 // ~100 years = effectively lifetime
-      : hostingFeatures.includes("hosting_3yr")
-        ? VALIDITY_DAYS * 3
-        : VALIDITY_DAYS;
-    const expiresAt = Timestamp.fromDate(
-      new Date(Date.now() + hostingDays * 24 * 60 * 60 * 1000)
-    );
+    const expiryDate = hostingExpiryDateFor(hostingFeatures);
+    const expiresAt = expiryDate ? Timestamp.fromDate(expiryDate) : null;
 
     await celebRef.update({
       slug,
@@ -106,6 +105,8 @@ export async function POST(req: NextRequest) {
       paymentStatus: "paid",
       isActive: true,
       expiresAt,
+      selectedFeatures: hostingFeatures,
+      vanitySlug: celebSnap.data()?.checkoutVanitySlug ?? "",
     });
 
     try {
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
     const occasionLabel = occasion === "anniversary" ? "Anniversary" : occasion === "proposal" ? "Proposal" : occasion === "kids-birthday" ? "Kids Birthday" : "Birthday";
 
     // Send confirmation email
-    const birthdayUrl = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}`;
+    const birthdayUrl = getCelebrationUrl(slug, celebData.checkoutVanitySlug);
     const whatsappMsg = encodeURIComponent(`${occasionEmoji} I created a beautiful ${occasionLabel.toLowerCase()} surprise website for you!\n\nVisit: ${birthdayUrl}`);
     const whatsappUrl = `https://wa.me/?text=${whatsappMsg}`;
 
@@ -165,7 +166,9 @@ export async function POST(req: NextRequest) {
       </div>
     </div>
     <p style="text-align:center;color:#9b8ec4;font-size:12px;margin-top:24px">
-      This website will stay live until ${expiresAt.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}.<br/>
+      ${expiresAt
+        ? `This website will stay live until ${expiresAt.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}.`
+        : "Lifetime Hosting is active, so this website has no automatic expiry while Just4You continues operating the hosting service."}<br/>
       Made with ❤️ by Just4You
     </p>
   </div>
@@ -179,7 +182,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, slug, url: birthdayUrl });
+    return NextResponse.json({ success: true, slug, vanitySlug: celebData.checkoutVanitySlug ?? "", url: birthdayUrl });
   } catch (error: any) {
     console.error("verify-payment error:", error);
     return NextResponse.json({ error: "Payment verification failed" }, { status: 500 });

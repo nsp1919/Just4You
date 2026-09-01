@@ -92,8 +92,14 @@ export async function POST(req: NextRequest) {
     try {
       benefits = await reserveCheckoutBenefits(decoded.uid, celebrationId, celebFeatures);
     } catch (error: any) {
+      if (error?.message === "CUSTOM_LINK_TAKEN") {
+        return NextResponse.json({ error: "That custom link is already taken. Choose another name." }, { status: 409 });
+      }
+      if (error?.message === "INVALID_CUSTOM_LINK") {
+        return NextResponse.json({ error: "Enter a custom link containing at least 3 letters or numbers." }, { status: 400 });
+      }
       const status = error?.message === "CHECKOUT_ALREADY_PENDING" ? 409 : 400;
-      return NextResponse.json({ error: "Unable to reserve checkout benefits. Please retry shortly." }, { status });
+      return NextResponse.json({ error: "Unable to reserve checkout. Please review your selections and try again." }, { status });
     }
 
     let order;

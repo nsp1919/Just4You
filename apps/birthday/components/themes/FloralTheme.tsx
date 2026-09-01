@@ -6,6 +6,7 @@ import { getOccasionContent } from "../../lib/occasionContent";
 import StoryCardModal from "../StoryCardModal";
 import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
+import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
 
@@ -14,6 +15,7 @@ interface Celebration {
   recipientName: string; birthdayDate: string; message: string;
   photos: string[]; musicType: string; musicPresetId?: string; musicUploadUrl?: string;
   voiceMessageUrl?: string;
+  videoMessageUrl?: string;
   occasionType?: any; relation?: any; relationCustom?: any;
   views?: number;
 }
@@ -103,7 +105,7 @@ function MusicPlayer({ celebration, accent }: { celebration: Celebration; accent
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
   const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
-  return (<><audio ref={audioRef} src={url} loop /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${accent}33`, border: `1px solid ${accent}88`, backdropFilter: "blur(12px)" }}>{playing ? <Volume2 size={18} color={accent} /> : <VolumeX size={18} color={accent} />}</button></>);
+  return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${accent}33`, border: `1px solid ${accent}88`, backdropFilter: "blur(12px)" }}>{playing ? <Volume2 size={18} color={accent} /> : <VolumeX size={18} color={accent} />}</button></>);
 }
 
 function ShareBar({ name, accent, celebrationHeading }: { name: string; accent: string; celebrationHeading: string }) {
@@ -263,6 +265,9 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
           </div>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#c2185b" isDark={false} />
+          )}
+          {celebration.videoMessageUrl && (
+            <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#c2185b" isDark={false} />
           )}
         </div>
       </section>

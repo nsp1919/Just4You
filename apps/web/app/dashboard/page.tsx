@@ -12,6 +12,7 @@ import ReferralCard from "@/components/ReferralCard";
 import QRCodeCard from "@/components/QRCodeCard";
 import ShareAssetGenerator from "@/components/ShareAssetGenerator";
 import CelebrationEditRequest, { type MinorEditRequest } from "@/components/CelebrationEditRequest";
+import { getCelebrationUrl } from "@/lib/celebration-url";
 
 interface Celebration {
   id: string;
@@ -24,7 +25,8 @@ interface Celebration {
   isActive: boolean;
   views: number;
   createdAt: Timestamp;
-  expiresAt: Timestamp;
+  expiresAt: Timestamp | null;
+  checkoutVanitySlug?: string;
   photos: string[];
   occasionType?: OccasionType;
   relation?: string;
@@ -85,15 +87,16 @@ export default function DashboardPage() {
     fetchCelebrations();
   }, [user]);
 
-  const copyLink = async (slug: string) => {
-    const url = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}`;
+  const copyLink = async (celebration: Celebration) => {
+    const url = getCelebrationUrl(celebration.slug, celebration.checkoutVanitySlug);
     await navigator.clipboard.writeText(url);
-    setCopied(slug);
+    setCopied(celebration.id);
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const shareWhatsApp = (slug: string, name: string, occasionType?: OccasionType) => {
-    const url = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}`;
+  const shareWhatsApp = (celebration: Celebration) => {
+    const { recipientName: name, occasionType } = celebration;
+    const url = getCelebrationUrl(celebration.slug, celebration.checkoutVanitySlug);
     let shareText = `🎂 Happy Birthday ${name}! I made this special birthday website for you!\n\n${url}`;
     if (occasionType === "anniversary") {
       shareText = `💍 Happy Anniversary ${name}! I made this special website to celebrate our love!\n\n${url}`;
@@ -108,7 +111,7 @@ export default function DashboardPage() {
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
 
-  const isExpired = (expiresAt: Timestamp) => {
+  const isExpired = (expiresAt: Timestamp | null) => {
     return expiresAt && expiresAt.toDate() < new Date();
   };
 
@@ -177,7 +180,7 @@ export default function DashboardPage() {
             </h1>
           </div>
           <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }} className="self-start sm:self-auto">
-            <Link href="/pricing" id="create-new-btn" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-[#ff8a5c] to-[#ff5f93] px-5 text-sm font-bold text-white shadow-[0_10px_28px_rgba(255,95,147,0.22)] transition-transform hover:-translate-y-0.5">
+            <Link href="/dashboard/create" id="create-new-btn" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-gradient-to-r from-[#ff8a5c] to-[#ff5f93] px-5 text-sm font-bold text-white shadow-[0_10px_28px_rgba(255,95,147,0.22)] transition-transform hover:-translate-y-0.5">
               <Plus size={17} /> Create New Website
             </Link>
           </motion.div>
@@ -254,7 +257,7 @@ export default function DashboardPage() {
               <p className="text-[var(--text-muted)] text-sm mb-7 max-w-sm mx-auto">
                 Create your first personalized surprise and make someone feel truly special.
               </p>
-              <Link href="/pricing" className="btn-primary glow-purple">
+              <Link href="/dashboard/create" className="btn-primary glow-purple">
                 <Plus size={16} /> Create Your First Website
               </Link>
             </div>
@@ -280,7 +283,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {group.items.map((c, i) => {
               const expired = isExpired(c.expiresAt);
-              const url = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${c.slug}`;
+              const url = getCelebrationUrl(c.slug, c.checkoutVanitySlug);
               const occasion = OCCASIONS.find((o) => o.id === c.occasionType) ?? OCCASIONS[0];
               const displayDate = c.eventDate || c.birthdayDate;
               return (
@@ -364,13 +367,13 @@ export default function DashboardPage() {
                           <ExternalLink size={12} /> View
                         </a>
                         <button
-                          onClick={() => copyLink(c.slug)}
+                          onClick={() => copyLink(c)}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all glass hover:brightness-125"
                           style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-                          {copied === c.slug ? <><CheckCircle size={12} className="text-green-400" /> Copied!</> : <><Copy size={12} /> Copy</>}
+                          {copied === c.id ? <><CheckCircle size={12} className="text-green-400" /> Copied!</> : <><Copy size={12} /> Copy</>}
                         </button>
                         <button
-                          onClick={() => shareWhatsApp(c.slug, c.recipientName, c.occasionType)}
+                          onClick={() => shareWhatsApp(c)}
                           className="flex items-center justify-center p-2 rounded-lg transition-all hover:brightness-110"
                           style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.24)", color: "#25d366" }} title="Share on WhatsApp" aria-label={`Share ${c.recipientName}'s website on WhatsApp`}>
                           <Share2 size={14} />

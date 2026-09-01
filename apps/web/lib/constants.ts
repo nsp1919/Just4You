@@ -107,14 +107,14 @@ export const FEATURE_ADDONS: FeatureAddon[] = [
   {
     id: "hosting_lifetime",
     label: "Lifetime Hosting",
-    description: "Keep this keepsake online forever — never expires.",
+    description: "No automatic expiry while Just4You continues operating this hosting service.",
     priceInr: 299,
     icon: "♾️",
   },
   {
     id: "advanced_analytics",
     label: "Advanced Analytics",
-    description: "See who opened it, when, from where and on what device.",
+    description: "See anonymous visit counts, dates, referral sources and device types. City data depends on hosting support.",
     priceInr: 49,
     icon: "📊",
   },
@@ -164,6 +164,25 @@ export function hostingYearsFor(features: string[] = []): number | "lifetime" {
   if (features.includes("hosting_lifetime")) return "lifetime";
   if (features.includes("hosting_3yr")) return 3;
   return 1;
+}
+
+export function hostingExpiryDateFor(features: string[] = [], startsAt = new Date()): Date | null {
+  const years = hostingYearsFor(features);
+  if (years === "lifetime") return null;
+
+  const expiresAt = new Date(startsAt);
+  expiresAt.setFullYear(expiresAt.getFullYear() + years);
+  return expiresAt;
+}
+
+export function normalizeVanitySlug(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
 }
 
 // Convenience presets that pre-select a set of add-ons. Prices are still the

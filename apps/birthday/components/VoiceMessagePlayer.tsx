@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Play, Pause, Mic } from "lucide-react";
+import { setForegroundMediaPlaying } from "../lib/mediaPlayback";
 
 interface Props {
   url: string;
@@ -21,12 +22,15 @@ const BAR_DELAYS = [0, 120, 240, 80, 200, 40, 160, 300, 100, 220, 60, 180];
 const BAR_DURATIONS = [0.6, 0.8, 0.7, 0.9, 0.65, 0.75, 0.85, 0.7, 0.8, 0.6, 0.9, 0.7];
 
 export default function VoiceMessagePlayer({ url, accentColor = "#a855f7", isDark = true, label = "Voice Message from your loved one" }: Props) {
+  const mediaId = useId();
   const audioRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [hasPlayed, setHasPlayed] = useState(false);
+
+  useEffect(() => () => setForegroundMediaPlaying(mediaId, false), [mediaId]);
 
   // Auto-play when scrolled into view (once)
   useEffect(() => {
@@ -86,6 +90,14 @@ export default function VoiceMessagePlayer({ url, accentColor = "#a855f7", isDar
       <audio
         ref={audioRef}
         src={url}
+        onPlay={() => {
+          setPlaying(true);
+          setForegroundMediaPlaying(mediaId, true);
+        }}
+        onPause={() => {
+          setPlaying(false);
+          setForegroundMediaPlaying(mediaId, false);
+        }}
         onTimeUpdate={() => {
           const a = audioRef.current;
           if (a) setProgress(a.currentTime / (a.duration || 1));
@@ -94,7 +106,10 @@ export default function VoiceMessagePlayer({ url, accentColor = "#a855f7", isDar
           const a = audioRef.current;
           if (a) setDuration(a.duration);
         }}
-        onEnded={() => setPlaying(false)}
+        onEnded={() => {
+          setPlaying(false);
+          setForegroundMediaPlaying(mediaId, false);
+        }}
       />
 
       <div

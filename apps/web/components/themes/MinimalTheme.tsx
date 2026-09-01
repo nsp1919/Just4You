@@ -102,7 +102,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
   const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
-  return (<><audio ref={audioRef} src={url} loop /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: "#f5f5f5", border: "1px solid #ddd" }}>{playing ? <Volume2 size={18} color="#333" /> : <VolumeX size={18} color="#333" />}</button></>);
+  return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: "#f5f5f5", border: "1px solid #ddd" }}>{playing ? <Volume2 size={18} color="#333" /> : <VolumeX size={18} color="#333" />}</button></>);
 }
 
 function ShareBar({ name, celebrationHeading }: { name: string; celebrationHeading: string }) {

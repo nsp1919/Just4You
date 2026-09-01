@@ -101,7 +101,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   };
   return (
     <>
-      <audio ref={audioRef} src={trackUrl} loop />
+      <audio ref={audioRef} src={trackUrl} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />
       <button onClick={toggle}
         className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{ background: "rgba(168,85,247,0.35)", border: "1px solid rgba(168,85,247,0.7)", backdropFilter: "blur(12px)" }}>
@@ -591,7 +591,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
           </div>
 
           <AnimLine delay={600} className="font-cormorant text-sm text-purple-400/50 tracking-widest">
-            This website was made just for you — keep it forever. 🌙
+            This website was made just for you — come back whenever you need a smile. 🌙
           </AnimLine>
           <AnimLine delay={700} className="font-cormorant text-sm text-purple-400/35 mt-2">
             Made with ❤️ on{" "}

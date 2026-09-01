@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { COLLECTIONS, FEATURE_ADDONS, PRICE_INR, computePriceInr, formatInr } from "@/lib/constants";
+import { COLLECTIONS, FEATURE_ADDONS, PRICE_INR, computePriceInr, formatInr, hostingYearsFor } from "@/lib/constants";
 import { usePricingSettings } from "@/lib/use-pricing-settings";
 import { ArrowLeft, CreditCard, Camera, Sparkles } from "lucide-react";
 
@@ -19,7 +19,7 @@ interface WalletCheckoutPreview {
 }
 
 // ─── Payment component ────────────────────────────────────────────────────────
-function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasionType, priceInr, onSuccess }: {
+function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasionType, priceInr, onSuccess, hostingTerm = 1 }: {
   celebrationId: string;
   recipientName: string;
   theme: string;
@@ -27,6 +27,7 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
   occasionType: string;
   priceInr: number;
   onSuccess: (slug: string) => void;
+  hostingTerm?: number | "lifetime";
 }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -191,7 +192,7 @@ function PaymentPanel({ celebrationId, recipientName, theme, photoCount, occasio
         </div>
       )}
 
-      <div className="text-xs text-[var(--text-muted)] mb-8">One-time payment • 1 year validity • Instant delivery</div>
+      <div className="text-xs text-[var(--text-muted)] mb-8">One-time payment • {hostingTerm === "lifetime" ? "No automatic expiry" : `${hostingTerm}-year validity`} • Instant delivery</div>
 
       {error && (
         <div className="text-sm text-red-400 p-3 rounded-xl mb-4" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
@@ -306,6 +307,7 @@ export default function PayPage() {
           photoCount={celebration.photos?.length ?? 0}
           occasionType={celebration.occasionType}
           priceInr={computePriceInr(celebration.selectedFeatures ?? [], pricing)}
+          hostingTerm={hostingYearsFor(celebration.selectedFeatures ?? [])}
           onSuccess={(slug) => router.push(`/dashboard/success?slug=${slug}`)}
         />
       </div>

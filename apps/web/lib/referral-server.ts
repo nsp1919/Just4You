@@ -9,6 +9,7 @@ import {
   MAX_WEDDING_CEREMONIES,
   computeWeddingPriceInr,
   computePricePaise,
+  normalizeVanitySlug,
   type PricingSettings,
 } from "@/lib/constants";
 import { normalizeReferralCode } from "@/lib/referral-code";
@@ -169,8 +170,30 @@ export async function reserveCheckoutBenefits(
       throw new Error("CHECKOUT_ALREADY_PENDING");
     }
 
-    const pricing = authoritativeCheckoutPrice(celebration!, features, pricingSettings);
-    const benefits = calculateCheckoutBenefits(user, features, pricing.basePaise, pricing.allowFreeAddon, pricingSettings);
+    const checkoutFeatures = Array.isArray(celebration?.selectedFeatures)
+      ? [...new Set(celebration.selectedFeatures.filter((feature: unknown): feature is string => typeof feature === "string"))]
+      : features;
+    if (checkoutFeatures.includes("hosting_3yr") && checkoutFeatures.includes("hosting_lifetime")) {
+      throw new Error("MULTIPLE_HOSTING_TIERS");
+    }
+
+    const checkoutVanitySlug = checkoutFeatures.includes("custom_link")
+      ? normalizeVanitySlug(celebration?.vanitySlug)
+      : "";
+    if (checkoutFeatures.includes("custom_link") && checkoutVanitySlug.length < 3) {
+      throw new Error("INVALID_CUSTOM_LINK");
+    }
+
+    const vanityRef = checkoutVanitySlug
+      ? adminDb.collection("vanityLinks").doc(checkoutVanitySlug)
+      : null;
+    const vanitySnap = vanityRef ? await transaction.get(vanityRef) : null;
+    if (vanitySnap?.exists && vanitySnap.data()?.celebrationId !== celebrationId) {
+      throw new Error("CUSTOM_LINK_TAKEN");
+    }
+
+    const pricing = authoritativeCheckoutPrice(celebration!, checkoutFeatures, pricingSettings);
+    const benefits = calculateCheckoutBenefits(user, checkoutFeatures, pricing.basePaise, pricing.allowFreeAddon, pricingSettings);
     const withdrawableBalance = resolveWithdrawableBalance(user ?? {}, REFERRAL_REWARD_INR);
     const walletAfterCheckout = debitWalletForCheckout(
       walletBalance,
@@ -184,6 +207,13 @@ export async function reserveCheckoutBenefits(
       walletWithdrawableBalance: walletAfterCheckout.walletWithdrawableBalance,
       freeAddonCredits: freeAddonCredits - (freeAddon ? 1 : 0),
     });
+    if (vanityRef) {
+      transaction.set(vanityRef, {
+        celebrationId,
+        userId,
+        reservedAt: Timestamp.now(),
+      });
+    }
     transaction.update(celebRef, {
       pricePaise: benefits.basePaise,
       chargedPaise: benefits.amountPaise,
@@ -197,6 +227,8 @@ export async function reserveCheckoutBenefits(
       referralBenefitReservationId: reservationId,
       referralBenefitsStatus: "reserved",
       referralBenefitsReservedAt: Timestamp.now(),
+      checkoutFeatures,
+      checkoutVanitySlug: checkoutVanitySlug || FieldValue.delete(),
     });
 
     return {
@@ -219,7 +251,13 @@ export async function releaseCheckoutBenefits(
     if (reservationId && celebration.referralBenefitReservationId !== reservationId) return;
 
     const userRef = adminDb.collection(COLLECTIONS.USERS).doc(celebration.userId);
-    const userSnap = await transaction.get(userRef);
+    const vanityRef = celebration.checkoutVanitySlug
+      ? adminDb.collection("vanityLinks").doc(celebration.checkoutVanitySlug)
+      : null;
+    const [userSnap, vanitySnap] = await Promise.all([
+      transaction.get(userRef),
+      vanityRef ? transaction.get(vanityRef) : Promise.resolve(null),
+    ]);
     if (userSnap.exists) {
       const currentWalletBalance = Math.max(
         0,
@@ -247,9 +285,14 @@ export async function releaseCheckoutBenefits(
       }
       transaction.update(userRef, userUpdate);
     }
+    if (vanityRef && vanitySnap?.data()?.celebrationId === celebrationId) {
+      transaction.delete(vanityRef);
+    }
     transaction.update(celebRef, {
       referralBenefitsStatus: "released",
       referralBenefitsReleasedAt: Timestamp.now(),
+      checkoutFeatures: FieldValue.delete(),
+      checkoutVanitySlug: FieldValue.delete(),
     });
   });
 }

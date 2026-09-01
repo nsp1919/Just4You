@@ -21,6 +21,7 @@ service cloud.firestore {
           'referredBy', 'referralDiscountPaise', 'referralCreditAppliedInr',
           'walletAppliedInr', 'walletWithdrawableAppliedInr',
           'freeAddonFeatureId', 'freeAddonDiscountPaise',
+          'checkoutFeatures', 'checkoutVanitySlug',
           'referralBenefitReservationId', 'referralBenefitsStatus',
           'referralBenefitsReservedAt', 'referralBenefitsReleasedAt',
           'referralBenefitsSettledAt', 'referralRewardSettled',
@@ -222,6 +223,12 @@ service cloud.firestore {
         // No client-side writes — handled by server-side Admin SDK
         allow write: if false;
       }
+    }
+
+    // Vanity names are reserved atomically by the checkout server. Clients
+    // cannot claim, replace, or enumerate these ownership records.
+    match /vanityLinks/{vanitySlug} {
+      allow read, write: if false;
     }
 
     // Social-post reward claims are server-managed. Admin approval performs

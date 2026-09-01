@@ -27,6 +27,13 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [referral, setReferral] = useState<string | null>(null);
 
+  const destinationAfterRegister = () => {
+    const requestedPath = new URLSearchParams(window.location.search).get("next");
+    return requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+      ? requestedPath
+      : "/dashboard";
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       captureReferralFromUrl();
@@ -44,7 +51,7 @@ export default function RegisterPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user) router.replace("/dashboard");
+    if (!authLoading && user) router.replace(destinationAfterRegister());
   }, [authLoading, router, user]);
 
   const strength = (() => {
@@ -71,7 +78,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(name, email, password);
-      router.replace("/dashboard");
+      router.replace(destinationAfterRegister());
     } catch (err: any) {
       const msg =
         err.code === "auth/email-already-in-use"

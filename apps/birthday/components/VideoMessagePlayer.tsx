@@ -10,10 +10,6 @@ interface Props {
   label?: string;
 }
 
-/**
- * Themed video-message player shown inside a surprise page. Adapts its frame
- * colour to each theme via `accentColor` / `isDark`.
- */
 export default function VideoMessagePlayer({
   url,
   accentColor = "#a855f7",

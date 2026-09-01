@@ -32,6 +32,31 @@ interface Props {
 
 const EMOJIS = ["❤️", "😍", "🎉", "🥹", "🙌", "💫", "🔥", "🫶"];
 
+const DEMO_REACTIONS: Reaction[] = [
+  { id: "demo-reaction-1", emoji: "🥹", name: "Riya", message: "This is the sweetest surprise ever!", createdAt: null },
+  { id: "demo-reaction-2", emoji: "🎉", name: "Arjun", message: "Happy birthday! Save some cake for us.", createdAt: null },
+  { id: "demo-reaction-3", emoji: "🫶", name: "Neha", message: "So many beautiful memories in one place.", createdAt: null },
+];
+
+const DEMO_CONTRIBUTIONS: Contribution[] = [
+  {
+    id: "demo-contribution-1",
+    name: "Your best friend",
+    relationship: "Friend",
+    message: "From every late-night laugh to every adventure, life is brighter with you in it.",
+    photoUrl: "/wedding-demo/mehndi.jpg",
+    createdAt: null,
+  },
+  {
+    id: "demo-contribution-2",
+    name: "The whole family",
+    relationship: "Family",
+    message: "We recorded a little wish so you can keep this moment forever.",
+    voiceUrl: "/demo-media/voice-message.wav",
+    createdAt: null,
+  },
+];
+
 const WALL_CSS = `
   @keyframes reactionPop { 0%{transform:scale(0) translateY(20px);opacity:0} 60%{transform:scale(1.1) translateY(-4px)} 100%{transform:scale(1) translateY(0);opacity:1} }
   @keyframes floatHeart { 0%{transform:translateY(0) rotate(-10deg);opacity:1} 100%{transform:translateY(-80px) rotate(10deg);opacity:0} }
@@ -48,8 +73,9 @@ function FloatingHeart({ emoji, x }: { emoji: string; x: number }) {
 }
 
 export default function ReactionWall({ celebrationId, accentColor = "#a855f7", isDark = true }: Props) {
-  const [reactions, setReactions] = useState<Reaction[]>([]);
-  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const isDemo = celebrationId.startsWith("demo-");
+  const [reactions, setReactions] = useState<Reaction[]>(() => isDemo ? DEMO_REACTIONS : []);
+  const [contributions, setContributions] = useState<Contribution[]>(() => isDemo ? DEMO_CONTRIBUTIONS : []);
   const [emoji, setEmoji] = useState("❤️");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
@@ -70,6 +96,8 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
   const cardBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
 
   useEffect(() => {
+    if (isDemo) return;
+
     const reactionsQuery = query(
       collection(db, "celebrations", celebrationId, "reactions"),
       orderBy("createdAt", "desc"),
@@ -103,7 +131,7 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
       unsubscribeReactions();
       unsubscribeContributions();
     };
-  }, [celebrationId]);
+  }, [celebrationId, isDemo]);
 
   const spawnFloater = (em: string) => {
     const id = ++floaterIdRef.current;
@@ -116,6 +144,20 @@ export default function ReactionWall({ celebrationId, accentColor = "#a855f7", i
     if (!name.trim()) return;
     setSubmitting(true);
     try {
+      if (isDemo) {
+        setReactions((current) => [{
+          id: `demo-reaction-${Date.now()}`,
+          emoji,
+          name: name.trim().slice(0, 40),
+          message: message.trim().slice(0, 100),
+          createdAt: null,
+        }, ...current]);
+        spawnFloater(emoji);
+        setSubmitted(true);
+        localStorage.setItem(`gw_reacted_${celebrationId}`, "1");
+        return;
+      }
+
       await addDoc(collection(db, "celebrations", celebrationId, "reactions"), {
         emoji,
         name: name.trim().slice(0, 40),

@@ -141,7 +141,7 @@ export default function AnalyticsPage() {
             <Lock size={22} className="mx-auto text-purple-400 mb-3" />
             <h3 className="font-semibold mb-1">Unlock Advanced Analytics</h3>
             <p className="text-sm text-[var(--text-muted)] mb-4">
-              See who opened it, from where, and on what device. Add it to your next creation for ₹49.
+              See anonymous visit trends, referral sources, and device types. This does not identify individual visitors.
             </p>
             <Link href="/pricing" className="btn-primary text-sm py-2 px-5">Explore add-ons</Link>
           </div>

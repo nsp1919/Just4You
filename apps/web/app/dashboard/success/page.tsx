@@ -7,24 +7,28 @@ import confetti from "canvas-confetti";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/constants";
+import { getCelebrationUrl } from "@/lib/celebration-url";
 import QRCodeCard from "@/components/QRCodeCard";
 
 function SuccessContent() {
   const params = useSearchParams();
   const [slug, setSlug] = useState<string>("");
+  const [vanitySlug, setVanitySlug] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const birthdayUrl = slug ? `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}` : "";
+  const birthdayUrl = slug ? getCelebrationUrl(slug, vanitySlug) : "";
 
   // Listen to Firestore celebration doc or read query param slug
   useEffect(() => {
     const querySlug = params.get("slug");
+    const queryVanitySlug = params.get("vanity") || "";
     const pendingCelebrationId = typeof window !== "undefined" ? localStorage.getItem("pending_celebration_id") : null;
 
     if (querySlug) {
       setSlug(querySlug);
+      setVanitySlug(queryVanitySlug);
       setLoading(false);
       if (typeof window !== "undefined") {
         localStorage.removeItem("pending_celebration_id");
@@ -40,6 +44,7 @@ function SuccessContent() {
             const data = docSnap.data();
             if (data?.isActive && data?.slug) {
               setSlug(data.slug);
+              setVanitySlug(data.checkoutVanitySlug || "");
               setLoading(false);
               localStorage.removeItem("pending_celebration_id");
             }

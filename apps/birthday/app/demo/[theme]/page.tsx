@@ -35,6 +35,22 @@ const THEME_LABELS: Record<string, string> = {
   magical: "Magical",
 };
 
+const DEMO_PHOTOS = [
+  "/wedding-demo/couple.jpg",
+  "/wedding-demo/haldi.jpg",
+  "/wedding-demo/mehndi.jpg",
+  "/wedding-demo/sangeet.jpg",
+];
+
+const DEMO_MUSIC_BY_THEME: Record<string, string> = {
+  galaxy: "t6",
+  floral: "t2",
+  neon: "t8",
+  minimal: "t5",
+  retro: "t7",
+  magical: "t3",
+};
+
 // Sample content tailored to each theme so every demo feels intentional.
 const DEMO_CONTENT: Record<
   string,
@@ -46,7 +62,7 @@ const DEMO_CONTENT: Record<
     relation: "friend",
     message:
       "Happy Birthday, my cosmic soul! 🌌 Across every galaxy and every lifetime, I'd always find my way back to you. Here's to another orbit around the sun — may it be your brightest yet. ✨",
-    photos: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/galaxy${i}/800/1000`),
+    photos: DEMO_PHOTOS,
   },
   floral: {
     recipientName: "Priya & Rahul",
@@ -54,7 +70,7 @@ const DEMO_CONTENT: Record<
     relation: "spouse",
     message:
       "Happy Anniversary, my love. 🌸 Every petal of this life has bloomed brighter because of you. Here's to the garden we've grown together — and to forever tending it, hand in hand.",
-    photos: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/floral${i}/800/1000`),
+    photos: DEMO_PHOTOS,
   },
   neon: {
     recipientName: "Kabir",
@@ -62,7 +78,7 @@ const DEMO_CONTENT: Record<
     relation: "friend",
     message:
       "Happy Birthday, legend! ⚡ Another year, another level unlocked. Keep glowing brighter than the city lights — the world's not ready for what you're about to do. 🔥",
-    photos: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/neon${i}/800/1000`),
+    photos: DEMO_PHOTOS,
   },
   minimal: {
     recipientName: "Ananya",
@@ -70,7 +86,7 @@ const DEMO_CONTENT: Record<
     relation: "partner",
     message:
       "Happy Birthday. In a world of noise, you are my quiet. Thank you for every simple, perfect moment. Today, and always — you.",
-    photos: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/minimal${i}/800/1000`),
+    photos: DEMO_PHOTOS,
   },
   retro: {
     recipientName: "Meera",
@@ -78,7 +94,7 @@ const DEMO_CONTENT: Record<
     relation: "friend",
     message:
       "Happy Birthday, old soul! 🎞️ Some memories never fade — they just get warmer with time, like this one. Here's to more grainy, golden, unforgettable days together.",
-    photos: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/retro${i}/800/1000`),
+    photos: DEMO_PHOTOS,
   },
   magical: {
     recipientName: "Chintu",
@@ -86,7 +102,7 @@ const DEMO_CONTENT: Record<
     relation: "son",
     message:
       "Happy Birthday to our little superstar! 🎈 May your day be filled with balloons, cake, giggles and all the magic in the world. We love you to the moon and back! 🧸",
-    photos: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/magical${i}/800/1000`),
+    photos: DEMO_PHOTOS,
   },
 };
 
@@ -121,7 +137,10 @@ export default async function DemoThemePage({ params }: Props) {
     message: content.message,
     theme,
     photos: content.photos,
-    musicType: "none",
+    musicType: "preset",
+    musicPresetId: DEMO_MUSIC_BY_THEME[theme],
+    voiceMessageUrl: "/demo-media/voice-message.wav",
+    videoMessageUrl: "/demo-media/video-message.mp4",
     occasionType: content.occasionType,
     relation: content.relation,
     expiresAt: oneYearFromNow.toISOString(),

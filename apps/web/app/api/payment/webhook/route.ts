@@ -4,7 +4,8 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
 import { Resend } from "resend";
-import { COLLECTIONS, VALIDITY_DAYS } from "@/lib/constants";
+import { COLLECTIONS, hostingExpiryDateFor } from "@/lib/constants";
+import { getCelebrationUrl } from "@/lib/celebration-url";
 import { releaseCheckoutBenefits, settlePaidReferralBenefits } from "@/lib/referral-server";
 import { notifyAdminOfPaidOrder } from "@/lib/order-notification";
 
@@ -101,18 +102,14 @@ async function fulfillCelebration(
     throw new Error(`Failed to generate a unique slug for ${celebrationId}`);
   }
 
-  // Hosting length depends on the purchased tier (default 1 year).
-  const hostingFeatures: string[] = Array.isArray(celebData?.selectedFeatures)
-    ? celebData.selectedFeatures
+  // Use the immutable checkout snapshot. Older orders fall back to the draft field.
+  const hostingFeatures: string[] = Array.isArray(celebData?.checkoutFeatures)
+    ? celebData.checkoutFeatures
+    : Array.isArray(celebData?.selectedFeatures)
+      ? celebData.selectedFeatures
     : [];
-  const hostingDays = hostingFeatures.includes("hosting_lifetime")
-    ? 36500
-    : hostingFeatures.includes("hosting_3yr")
-      ? VALIDITY_DAYS * 3
-      : VALIDITY_DAYS;
-  const expiresAt = Timestamp.fromDate(
-    new Date(Date.now() + hostingDays * 24 * 60 * 60 * 1000)
-  );
+  const expiryDate = hostingExpiryDateFor(hostingFeatures);
+  const expiresAt = expiryDate ? Timestamp.fromDate(expiryDate) : null;
 
   await celebRef.update({
     slug,
@@ -120,6 +117,8 @@ async function fulfillCelebration(
     paymentStatus: "paid",
     isActive: true,
     expiresAt,
+    selectedFeatures: hostingFeatures,
+    vanitySlug: celebData.checkoutVanitySlug ?? "",
   });
   console.log(`[${LOG}] Celebration ${celebrationId} activated with slug: ${slug}`);
 
@@ -160,7 +159,7 @@ async function fulfillCelebration(
 function buildConfirmationEmail(
   celebData: any,
   slug: string,
-  expiresAt: Timestamp,
+  expiresAt: Timestamp | null,
 ): { subject: string; html: string } {
   const occasion = celebData.occasionType || "birthday";
   const occasionEmoji =
@@ -168,7 +167,7 @@ function buildConfirmationEmail(
   const occasionLabel =
     occasion === "anniversary" ? "Anniversary" : occasion === "proposal" ? "Proposal" : occasion === "kids-birthday" ? "Kids Birthday" : "Birthday";
 
-  const birthdayUrl = `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}`;
+  const birthdayUrl = getCelebrationUrl(slug, celebData.checkoutVanitySlug);
   const whatsappMsg = encodeURIComponent(
     `${occasionEmoji} I created a beautiful ${occasionLabel.toLowerCase()} surprise website for you!\n\nVisit: ${birthdayUrl}`
   );
@@ -207,7 +206,9 @@ function buildConfirmationEmail(
       </div>
     </div>
     <p style="text-align:center;color:#9b8ec4;font-size:12px;margin-top:24px">
-      This website will stay live until ${expiresAt.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}.<br/>
+      ${expiresAt
+        ? `This website will stay live until ${expiresAt.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}.`
+        : "Lifetime Hosting is active, so this website has no automatic expiry while Just4You continues operating the hosting service."}<br/>
       Made with ❤️ by Just4You
     </p>
   </div>

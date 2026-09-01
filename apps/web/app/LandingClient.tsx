@@ -728,7 +728,7 @@ function Pricing() {
       <div className="wrap" style={{ maxWidth:1020 }}>
         <SectionHeader label="Simple Pricing" labelColor="#ff8a5c"
           title={<>Build Your Own <span className="g-text">Package.</span></>}
-          sub="Start from ₹199 and add only the features you want. No subscriptions — pay once, surprise them forever."
+          sub="Start from ₹199 and add only the features you want. One payment includes a full year of hosting."
           inView={inView} />
 
         <div className="three-col" style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,alignItems:'stretch' }}>
@@ -812,7 +812,7 @@ function FinalCTA({ onOpenAuth }: { onOpenAuth: () => void }) {
               Than a Disposable Card.
             </h2>
             <p style={{ color:'#b9a6be',fontSize:'1.08rem',lineHeight:1.75,maxWidth:500,margin:'0 auto 40px' }}>
-              Create a magical digital surprise page that your loved ones will open, cherish, and remember forever — starting at just ₹199.
+              Create a magical digital surprise page your loved ones can revisit throughout its hosting period — starting at just ₹199.
             </p>
             <div style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center' }}>
               <button onClick={onOpenAuth} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>

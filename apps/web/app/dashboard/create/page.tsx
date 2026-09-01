@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, computeWeddingPriceInr, weddingPriceBreakdown, MAX_WEDDING_CEREMONIES, formatInr, FEATURE_ADDONS, BASE_PACKAGE } from "@/lib/constants";
+import { COLLECTIONS, THEMES, PRESET_TRACKS, MAX_PHOTOS, MAX_MESSAGE_LENGTH, OCCASIONS, RELATION_BY_OCCASION, photoLimitFor, computePriceInr, computePricePaise, computeWeddingPriceInr, weddingPriceBreakdown, MAX_WEDDING_CEREMONIES, formatInr, FEATURE_ADDONS, BASE_PACKAGE, HOSTING_FEATURE_IDS, featureAddonsWithPricing, hostingYearsFor } from "@/lib/constants";
 import type { Theme, OccasionType, FeatureId, WeddingDataDraft, PricingSettings } from "@/lib/constants";
-import { loadCartFeatures } from "@/lib/cart";
+import { loadCartFeatures, saveCartFeatures } from "@/lib/cart";
 import { usePricingSettings } from "@/lib/use-pricing-settings";
-import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff, Save, Video } from "lucide-react";
+import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff, Save, Video, Plus } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import GalaxyTheme from "@/components/themes/GalaxyTheme";
@@ -178,16 +178,17 @@ function LivePreviewModal({
 
 // ─── Step indicator ──────────────────────────────────────────────────────────
 function StepBar({ step, onStepChange }: { step: number; onStepChange: (step: number) => void }) {
-  const steps = ["Occasion", "Details", "Photos", "Music", "Preview", "Pay"];
+  const steps = ["Occasion", "Package", "Details", "Photos", "Media", "Preview", "Pay"];
   return (
-    <div className="flex items-center justify-center gap-1 mb-10">
-      {steps.map((label, index) => (
-        <div key={label} className="flex items-center gap-1">
+    <div className="mb-10 overflow-hidden">
+      <div className="mx-auto flex items-center justify-center gap-0.5 sm:gap-1">
+        {steps.map((label, index) => (
+          <div key={label} className="flex items-center gap-1">
           {index < step ? (
             <button
               type="button"
               onClick={() => onStepChange(index)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:border-green-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400/70"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:border-green-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400/70 sm:px-3"
               aria-label={`Go back to ${label}`}
               title={`Edit ${label}`}
             >
@@ -196,7 +197,7 @@ function StepBar({ step, onStepChange }: { step: number; onStepChange: (step: nu
             </button>
           ) : (
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${index === step ? "border text-white" : "text-[var(--text-muted)] border border-transparent"}`}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 sm:px-3 ${index === step ? "border text-white" : "text-[var(--text-muted)] border border-transparent"}`}
               style={index === step ? { background: "rgba(168,85,247,0.2)", borderColor: "rgba(168,85,247,0.5)" } : {}}
               aria-current={index === step ? "step" : undefined}
             >
@@ -205,16 +206,17 @@ function StepBar({ step, onStepChange }: { step: number; onStepChange: (step: nu
             </div>
           )}
           {index < steps.length - 1 && (
-            <div className="w-4 h-px" style={{ background: index < step ? "#22c55e" : "rgba(255,255,255,0.1)" }} />
+            <div className="h-px w-2 sm:w-4" style={{ background: index < step ? "#22c55e" : "rgba(255,255,255,0.1)" }} />
           )}
-        </div>
-      ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 // ─── Step 0: Choose Occasion ──────────────────────────────────────────────────
-function StepOccasion({ selected, onSelect }: { selected: OccasionType; onSelect: (o: OccasionType) => void }) {
+function StepOccasion({ selected, onSelect }: { selected?: OccasionType; onSelect: (o: OccasionType) => void }) {
   return (
     <div className="space-y-6 step-enter">
       <label className="block text-base font-semibold text-center mb-6">What occasion are we celebrating? ✨</label>
@@ -244,8 +246,113 @@ function StepOccasion({ selected, onSelect }: { selected: OccasionType; onSelect
   );
 }
 
-// ─── Step 1: Details ─────────────────────────────────────────────────────────
-function Step1({ data, onChange, occasionType, features }: { data: any; onChange: (d: any) => void; occasionType: OccasionType; features: string[] }) {
+// ─── Step 1: Package ─────────────────────────────────────────────────────────
+function StepPackage({
+  occasionType,
+  features,
+  onChange,
+  pricing,
+}: {
+  occasionType: OccasionType;
+  features: FeatureId[];
+  onChange: (features: FeatureId[]) => void;
+  pricing: PricingSettings;
+}) {
+  const addons = featureAddonsWithPricing(pricing);
+
+  const toggleFeature = (id: FeatureId) => {
+    if (features.includes(id)) {
+      onChange(features.filter((feature) => feature !== id));
+      return;
+    }
+
+    const withoutOtherHostingTier = HOSTING_FEATURE_IDS.includes(id)
+      ? features.filter((feature) => !HOSTING_FEATURE_IDS.includes(feature))
+      : features;
+    onChange([...withoutOtherHostingTier, id]);
+  };
+
+  if (occasionType === "wedding") {
+    return (
+      <div className="space-y-6 step-enter">
+        <div className="text-center">
+          <h2 className="text-xl font-bold">Build your wedding invitation</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+            Wedding pricing is based on ceremonies, RSVP, and custom reveal music. You will choose those options with the event details in the next step.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="font-semibold">Wedding invitation base</div>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">Couple story, two ceremonies, directions, sharing, and one year of hosting.</p>
+            </div>
+            <span className="shrink-0 font-bold text-amber-200">{formatInr(pricing.weddingBasePriceInr)}</span>
+          </div>
+          <div className="mt-4 grid gap-2 text-xs text-white/60 sm:grid-cols-3">
+            <span>Extra ceremony: +{formatInr(pricing.weddingAdditionalCeremonyPriceInr)}</span>
+            <span>Guest RSVP: +{formatInr(pricing.weddingRsvpPriceInr)}</span>
+            <span>Reveal music: +{formatInr(pricing.weddingCustomRevealMusicPriceInr)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 step-enter">
+      <div className="text-center">
+        <h2 className="text-xl font-bold">Choose what makes it special</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">The base website already works beautifully. Add only the personal touches you want.</p>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-300/25 bg-emerald-300/[0.06] p-5">
+        <div>
+          <div className="font-semibold">Base celebration website</div>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">Theme, 5 photos, preset music, reactions, sharing, and 1-year hosting.</p>
+        </div>
+        <span className="shrink-0 font-bold text-emerald-200">{formatInr(pricing.basePriceInr)}</span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {addons.map((addon) => {
+          const selected = features.includes(addon.id);
+          return (
+            <button
+              key={addon.id}
+              type="button"
+              onClick={() => toggleFeature(addon.id)}
+              aria-pressed={selected}
+              className="flex min-h-32 items-start gap-3 rounded-2xl border p-4 text-left transition-colors"
+              style={{
+                borderColor: selected ? "rgba(192,132,252,0.65)" : "rgba(255,255,255,0.09)",
+                background: selected ? "rgba(168,85,247,0.13)" : "rgba(255,255,255,0.025)",
+              }}
+            >
+              <span className="text-2xl" aria-hidden="true">{addon.icon}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{addon.label}</span>
+                <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">{addon.description}</span>
+                <span className="mt-2 block text-sm font-bold text-purple-300">+{formatInr(addon.priceInr)}</span>
+              </span>
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/15" style={{ background: selected ? "#a855f7" : "transparent" }}>
+                {selected ? <Check size={14} /> : <Plus size={14} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between border-t border-white/10 pt-5">
+        <span className="text-sm text-[var(--text-muted)]">Package total</span>
+        <span className="text-2xl font-bold gradient-text">{formatInr(computePriceInr(features, pricing))}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 2: Details ─────────────────────────────────────────────────────────
+function Step1({ data, onChange, occasionType, features, onEditPackage }: { data: any; onChange: (d: any) => void; occasionType: OccasionType; features: string[]; onEditPackage: () => void }) {
   const occasion = OCCASIONS.find((o) => o.id === occasionType) ?? OCCASIONS[0];
   const relations = RELATION_BY_OCCASION[occasionType] ?? RELATION_BY_OCCASION.birthday;
 
@@ -428,8 +535,9 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
           </div>
         </div>
       ) : (
-        <Link
-          href="/pricing"
+        <button
+          type="button"
+          onClick={onEditPackage}
           className="flex items-start gap-3 p-4 rounded-2xl glass border border-white/10 opacity-80 hover:opacity-100 transition-opacity"
         >
           <span className="text-lg">⏳</span>
@@ -439,7 +547,7 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
               Add the Countdown Reveal feature to lock the page until the big day. Tap to edit your package.
             </p>
           </div>
-        </Link>
+        </button>
       )}
 
       <div>
@@ -549,7 +657,7 @@ function Step1({ data, onChange, occasionType, features }: { data: any; onChange
 }
 
 // ─── Step 2: Photos ───────────────────────────────────────────────────────────
-function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddingChange }: { photos: string[]; onPhotos: (p: string[]) => void; features: string[]; occasionType: OccasionType; weddingData: WeddingDataDraft; onWeddingChange: (data: WeddingDataDraft) => void }) {
+function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddingChange, onEditPackage }: { photos: string[]; onPhotos: (p: string[]) => void; features: string[]; occasionType: OccasionType; weddingData: WeddingDataDraft; onWeddingChange: (data: WeddingDataDraft) => void; onEditPackage: () => void }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number[]>([]);
   const isWedding = occasionType === "wedding";
@@ -623,9 +731,9 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
           {photos.length}/{photoLimit} uploaded
         </span>
         {!isWedding && !features.includes("extra_photos") && (
-          <Link href="/pricing" className="ml-2 text-purple-400 hover:text-purple-300 font-semibold">
+          <button type="button" onClick={onEditPackage} className="ml-2 text-purple-400 hover:text-purple-300 font-semibold">
             Need more? Add Extra Photos →
-          </Link>
+          </button>
         )}
       </div>
 
@@ -706,7 +814,7 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
 }
 
 // ─── Step 3: Music + Voice ────────────────────────────────────────────────────
-function Step3({ musicData, onChange, features, occasionType, weddingData, onWeddingChange }: { musicData: any; onChange: (d: any) => void; features: string[]; occasionType: OccasionType; weddingData: WeddingDataDraft; onWeddingChange: (data: WeddingDataDraft) => void }) {
+function Step3({ musicData, onChange, features, occasionType, weddingData, onWeddingChange, onEditPackage }: { musicData: any; onChange: (d: any) => void; features: string[]; occasionType: OccasionType; weddingData: WeddingDataDraft; onWeddingChange: (data: WeddingDataDraft) => void; onEditPackage: () => void }) {
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -940,7 +1048,7 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
             id={`music-${tab.id}`}
             onClick={() => {
               if (tab.locked) {
-                window.location.href = "/pricing";
+                onEditPackage();
                 return;
               }
               if (tab.id === "none") {
@@ -1306,7 +1414,7 @@ interface CheckoutPreview {
   freeAddonDiscountPaise: number;
 }
 
-function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrationId: string; onSuccess: (slug: string) => void; occasionType: OccasionType; priceInr: number }) {
+function Step5({ celebrationId, onSuccess, occasionType, priceInr, features }: { celebrationId: string; onSuccess: (slug: string, vanitySlug?: string) => void; occasionType: OccasionType; priceInr: number; features: FeatureId[] }) {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -1449,7 +1557,7 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
           });
           const result = await verifyRes.json();
           if (result.success) {
-            onSuccess(result.slug);
+            onSuccess(result.slug, result.vanitySlug);
           } else {
             setError("Payment verified but website creation failed. Contact support.");
             setLoading(false);
@@ -1534,7 +1642,7 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr }: { celebrati
             )}
           </div>
         )}
-        <div className="text-xs text-[var(--text-muted)] mb-6">One-time payment • 1 year validity • Instant delivery</div>
+        <div className="text-xs text-[var(--text-muted)] mb-6">One-time payment • {hostingYearsFor(features) === "lifetime" ? "No automatic expiry" : `${hostingYearsFor(features)}-year validity`} • Instant delivery</div>
         {error && (
           <div className="text-sm text-red-400 p-3 rounded-xl mb-4" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
             {error}
@@ -1566,6 +1674,7 @@ export default function CreatePage() {
   const { pricing } = usePricingSettings();
   const [step, setStep] = useState(0);
   const [occasionType, setOccasionType] = useState<OccasionType>("birthday");
+  const [occasionConfirmed, setOccasionConfirmed] = useState(false);
   const [celebrationId, setCelebrationId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     recipientName: "",
@@ -1587,7 +1696,7 @@ export default function CreatePage() {
   const [saving, setSaving] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  // Paid features chosen on the /pricing cart. Drives feature gating + price.
+  // Paid features chosen in the package step or restored from the pricing cart.
   const [features, setFeatures] = useState<FeatureId[]>([]);
 
   // Funnel: mark the start of a create session once per mount.
@@ -1603,7 +1712,7 @@ export default function CreatePage() {
       if (storedDraft) {
         const draft = JSON.parse(storedDraft);
         const draftOccasion = OCCASIONS.find((item) => item.id === draft.occasionType);
-        const canRestore = draft.version === 1
+        const canRestore = (draft.version === 1 || draft.version === 2)
           && draftOccasion
           && (!occasion || occasion.id === draftOccasion.id)
           && draft.formData;
@@ -1611,8 +1720,11 @@ export default function CreatePage() {
         if (canRestore) {
           const defaultWeddingData = createDefaultWeddingData();
           const restoredWeddingData = draft.formData.weddingData ?? {};
-          setStep(draft.step === 5 && draft.celebrationId ? 5 : Math.min(Math.max(Number(draft.step) || 0, 0), 4));
+          const savedStep = Math.max(Number(draft.step) || 0, 0);
+          const migratedStep = draft.version === 1 && savedStep > 0 ? savedStep + 1 : savedStep;
+          setStep(Math.min(migratedStep, draft.celebrationId ? 6 : 5));
           setOccasionType(draftOccasion.id);
+          setOccasionConfirmed(true);
           setCelebrationId(typeof draft.celebrationId === "string" ? draft.celebrationId : null);
           setFormData((current) => ({
             ...current,
@@ -1627,6 +1739,9 @@ export default function CreatePage() {
           }));
           setPhotos(Array.isArray(draft.photos) ? draft.photos.filter((photo: unknown) => typeof photo === "string") : []);
           setMusicData((current) => ({ ...current, ...(draft.musicData ?? {}) }));
+          if (Array.isArray(draft.features)) {
+            setFeatures(draft.features.filter((feature: unknown): feature is FeatureId => FEATURE_ADDONS.some((addon) => addon.id === feature)));
+          }
           setLastSavedAt(draft.savedAt ? new Date(draft.savedAt) : null);
           setDraftReady(true);
           return;
@@ -1639,6 +1754,7 @@ export default function CreatePage() {
 
     if (occasion) {
       setOccasionType(occasion.id);
+      setOccasionConfirmed(true);
       setFormData((current) => ({
         ...current,
         theme: occasion.defaultTheme,
@@ -1655,7 +1771,7 @@ export default function CreatePage() {
       const savedAt = new Date();
       try {
         localStorage.setItem(createDraftStorageKey(user.uid), JSON.stringify({
-          version: 1,
+          version: 2,
           savedAt: savedAt.toISOString(),
           step,
           occasionType,
@@ -1663,6 +1779,7 @@ export default function CreatePage() {
           formData,
           photos,
           musicData,
+          features,
         }));
         setLastSavedAt(savedAt);
       } catch (error) {
@@ -1671,7 +1788,7 @@ export default function CreatePage() {
     }, 400);
 
     return () => window.clearTimeout(saveTimer);
-  }, [user, draftReady, step, occasionType, celebrationId, formData, photos, musicData]);
+  }, [user, draftReady, step, occasionType, celebrationId, formData, photos, musicData, features]);
 
   const recoveryWasEnabled = useRef(false);
   useEffect(() => {
@@ -1708,7 +1825,7 @@ export default function CreatePage() {
     const savedAt = new Date();
     try {
       localStorage.setItem(createDraftStorageKey(user.uid), JSON.stringify({
-        version: 1,
+        version: 2,
         savedAt: savedAt.toISOString(),
         step,
         occasionType,
@@ -1716,6 +1833,7 @@ export default function CreatePage() {
         formData,
         photos,
         musicData,
+        features,
       }));
       setLastSavedAt(savedAt);
     } catch (error) {
@@ -1739,9 +1857,15 @@ export default function CreatePage() {
     ? computeWeddingPriceInr({ ceremonyCount: selectedWeddingCeremonies.length, rsvpEnabled: formData.weddingData.rsvpEnabled, customMusicCount: weddingCustomMusicCount }, pricing)
     : computePriceInr(activeFeatures, pricing);
 
+  const updateFeatures = (nextFeatures: FeatureId[]) => {
+    setFeatures(nextFeatures);
+    saveCartFeatures(nextFeatures);
+  };
+
   const canProceed = (() => {
-    if (step === 0) return !!occasionType;
-    if (step === 1) {
+    if (step === 0) return occasionConfirmed;
+    if (step === 1) return true;
+    if (step === 2) {
       if (occasionType === "wedding") {
         const wedding = formData.weddingData;
         const selectedCeremonies = wedding.ceremonies.filter((ceremony) => ceremony.selected);
@@ -1766,7 +1890,7 @@ export default function CreatePage() {
       }
       return true;
     }
-    if (step === 2) {
+    if (step === 3) {
       if (occasionType === "wedding") {
         return formData.weddingData.ceremonies
           .filter((ceremony) => ceremony.selected)
@@ -1776,7 +1900,7 @@ export default function CreatePage() {
     }
     // BUG-06: each music type requires its own condition — the old ternary incorrectly
     // allowed proceeding with no voice message when musicType was "voice".
-    if (step === 3) {
+    if (step === 4) {
       if (musicData.musicType === "none") return true;
       if (musicData.musicType === "preset") return !!musicData.musicPresetId;
       if (musicData.musicType === "upload") return !!musicData.musicUploadUrl;
@@ -1788,7 +1912,7 @@ export default function CreatePage() {
   })();
 
   const saveAndProceed = async () => {
-    if (step === 4) {
+    if (step === 5) {
       if (!user) {
         const returnTo = `${window.location.pathname}${window.location.search}`;
         router.replace(`/login?next=${encodeURIComponent(returnTo)}`);
@@ -1878,7 +2002,7 @@ export default function CreatePage() {
           });
           setCelebrationId(docRef.id);
         }
-        setStep(5);
+        setStep(6);
         trackEvent("checkout_started", { occasionType, theme: formData.theme });
       } catch (err) {
         console.error("Firestore save error:", err);
@@ -1892,7 +2016,7 @@ export default function CreatePage() {
     }
   };
 
-  if (step === 6) {
+  if (step === 7) {
     // Success — handled by onSuccess callback
     return null;
   }
@@ -1924,7 +2048,7 @@ export default function CreatePage() {
       </div>
 
       <div className="max-w-2xl mx-auto">
-        {/* Package summary — reflects the cart chosen on /pricing */}
+        {/* Package summary — reflects the in-wizard package selection. */}
         <div className="mb-6 flex items-center justify-between rounded-2xl px-5 py-3.5 glass border border-purple-500/20">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-semibold">Your package:</span>
@@ -1938,42 +2062,46 @@ export default function CreatePage() {
             <span className="font-bold gradient-text ml-1">{formatInr(priceInr)}</span>
           </div>
           {occasionType === "wedding" ? (
-            <button type="button" onClick={() => setStep(1)} className="text-xs font-semibold text-amber-300 hover:text-amber-200">
+            <button type="button" onClick={() => setStep(2)} className="text-xs font-semibold text-amber-300 hover:text-amber-200">
               Edit details & video
             </button>
           ) : (
-            <Link href="/pricing" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
+            <button type="button" onClick={() => setStep(1)} className="text-xs font-semibold text-purple-400 hover:text-purple-300">
               Edit package
-            </Link>
+            </button>
           )}
         </div>
 
         <StepBar step={step} onStepChange={setStep} />
 
         <div className="glass-card p-8">
-          {step === 0 && <StepOccasion selected={occasionType} onSelect={(o) => {
+          {step === 0 && <StepOccasion selected={occasionConfirmed ? occasionType : undefined} onSelect={(o) => {
             setOccasionType(o);
+            setOccasionConfirmed(true);
             const defaultT = OCCASIONS.find(occ => occ.id === o)?.defaultTheme || "galaxy";
             setFormData(f => ({ ...f, theme: defaultT, relation: o === "wedding" ? "couple" : "" }));
           }} />}
-          {step === 1 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} features={activeFeatures} />}
-          {step === 2 && <Step2 photos={photos} onPhotos={setPhotos} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
-          {step === 3 && <Step3 musicData={musicData} onChange={setMusicData} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} />}
-          {step === 4 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={activeFeatures} priceInr={priceInr} pricing={pricing} onEditWeddingDetails={() => setStep(1)} />}
-          {step === 5 && celebrationId && (
+          {step === 1 && <StepPackage occasionType={occasionType} features={activeFeatures} onChange={updateFeatures} pricing={pricing} />}
+          {step === 2 && <Step1 data={formData} onChange={setFormData} occasionType={occasionType} features={activeFeatures} onEditPackage={() => setStep(1)} />}
+          {step === 3 && <Step2 photos={photos} onPhotos={setPhotos} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} onEditPackage={() => setStep(1)} />}
+          {step === 4 && <Step3 musicData={musicData} onChange={setMusicData} features={activeFeatures} occasionType={occasionType} weddingData={formData.weddingData} onWeddingChange={(weddingData) => setFormData((current) => ({ ...current, weddingData }))} onEditPackage={() => setStep(1)} />}
+          {step === 5 && <Step4 data={{ ...formData, musicData }} photos={photos} occasionType={occasionType} features={activeFeatures} priceInr={priceInr} pricing={pricing} onEditWeddingDetails={() => setStep(2)} />}
+          {step === 6 && celebrationId && (
             <Step5
               celebrationId={celebrationId}
-              onSuccess={(slug) => {
+              onSuccess={(slug, vanitySlug) => {
                 localStorage.removeItem(createDraftStorageKey(user.uid));
                 trackEvent("purchase_completed", { slug, occasionType });
-                router.push(`/dashboard/success?slug=${slug}`);
+                const vanityQuery = vanitySlug ? `&vanity=${encodeURIComponent(vanitySlug)}` : "";
+                router.push(`/dashboard/success?slug=${slug}${vanityQuery}`);
               }}
               occasionType={occasionType}
               priceInr={priceInr}
+              features={activeFeatures}
             />
           )}
 
-          {step < 5 && (
+          {step < 6 && (
             <div className="flex flex-wrap items-center justify-between gap-3 mt-8 pt-6 border-t border-purple-500/10">
               {step > 0 ? (
                 <button onClick={() => setStep((s) => s - 1)} className="btn-ghost py-2 px-6">
@@ -1995,7 +2123,7 @@ export default function CreatePage() {
                   disabled={!canProceed || saving}
                   className="btn-primary py-2 px-8 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {saving ? "Saving..." : step === 4 ? "Proceed to Payment" : "Continue"}
+                  {saving ? "Saving..." : step === 5 ? "Proceed to Payment" : "Continue"}
                   {!saving && <ArrowRight size={16} />}
                 </button>
               </div>
