@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { X, Download, Copy, Check, Share2 } from "lucide-react";
 
 interface Props {
@@ -11,6 +11,9 @@ interface Props {
     theme?: string;
   };
   slug: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 const OCCASION_META: Record<string, { emoji: string; tagline: string; gradient: string; accent: string; textColor: string }> = {
@@ -51,11 +54,39 @@ const STORY_CSS = `
   .story-modal-inner { animation: storyModalIn 0.3s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
 `;
 
-export default function StoryCardModal({ celebration, slug }: Props) {
-  const [open, setOpen] = useState(false);
+export default function StoryCardModal({ celebration, slug, open: controlledOpen, onOpenChange, hideTrigger = false }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    dialog?.querySelector<HTMLElement>("button")?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>("button:not([disabled]), a[href]"));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [open, setOpen]);
 
   const occasionType = celebration.occasionType ?? "birthday";
   const meta = OCCASION_META[occasionType] ?? OCCASION_META.birthday;
@@ -97,8 +128,7 @@ export default function StoryCardModal({ celebration, slug }: Props) {
     <>
       <style dangerouslySetInnerHTML={{ __html: STORY_CSS }} />
 
-      {/* Trigger button */}
-      <button
+      {!hideTrigger && <button
         onClick={() => setOpen(true)}
         id="story-card-btn"
         className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white shadow-2xl transition-all hover:scale-105 active:scale-95"
@@ -109,23 +139,27 @@ export default function StoryCardModal({ celebration, slug }: Props) {
       >
       <Share2 size={15} />
         <span>Share Story</span>
-      </button>
+      </button>}
 
       {/* Modal */}
       {open && (
         <div
+          ref={dialogRef}
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="story-card-title"
         >
           <div className="story-modal-inner w-full max-w-sm flex flex-col gap-4">
             {/* Header */}
             <div className="flex items-center justify-between text-white">
               <div>
-                <h2 className="font-bold text-lg">📲 Share to Instagram Story</h2>
+                <h2 id="story-card-title" className="font-bold text-lg">📲 Share to Instagram Story</h2>
                 <p className="text-white/50 text-xs mt-0.5">Download the card, then add it to your story</p>
               </div>
-              <button onClick={() => setOpen(false)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
+              <button onClick={() => setOpen(false)} className="p-2 rounded-full hover:bg-white/10 transition-colors" aria-label="Close story card">
                 <X size={18} className="text-white/70" />
               </button>
             </div>

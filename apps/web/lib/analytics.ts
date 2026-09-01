@@ -41,7 +41,6 @@ export function trackEvent(event: AnalyticsEvent | string, props: Props = {}): v
       w.dataLayer.push({ event, ...payload });
     }
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
       console.debug(`[analytics] ${event}`, payload);
     }
   } catch {

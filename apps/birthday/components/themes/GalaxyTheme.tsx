@@ -9,6 +9,7 @@ import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import InvitationActions from "../InvitationActions";
 
 interface Celebration {
   id?: string;
@@ -133,10 +134,11 @@ function ShareBar({ name }: { name: string }) {
 function Stars() {
   const [stars, setStars] = useState<{ id: number; x: number; y: number; size: number; delay: number; dur: number }[]>([]);
   useEffect(() => {
-    setStars(Array.from({ length: 180 }, (_, i) => ({
+    const frame = requestAnimationFrame(() => setStars(Array.from({ length: 180 }, (_, i) => ({
       id: i, x: Math.random() * 100, y: Math.random() * 100,
       size: Math.random() * 2.5 + 0.5, delay: Math.random() * 6, dur: Math.random() * 3 + 2,
-    })));
+    }))));
+    return () => cancelAnimationFrame(frame);
   }, []);
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -154,12 +156,15 @@ function Stars() {
 // ─── Floating particles ───────────────────────────────────────────────────────
 function FloatingParticles({ list = ["✨", "⭐", "💫", "·", "✦", "✧"] }: { list?: string[] }) {
   const [particles, setParticles] = useState<{ id: number; x: number; delay: number; dur: number; sym: string }[]>([]);
+  const symbols = list.join("\u0000");
   useEffect(() => {
-    setParticles(Array.from({ length: 22 }, (_, i) => ({
+    const values = symbols.split("\u0000");
+    const frame = requestAnimationFrame(() => setParticles(Array.from({ length: 22 }, (_, i) => ({
       id: i, x: Math.random() * 100, delay: Math.random() * 12,
-      dur: Math.random() * 8 + 6, sym: list[Math.floor(Math.random() * list.length)],
-    })));
-  }, [list]);
+      dur: Math.random() * 8 + 6, sym: values[Math.floor(Math.random() * values.length)],
+    }))));
+    return () => cancelAnimationFrame(frame);
+  }, [symbols]);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       {particles.map(p => (
@@ -596,11 +601,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
         <ReactionWall celebrationId={celebration.id} accentColor="#a855f7" isDark={true} />
       )}
 
-      <MusicPlayer celebration={celebration} />
-      <ShareBar name={celebration.recipientName} />
-      {celebration.id && (
-        <StoryCardModal celebration={celebration} slug={celebration.id} />
-      )}
+      <InvitationActions celebration={celebration} shareMessage={`🎂 Happy Birthday ${celebration.recipientName}! I made this for you ❤️`} accentColor="#7c3aed" />
     </main>
   );
 }

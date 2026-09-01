@@ -1,8 +1,6 @@
 import { adminDb } from "@/lib/firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { headers, cookies } from "next/headers";
 import type { ComponentType } from "react";
 import GalaxyTheme from "@/components/themes/GalaxyTheme";
 import FloralTheme from "@/components/themes/FloralTheme";
@@ -14,6 +12,7 @@ import ExpiredPage from "@/components/ExpiredPage";
 import CountdownPage from "@/components/CountdownPage";
 import BrandFooter from "@/components/BrandFooter";
 import WeddingInvitation from "@/components/wedding/WeddingInvitation";
+import ViewTracker from "@/components/ViewTracker";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -50,11 +49,6 @@ async function getCelebration(slug: string) {
   if (snap.empty) return null;
   const raw = { id: snap.docs[0].id, ...snap.docs[0].data() };
   return { serialized: serializeCelebration(raw), docId: snap.docs[0].id };
-}
-
-/** Bot user-agents to skip view counting */
-function isBot(userAgent: string) {
-  return /bot|crawl|spider|slurp|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram/i.test(userAgent);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -121,67 +115,6 @@ export default async function WishPage({ params }: Props) {
     return <ExpiredPage name={celeb.recipientName} />;
   }
 
-  // ── Increment view count (server-side, atomic, no race conditions) ──────────
-  // BUG-08: implement the cookie deduplication that was described in comments
-  // but was never actually written. We read a short-lived session cookie; if
-  // it's already set for this celebration we skip the increment entirely.
-  const headersList = await headers();
-  const cookieStore = await cookies();
-  const viewCookieName = `vw_${docId}`;
-  const userAgent = headersList.get("user-agent") ?? "";
-  const alreadyCounted = cookieStore.has(viewCookieName);
-
-  // Track whether we need to attach a Set-Cookie header to the response.
-  let setViewCookie = false;
-
-  if (!isBot(userAgent) && !alreadyCounted) {
-    // Capture lightweight, privacy-friendly context for creator analytics.
-    const ua = userAgent.toLowerCase();
-    const device = /mobile|iphone|android|ipad/.test(ua)
-      ? "mobile"
-      : /tablet/.test(ua)
-        ? "tablet"
-        : "desktop";
-    const referer = headersList.get("referer") || "";
-    let refSource = "direct";
-    if (referer) {
-      try {
-        const host = new URL(referer).hostname.replace(/^www\./, "");
-        refSource = /wa\.me|whatsapp/.test(host)
-          ? "whatsapp"
-          : /instagram/.test(host)
-            ? "instagram"
-            : /facebook|fb\./.test(host)
-              ? "facebook"
-              : host;
-      } catch {
-        refSource = "other";
-      }
-    }
-    const city = headersList.get("x-vercel-ip-city") || "";
-    const country = headersList.get("x-vercel-ip-country") || "";
-    try {
-      await adminDb.collection("celebrations").doc(docId).update({
-        views: FieldValue.increment(1),
-      });
-      // Write an enriched view log entry for analytics.
-      await adminDb
-        .collection("celebrations")
-        .doc(docId)
-        .collection("viewLog")
-        .add({
-          ts: FieldValue.serverTimestamp(),
-          device,
-          ref: refSource,
-          city: city ? decodeURIComponent(city) : "",
-          country,
-        });
-      setViewCookie = true;
-    } catch {
-      // Non-critical — don't fail the page if view counting breaks
-    }
-  }
-
   // ── Countdown check ─────────────────────────────────────────────────────────
   const eventDate = celeb.eventDate || celeb.birthdayDate;
   if (celeb.occasionType !== "wedding" && celeb.countdownEnabled && eventDate) {
@@ -190,6 +123,7 @@ export default async function WishPage({ params }: Props) {
     if (event > now) {
       return (
         <>
+          <ViewTracker slug={slug} />
           <CountdownPage
             recipientName={celeb.recipientName}
             eventDate={eventDate}
@@ -215,28 +149,20 @@ export default async function WishPage({ params }: Props) {
 
   const Theme = ThemeComponents[celeb.theme] ?? GalaxyTheme;
 
-  // If a view was counted this request, set a 1-hour cookie so subsequent
-  // reloads/back-navigations don't increment the counter again.
-  const themeJsx = celeb.occasionType === "wedding" && celeb.weddingData ? (
+  return (
     <>
-      <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
-      <BrandFooter creditText={creditText} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
-    </>
-  ) : (
-    <>
-      <Theme celebration={celeb} />
-      <BrandFooter creditText={creditText} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
+      <ViewTracker slug={slug} />
+      {celeb.occasionType === "wedding" && celeb.weddingData ? (
+        <>
+          <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
+          <BrandFooter creditText={creditText} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
+        </>
+      ) : (
+        <>
+          <Theme celebration={celeb} />
+          <BrandFooter creditText={creditText} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
+        </>
+      )}
     </>
   );
-  if (!setViewCookie) return themeJsx;
-
-  const { NextResponse } = await import("next/server");
-  const res = NextResponse.next();
-  res.cookies.set(viewCookieName, "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60, // 1 hour
-    path: "/",
-  });
-  return themeJsx;
 }

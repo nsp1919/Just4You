@@ -1,7 +1,24 @@
-// Baseline security headers applied to every response. A strict Content-Security
-// Policy is intentionally omitted because Razorpay, Cloudinary, and inline
-// theme styles require a carefully tuned policy.
+const contentSecurityPolicyReportOnly = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleusercontent.com",
+  "media-src 'self' blob: https://res.cloudinary.com",
+  "connect-src 'self' https://api.cloudinary.com https://*.googleapis.com https://*.firebaseio.com https://checkout.razorpay.com https://api.razorpay.com",
+  "frame-src https://checkout.razorpay.com",
+  "worker-src 'self' blob:",
+  "report-uri /api/csp-report",
+].join("; ");
+
+// Report-only first: collect real Razorpay, Firebase, Cloudinary, and theme
+// requirements before promoting this policy to enforcement.
 const securityHeaders = [
+  { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicyReportOnly },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -27,9 +44,6 @@ const nextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.app", "*.trycloudflare.com", "*.devtunnels.ms"],
-  typescript: {
-    ignoreBuildErrors: true,
-  },
 };
 
 export default nextConfig;

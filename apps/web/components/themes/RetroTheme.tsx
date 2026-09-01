@@ -9,6 +9,7 @@ import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import InvitationActions from "../InvitationActions";
 
 interface Celebration {
   id?: string;
@@ -141,7 +142,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const [playing, setPlaying] = useState(false);
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
-  const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
+  const toggle = () => { const audio = audioRef.current; if (!audio) return; if (audio.paused) void audio.play().catch(() => {}); else audio.pause(); };
   return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 flex items-center justify-center transition-all hover:scale-110" style={{ background: "rgba(201,170,122,0.15)", border: "2px solid #8b5a2b", borderRadius: 0 }}>{playing ? <Volume2 size={18} color="#c9aa7a" /> : <VolumeX size={18} color="#c9aa7a" />}</button></>);
 }
 
@@ -172,7 +173,8 @@ function FilmGrain() {
 function DustParticles() {
   const [dust, setDust] = useState<{ id: number; x: number; delay: number; dur: number }[]>([]);
   useEffect(() => {
-    setDust(Array.from({ length: 20 }, (_, i) => ({ id: i, x: Math.random() * 100, delay: Math.random() * 12, dur: Math.random() * 10 + 8 })));
+    const frame = requestAnimationFrame(() => setDust(Array.from({ length: 20 }, (_, i) => ({ id: i, x: Math.random() * 100, delay: Math.random() * 12, dur: Math.random() * 10 + 8 }))));
+    return () => cancelAnimationFrame(frame);
   }, []);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -401,11 +403,7 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
         <ReactionWall celebrationId={celebration.id} accentColor="#c9a84c" isDark={true} />
       )}
 
-      <MusicPlayer celebration={celebration} />
-      <ShareBar name={celebration.recipientName} />
-      {celebration.id && (
-        <StoryCardModal celebration={celebration} slug={celebration.id} />
-      )}
+      <InvitationActions celebration={celebration} shareMessage={`🎞 Happy Birthday, ${celebration.recipientName}!`} accentColor="#8b5a2b" square />
     </main>
   );
 }

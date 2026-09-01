@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Check, Sparkles, ArrowRight } from 'lucide-react'
+import { BASE_PRICE_INR } from '../marketing-config'
 
 const features = [
   'Fully personalized design for your occasion',
@@ -69,7 +70,7 @@ export default function Pricing() {
                 </div>
 
                 <div style={{ display:'flex',alignItems:'flex-end',gap:12,margin:'14px 0 4px' }}>
-                  <span className="gradient-text-gold font-grotesk" style={{ fontSize:'3.6rem',fontWeight:800,lineHeight:1 }}>₹299</span>
+                  <span className="gradient-text-gold font-grotesk" style={{ fontSize:'3.6rem',fontWeight:800,lineHeight:1 }}>₹{BASE_PRICE_INR}</span>
                   <div style={{ marginBottom:6 }}>
                     <span className="font-grotesk" style={{ fontSize:'1.1rem',textDecoration:'line-through',color:'#555' }}>₹599</span>
                     <div className="font-grotesk" style={{ fontSize:'0.72rem',fontWeight:700,padding:'3px 8px',borderRadius:50,background:'rgba(232,117,138,0.2)',color:'#e8758a',marginTop:4,textAlign:'center' }}>
@@ -86,14 +87,14 @@ export default function Pricing() {
                 </p>
 
                 <button className="btn-primary" style={{ width:'100%',justifyContent:'center' }}>
-                  Create My Surprise — ₹299 <ArrowRight size={15} />
+                  Create My Surprise — ₹{BASE_PRICE_INR} <ArrowRight size={15} />
                 </button>
               </div>
 
               {/* Divider */}
               <div style={{ borderLeft:'1px solid rgba(255,255,255,0.07)', paddingLeft:48 }}>
                 <p className="font-grotesk" style={{ color:'#888',fontSize:'0.82rem',fontWeight:600,marginBottom:18 }}>
-                  Everything included in your ₹299:
+                  Everything included in your ₹{BASE_PRICE_INR}:
                 </p>
                 <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px 24px' }}>
                   {features.map(feat=>(

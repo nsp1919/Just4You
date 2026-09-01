@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Camera, Check, Mic, Square, Upload, UsersRound } from "lucide-react";
+import { uploadCloudinaryFile } from "@/lib/cloudinary-upload";
 
 interface InviteDetails {
   recipientName: string;
@@ -11,26 +12,6 @@ interface InviteDetails {
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
-
-async function uploadToCloudinary(file: File, resourceType: "image" | "video"): Promise<string> {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-  if (!cloudName || !preset) throw new Error("Media uploads are not configured yet.");
-
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", preset);
-  formData.append("folder", "birthdayglow/contributions");
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
-    method: "POST",
-    body: formData,
-  });
-  const result = await response.json();
-  if (!response.ok || !result.secure_url) {
-    throw new Error(result.error?.message ?? "Media upload failed.");
-  }
-  return result.secure_url as string;
-}
 
 export default function ContributionPage() {
   const { id, token } = useParams<{ id: string; token: string }>();
@@ -117,8 +98,8 @@ export default function ContributionPage() {
     setError("");
     try {
       const [photoUrl, voiceUrl] = await Promise.all([
-        photo ? uploadToCloudinary(photo, "image") : Promise.resolve(""),
-        voice ? uploadToCloudinary(voice, "video") : Promise.resolve(""),
+        photo ? uploadCloudinaryFile(photo, "contributionPhoto", { celebrationId: id, token }) : Promise.resolve(""),
+        voice ? uploadCloudinaryFile(voice, "contributionVoice", { celebrationId: id, token }) : Promise.resolve(""),
       ]);
       const response = await fetch(`/api/collaboration/${id}`, {
         method: "POST",

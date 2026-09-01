@@ -172,6 +172,6 @@ export const COLLECTIONS = {
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 export const MAX_PHOTOS = 8;
-export const PRICE_INR = 299;
-export const PRICE_PAISE = 29900; // Razorpay uses paise
+export const PRICE_INR = 199;
+export const PRICE_PAISE = 19900; // Razorpay uses paise
 export const VALIDITY_DAYS = 365;

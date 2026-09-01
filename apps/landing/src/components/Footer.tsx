@@ -1,13 +1,6 @@
 import { Sparkles, Heart, Camera, X, Mail } from 'lucide-react'
 
 export default function Footer() {
-  const link = (color: string) => ({
-    color:'#555', textDecoration:'none', fontSize:'0.85rem',
-    fontFamily:"'Space Grotesk',sans-serif", transition:'color 0.2s', display:'block',
-    onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = color },
-    onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.color = '#555' },
-  })
-
   return (
     <footer style={{ background:'#080808', borderTop:'1px solid rgba(255,255,255,0.06)', padding:'56px 0 32px' }}>
       <div className="container-xl">

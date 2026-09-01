@@ -9,6 +9,7 @@ import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import InvitationActions from "../InvitationActions";
 
 interface Celebration {
   id?: string;
@@ -97,7 +98,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const [playing, setPlaying] = useState(false);
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
-  const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
+  const toggle = () => { const audio = audioRef.current; if (!audio) return; if (audio.paused) void audio.play().catch(() => {}); else audio.pause(); };
   return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg border-2 border-rose-400 bg-white">{playing ? <Volume2 size={18} className="text-rose-500" /> : <VolumeX size={18} className="text-rose-500" />}</button></>);
 }
 
@@ -117,12 +118,15 @@ function ShareBar({ name }: { name: string }) {
 // Bouncy kids particles (balloons, unicorn, stars, treats)
 function KidParticles({ list }: { list: string[] }) {
   const [particles, setParticles] = useState<{ id: number; x: number; delay: number; dur: number; sym: string }[]>([]);
+  const symbols = list.join("\u0000");
   useEffect(() => {
-    setParticles(Array.from({ length: 20 }, (_, i) => ({
+    const values = symbols.split("\u0000");
+    const frame = requestAnimationFrame(() => setParticles(Array.from({ length: 20 }, (_, i) => ({
       id: i, x: Math.random() * 100, delay: Math.random() * 8,
-      dur: Math.random() * 8 + 6, sym: list[Math.floor(Math.random() * list.length)],
-    })));
-  }, [list]);
+      dur: Math.random() * 8 + 6, sym: values[Math.floor(Math.random() * values.length)],
+    }))));
+    return () => cancelAnimationFrame(frame);
+  }, [symbols]);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       {particles.map(p => (
@@ -376,11 +380,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
         <ReactionWall celebrationId={celebration.id} accentColor="#f43f5e" isDark={false} />
       )}
 
-      <MusicPlayer celebration={celebration} />
-      <ShareBar name={celebration.recipientName} />
-      {celebration.id && (
-        <StoryCardModal celebration={celebration} slug={celebration.id} />
-      )}
+      <InvitationActions celebration={celebration} shareMessage={`🧸 Happy Kids Birthday, ${celebration.recipientName}! Look at this magical website we created for you! 🎈`} accentColor="#e11d48" isDark={false} />
     </main>
   );
 }

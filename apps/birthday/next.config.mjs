@@ -1,5 +1,23 @@
-// Baseline, non-breaking security response headers for the public wish viewer.
+const contentSecurityPolicyReportOnly = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleusercontent.com",
+  "media-src 'self' blob: https://res.cloudinary.com",
+  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com",
+  "worker-src 'self' blob:",
+  "report-uri /api/csp-report",
+].join("; ");
+
+// Report-only first so invitation media and social-share rendering can be
+// observed before the policy is promoted to enforcement.
 const securityHeaders = [
+  { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicyReportOnly },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

@@ -296,9 +296,12 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
   // mount) to avoid a server/client hydration mismatch.
   const [particles, setParticles] = useState<typeof PARTICLES>([])
   useEffect(() => {
-    setParticles(PARTICLES)
+    const frame = requestAnimationFrame(() => setParticles(PARTICLES))
     const t = setInterval(() => setCurrentOcc(c => (c + 1) % OCCASIONS.length), 3000)
-    return () => clearInterval(t)
+    return () => {
+      cancelAnimationFrame(frame)
+      clearInterval(t)
+    }
   }, [])
 
   const storyMoments = [

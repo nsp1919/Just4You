@@ -9,6 +9,7 @@ import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import InvitationActions from "../InvitationActions";
 
 interface Celebration {
   id?: string;
@@ -89,9 +90,12 @@ function SpecialCard({ emoji, text, index, accent }: { emoji: string; text: stri
 
 function FinaleConfetti({ colors }: { colors: string[] }) {
   const { ref, inView } = useInView(0.5);
+  const colorsKey = colors.join(",");
   useEffect(() => {
-    if (inView) setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.7 }, colors }), 400);
-  }, [inView]);
+    if (!inView) return;
+    const timer = setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.7 }, colors: colorsKey.split(",") }), 400);
+    return () => clearTimeout(timer);
+  }, [colorsKey, inView]);
   return (
     <div ref={ref as any} style={{ opacity: inView ? 1 : 0, transition: "opacity 1.2s ease", fontFamily: "'Dancing Script', cursive", fontSize: "2rem", color: "#e75480" }}>
       Made with love 💕
@@ -104,7 +108,12 @@ function MusicPlayer({ celebration, accent }: { celebration: Celebration; accent
   const [playing, setPlaying] = useState(false);
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
-  const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) void audio.play().catch(() => {});
+    else audio.pause();
+  };
   return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${accent}33`, border: `1px solid ${accent}88`, backdropFilter: "blur(12px)" }}>{playing ? <Volume2 size={18} color={accent} /> : <VolumeX size={18} color={accent} />}</button></>);
 }
 
@@ -126,7 +135,8 @@ function FallingPetals() {
   const [petals, setPetals] = useState<{ id: number; left: number; dur: number; delay: number; sym: string }[]>([]);
   useEffect(() => {
     const syms = ["🌸", "🌺", "🌷", "🌹", "🌼", "✿", "❀"];
-    setPetals(Array.from({ length: 18 }, (_, i) => ({ id: i, left: Math.random() * 100, dur: Math.random() * 8 + 8, delay: Math.random() * 12, sym: syms[Math.floor(Math.random() * syms.length)] })));
+    const frame = requestAnimationFrame(() => setPetals(Array.from({ length: 18 }, (_, i) => ({ id: i, left: Math.random() * 100, dur: Math.random() * 8 + 8, delay: Math.random() * 12, sym: syms[Math.floor(Math.random() * syms.length)] }))));
+    return () => cancelAnimationFrame(frame);
   }, []);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -377,11 +387,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
         <ReactionWall celebrationId={celebration.id} accentColor="#c2185b" isDark={false} />
       )}
 
-      <MusicPlayer celebration={celebration} accent={accent} />
-      <ShareBar name={celebration.recipientName} accent={accent} celebrationHeading={content.heading2.replace(/<[^>]+>/g, "")} />
-      {celebration.id && (
-        <StoryCardModal celebration={celebration} slug={celebration.id} />
-      )}
+      <InvitationActions celebration={celebration} shareMessage={`🌸 ${content.heading2.replace(/<[^>]+>/g, "")}, ${celebration.recipientName}! 🌸`} accentColor={accent} isDark={false} />
     </main>
   );
 }

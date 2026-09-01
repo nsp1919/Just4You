@@ -30,7 +30,8 @@ service cloud.firestore {
           'launchScheduleUpdatedAt', 'adminOrderEmailClaimedAt',
           'adminOrderEmailSentAt', 'creditText', 'creditUpdatedAt',
           'reviewMediaUrl', 'reviewMediaType', 'reviewVerified',
-          'reviewVerifiedAt'
+          'reviewVerifiedAt', 'paymentFulfilledAt',
+          'customerConfirmationEmailClaimedAt', 'customerConfirmationEmailSentAt'
         ]);
       }
 
@@ -104,15 +105,6 @@ service cloud.firestore {
               && request.resource.data.updatedAt == request.time
           );
       }
-
-      // PUBLIC: Anyone with the link can read a single active, non-blocked
-      // celebration BY DOCUMENT ID only. We intentionally use `get` (not `read`)
-      // so this does NOT grant `list` — otherwise anyone could enumerate the
-      // whole collection and harvest every recipient's email, photos, voice/
-      // video URLs and payment IDs. The public wish viewers fetch via the
-      // Admin SDK server-side, so they are unaffected by this restriction.
-      allow get: if resource.data.isActive == true
-                 && resource.data.isBlocked == false;
 
       // OWNER: authenticated users can read/edit their own draft content, but
       // payment, activation, moderation, and referral fields remain server-only.

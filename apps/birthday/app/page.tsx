@@ -96,13 +96,13 @@ export default function Home() {
           >
             Create your own surprise →
           </a>
-          <a
+          <Link
             href="/demo/galaxy"
             className="flex items-center justify-center rounded-full px-8 py-4 text-base font-semibold transition-colors"
             style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.16)", color: "#fff5ec" }}
           >
             View a live demo
-          </a>
+          </Link>
         </div>
 
         {/* Theme showcase */}

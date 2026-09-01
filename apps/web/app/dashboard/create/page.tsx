@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
@@ -11,13 +10,6 @@ import { loadCartFeatures, saveCartFeatures } from "@/lib/cart";
 import { usePricingSettings } from "@/lib/use-pricing-settings";
 import { Upload, Music, CreditCard, ArrowLeft, ArrowRight, X, Check, Mic, Square, Play, Pause, EyeOff, Save, Video, Plus } from "lucide-react";
 import Link from "next/link";
-import type { ComponentType } from "react";
-import GalaxyTheme from "@/components/themes/GalaxyTheme";
-import FloralTheme from "@/components/themes/FloralTheme";
-import NeonTheme from "@/components/themes/NeonTheme";
-import MinimalTheme from "@/components/themes/MinimalTheme";
-import RetroTheme from "@/components/themes/RetroTheme";
-import MagicalTheme from "@/components/themes/MagicalTheme";
 import { trackEvent } from "@/lib/analytics";
 import {
   createDefaultWeddingData,
@@ -25,7 +17,10 @@ import {
   WeddingPosterEditor,
   WeddingRevealMusicEditor,
 } from "@/components/wedding/WeddingCreatorFields";
-import WeddingInvitation, { type WeddingInvitationData } from "@/components/wedding/WeddingInvitation";
+import { uploadCloudinaryFile } from "@/lib/cloudinary-upload";
+import LivePreviewModal from "@/components/create-flow/LivePreviewModal";
+import StepBar from "@/components/create-flow/StepBar";
+import { resolveBackgroundMusicType } from "@/lib/media-selection";
 
 const CREATE_DRAFT_STORAGE_PREFIX = "birthdayglow_create_draft_v1";
 
@@ -41,178 +36,6 @@ function isValidOptionalWebUrl(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-const PREVIEW_THEME_COMPONENTS: Record<string, ComponentType<any>> = {
-  galaxy: GalaxyTheme,
-  floral: FloralTheme,
-  neon: NeonTheme,
-  minimal: MinimalTheme,
-  retro: RetroTheme,
-  magical: MagicalTheme,
-};
-
-function resolveBackgroundMusicType(musicData: any): "none" | "preset" | "upload" {
-  if (["none", "preset", "upload"].includes(musicData?.musicType)) return musicData.musicType;
-  if (musicData?.musicUploadUrl) return "upload";
-  if (musicData?.musicPresetId) return "preset";
-  return "none";
-}
-
-// ─── Live Preview Modal ───────────────────────────────────────────────────────
-// Renders the ACTUAL selected theme full-screen with the user's real content,
-// overlaid with a watermark, so buyers experience their finished page before
-// paying — the single biggest purchase trigger.
-function LivePreviewModal({
-  data,
-  photos,
-  musicData,
-  occasionType,
-  onClose,
-}: {
-  data: any;
-  photos: string[];
-  musicData: any;
-  occasionType: OccasionType;
-  onClose: () => void;
-}) {
-  const ThemeComp = PREVIEW_THEME_COMPONENTS[data.theme] ?? GalaxyTheme;
-  const previewRef = useRef<HTMLDivElement>(null);
-
-  const oneYear = new Date();
-  oneYear.setFullYear(oneYear.getFullYear() + 1);
-
-  const previewCelebration = {
-    id: "preview",
-    recipientName: data.recipientName || "Your Loved One",
-    birthdayDate: data.birthdayDate || "2000-01-01",
-    eventDate: data.birthdayDate || "2000-01-01",
-    message: data.message || "Your heartfelt message will appear here 💌",
-    theme: data.theme,
-    photos: photos.length ? photos : [],
-    occasionType,
-    relation: data.relation,
-    relationCustom: data.relationCustom,
-    musicType: resolveBackgroundMusicType(musicData),
-    musicPresetId: musicData?.musicPresetId,
-    musicUploadUrl: musicData?.musicUploadUrl,
-    voiceMessageUrl: musicData?.voiceMessageUrl || "",
-    videoMessageUrl: musicData?.videoMessageUrl || "",
-    expiresAt: oneYear.toISOString(),
-    views: 0,
-  };
-
-  const weddingInvitation: WeddingInvitationData | null = occasionType === "wedding" ? {
-    couple: {
-      partnerOne: data.weddingData.partnerOne || "Partner One",
-      partnerTwo: data.weddingData.partnerTwo || "Partner Two",
-      monogram: `${data.weddingData.partnerOne?.charAt(0) || "A"} · ${data.weddingData.partnerTwo?.charAt(0) || "V"}`.toUpperCase(),
-    },
-    families: data.weddingData.families || "Together with their families",
-    date: `${data.birthdayDate}T18:00:00+05:30`,
-    location: data.weddingData.location,
-    hashtag: data.weddingData.hashtag,
-    heroImage: photos[0] || "",
-    directionsUrl: data.weddingData.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(data.weddingData.location)}`,
-    videoUrl: data.weddingData.videoUrl.trim() || undefined,
-    whatsappNumber: data.weddingData.whatsappNumber,
-    rsvpEnabled: data.weddingData.rsvpEnabled,
-    rsvpDeadline: data.weddingData.rsvpDeadline,
-    ceremonies: data.weddingData.ceremonies
-      .filter((ceremony: WeddingDataDraft["ceremonies"][number]) => ceremony.selected)
-      .map(({ selected: _selected, ...ceremony }: WeddingDataDraft["ceremonies"][number]) => ({
-        ...ceremony,
-        date: `${ceremony.date}T${ceremony.time}:00+05:30`,
-        time: new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(new Date(`${ceremony.date}T${ceremony.time}:00+05:30`)),
-      })),
-  } : null;
-
-  useEffect(() => {
-    trackEvent("preview_viewed", { theme: data.theme, occasionType });
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    previewRef.current?.scrollTo({ top: 0, left: 0 });
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [data.theme, occasionType]);
-
-  return createPortal(
-    <div ref={previewRef} className="fixed inset-0 z-[300] bg-black overflow-y-auto">
-      {/* Watermark ribbon */}
-      <div
-        className="fixed top-0 left-0 right-0 z-[310] flex items-center justify-between px-4 py-2.5 text-sm"
-        style={{ background: "rgba(10,6,18,0.92)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
-      >
-        <span className="font-semibold text-white flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded-full text-[0.7rem] font-bold" style={{ background: "linear-gradient(135deg,#ff8a5c,#ff5f93)" }}>
-            LIVE PREVIEW
-          </span>
-          <span className="hidden sm:inline text-white/60">This is exactly what they&apos;ll see</span>
-        </span>
-        <button onClick={onClose} className="flex items-center gap-1.5 text-white/80 hover:text-white font-medium">
-          <X size={16} /> Close
-        </button>
-      </div>
-
-      {/* Diagonal watermark overlay so screenshots are discouraged pre-payment */}
-      <div
-        className="pointer-events-none fixed inset-0 z-[305] flex items-center justify-center overflow-hidden"
-        style={{ backdropFilter: "blur(5px)", background: "rgba(0,0,0,0.01)" }}
-      >
-        <div
-          className="text-white/[0.06] font-black whitespace-nowrap select-none"
-          style={{ fontSize: "6rem", transform: "rotate(-30deg)", letterSpacing: "0.1em" }}
-        >
-          JUST4YOU.BUZZ · PREVIEW · JUST4YOU.BUZZ
-        </div>
-      </div>
-
-      <div className="pt-11 select-none">
-        {weddingInvitation ? <WeddingInvitation invitation={weddingInvitation} /> : <ThemeComp celebration={previewCelebration} />}
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-// ─── Step indicator ──────────────────────────────────────────────────────────
-function StepBar({ step, onStepChange }: { step: number; onStepChange: (step: number) => void }) {
-  const steps = ["Occasion", "Package", "Details", "Photos", "Media", "Preview", "Pay"];
-  return (
-    <div className="mb-10 overflow-hidden">
-      <div className="mx-auto flex items-center justify-center gap-0.5 sm:gap-1">
-        {steps.map((label, index) => (
-          <div key={label} className="flex items-center gap-1">
-          {index < step ? (
-            <button
-              type="button"
-              onClick={() => onStepChange(index)}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:border-green-400/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400/70 sm:px-3"
-              aria-label={`Go back to ${label}`}
-              title={`Edit ${label}`}
-            >
-              <Check size={11} />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ) : (
-            <div
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 sm:px-3 ${index === step ? "border text-white" : "text-[var(--text-muted)] border border-transparent"}`}
-              style={index === step ? { background: "rgba(168,85,247,0.2)", borderColor: "rgba(168,85,247,0.5)" } : {}}
-              aria-current={index === step ? "step" : undefined}
-            >
-              <span className="w-4 text-center">{index + 1}</span>
-              <span className="hidden sm:inline">{label}</span>
-            </div>
-          )}
-          {index < steps.length - 1 && (
-            <div className="h-px w-2 sm:w-4" style={{ background: index < step ? "#22c55e" : "rgba(255,255,255,0.1)" }} />
-          )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 // ─── Step 0: Choose Occasion ──────────────────────────────────────────────────
@@ -666,25 +489,8 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // BUG-04: validate Cloudinary response — never push undefined into the photos array.
-  const uploadToCloudinary = async (file: File, index: number): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-    formData.append("folder", "birthdayglow");
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      { method: "POST", body: formData }
-    );
-    if (!res.ok) {
-      throw new Error(`Cloudinary error ${res.status}: ${res.statusText}`);
-    }
-    const data = await res.json();
-    if (!data.secure_url) {
-      throw new Error(data.error?.message ?? "Upload failed — no URL returned.");
-    }
-    return data.secure_url as string;
-  };
+  const uploadToCloudinary = (file: File): Promise<string> =>
+    uploadCloudinaryFile(file, "celebrationPhoto");
 
   const handleFiles = async (files: FileList) => {
     const remaining = photoLimit - photos.length;
@@ -698,7 +504,7 @@ function Step2({ photos, onPhotos, features, occasionType, weddingData, onWeddin
     const urls: string[] = [];
     for (let i = 0; i < toUpload.length; i++) {
       try {
-        const url = await uploadToCloudinary(toUpload[i], i);
+        const url = await uploadToCloudinary(toUpload[i]);
         urls.push(url);
         setProgress((p) => p.map((v, j) => (j === i ? 100 : v)));
       } catch (err: any) {
@@ -830,7 +636,8 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
       if (audioPreviewRef.current) {
         audioPreviewRef.current.pause();
       }
-      setPreviewTrackId(null);
+      const timer = window.setTimeout(() => setPreviewTrackId(null), 0);
+      return () => window.clearTimeout(timer);
     }
   }, [musicData.musicType, previewTrackId]);
 
@@ -877,30 +684,16 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Keep a stable ref to stopRecording so the interval callback is not stale.
-  const stopRecordingRef = useRef<() => void>(() => { });
-
   // BUG-04 (audio): validate Cloudinary response for audio uploads too.
   const uploadAudio = async (file: File, isVoice = false) => {
     if (isVoice) setVoiceUploading(true); else setUploading(true);
     setAudioError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-      formData.append("resource_type", "video");
-      formData.append("folder", isVoice ? "birthdayglow/voice" : "birthdayglow/music");
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
-        { method: "POST", body: formData }
-      );
-      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-      const data = await res.json();
-      if (!data.secure_url) throw new Error(data.error?.message ?? "No URL returned from Cloudinary.");
+      const mediaUrl = await uploadCloudinaryFile(file, isVoice ? "voiceMessage" : "celebrationMusic");
       if (isVoice) {
-        onChange({ ...musicData, voiceMessageUrl: data.secure_url });
+        onChange({ ...musicData, voiceMessageUrl: mediaUrl });
       } else {
-        onChange({ ...musicData, musicType: "upload", musicUploadUrl: data.secure_url });
+        onChange({ ...musicData, musicType: "upload", musicUploadUrl: mediaUrl });
       }
     } catch (err: any) {
       console.error("Audio upload failed:", err);
@@ -920,19 +713,8 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
     setVideoUploading(true);
     setAudioError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET || process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-      formData.append("resource_type", "video");
-      formData.append("folder", "birthdayglow/video");
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
-        { method: "POST", body: formData }
-      );
-      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-      const data = await res.json();
-      if (!data.secure_url) throw new Error(data.error?.message ?? "No URL returned from Cloudinary.");
-      onChange({ ...musicData, videoMessageUrl: data.secure_url });
+      const mediaUrl = await uploadCloudinaryFile(file, "videoMessage");
+      onChange({ ...musicData, videoMessageUrl: mediaUrl });
     } catch (err: any) {
       console.error("Video upload failed:", err);
       setAudioError(err.message ?? "Upload failed. Please try again.");
@@ -948,8 +730,6 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
     mediaRecorderRef.current?.stop();
     setRecording(false);
   };
-  stopRecordingRef.current = stopRecording;
-
   // BUG-05: cleanup interval + microphone stream when the component unmounts
   // (e.g. user navigates away mid-recording).
   useEffect(() => {
@@ -981,7 +761,7 @@ function Step3({ musicData, onChange, features, occasionType, weddingData, onWed
         setRecordingTime((t) => {
           const next = t + 1;
           if (next >= 60) {
-            stopRecordingRef.current();
+            stopRecording();
             return 60;
           }
           return next;
@@ -1470,8 +1250,8 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr, features }: {
   useEffect(() => {
     if (isRedirectMode) return;
     if ((window as any).Razorpay) {
-      setScriptReady(true);
-      return;
+      const timer = window.setTimeout(() => setScriptReady(true), 0);
+      return () => window.clearTimeout(timer);
     }
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -1479,6 +1259,10 @@ function Step5({ celebrationId, onSuccess, occasionType, priceInr, features }: {
     script.onload = () => setScriptReady(true);
     script.onerror = () => setError("Failed to load payment gateway. Please refresh and try again.");
     document.body.appendChild(script);
+    return () => {
+      script.onload = null;
+      script.onerror = null;
+    };
   }, [isRedirectMode]);
 
   const handlePay = async () => {
@@ -1702,10 +1486,11 @@ export default function CreatePage() {
   // Funnel: mark the start of a create session once per mount.
   useEffect(() => {
     if (!user) return;
-    trackEvent("create_started");
-    setFeatures(loadCartFeatures());
-    const requestedOccasion = new URLSearchParams(window.location.search).get("occasion");
-    const occasion = OCCASIONS.find((item) => item.id === requestedOccasion);
+    const frame = requestAnimationFrame(() => {
+      trackEvent("create_started");
+      setFeatures(loadCartFeatures());
+      const requestedOccasion = new URLSearchParams(window.location.search).get("occasion");
+      const occasion = OCCASIONS.find((item) => item.id === requestedOccasion);
 
     try {
       const storedDraft = localStorage.getItem(createDraftStorageKey(user.uid));
@@ -1761,7 +1546,9 @@ export default function CreatePage() {
         relation: occasion.id === "wedding" ? "couple" : "",
       }));
     }
-    setDraftReady(true);
+      setDraftReady(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, [user]);
 
   useEffect(() => {

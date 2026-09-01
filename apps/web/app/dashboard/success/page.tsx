@@ -27,13 +27,13 @@ function SuccessContent() {
     const pendingCelebrationId = typeof window !== "undefined" ? localStorage.getItem("pending_celebration_id") : null;
 
     if (querySlug) {
-      setSlug(querySlug);
-      setVanitySlug(queryVanitySlug);
-      setLoading(false);
-      if (typeof window !== "undefined") {
+      const timer = window.setTimeout(() => {
+        setSlug(querySlug);
+        setVanitySlug(queryVanitySlug);
+        setLoading(false);
         localStorage.removeItem("pending_celebration_id");
-      }
-      return;
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     if (pendingCelebrationId) {
@@ -62,8 +62,11 @@ function SuccessContent() {
 
       return () => unsubscribe();
     } else {
-      setError("No active celebration payment session found.");
-      setLoading(false);
+      const timer = window.setTimeout(() => {
+        setError("No active celebration payment session found.");
+        setLoading(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [params]);
 

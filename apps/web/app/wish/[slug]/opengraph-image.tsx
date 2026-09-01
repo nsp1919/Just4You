@@ -146,7 +146,6 @@ export default async function Image({ params }: { params: Promise<{ slug: string
               boxShadow: "0 30px 60px rgba(0,0,0,0.5)",
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photo} alt="" width={360} height={460} style={{ objectFit: "cover" }} />
           </div>
         ) : null}

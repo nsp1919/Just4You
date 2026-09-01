@@ -51,5 +51,5 @@ birthdayglow/
 * Components accessing browser-specific Web Storage APIs (`localStorage`/`sessionStorage`) must be declared with `"use client"` and wrapped inside `useEffect` mounts.
 * Server-side `localStorage` and `sessionStorage` fallback mocks are configured inside `lib/firebase.ts` to support rendering on Node.js v22/v25.
 
-### 3. Direct Image Uploads
-* Ensure direct uploads use Cloudinary's unsigned upload preset `birthdayglow_unsigned` to allow secure uploads directly from client browsers without exposing API keys.
+### 3. Direct Media Uploads
+* Browser uploads must request a short-lived signature from `/api/media/sign` and use `apps/web/lib/cloudinary-upload.ts`. Never expose `CLOUDINARY_API_SECRET` or add unsigned upload presets.

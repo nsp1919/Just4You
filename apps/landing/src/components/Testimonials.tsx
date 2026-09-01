@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react'
+import { BASE_PRICE_INR } from '../marketing-config'
 
 const testimonials = [
   { name:'Priya Mehta',   loc:'Mumbai',    init:'PM', occ:'Birthday Surprise',   color:'#d69e5f', bg:'rgba(214,158,95,0.12)',  tag:'🎂 Birthday',
@@ -12,7 +13,7 @@ const testimonials = [
   { name:'Kavya Nair',    loc:'Kochi',     init:'KN', occ:"Kids Birthday",       color:'#4ecdc4', bg:'rgba(78,205,196,0.12)',  tag:"👶 Kids Birthday",
     text:"My daughter's 5th birthday website had her favourite characters, all her friends' wishes and a photo slideshow. She watches it every week — it became her most treasured birthday memory.", rating:5 },
   { name:'Vikram Patel',  loc:'Ahmedabad', init:'VP', occ:'Graduation Surprise', color:'#d69e5f', bg:'rgba(214,158,95,0.12)',  tag:'🎓 Graduation',
-    text:'Created a graduation website for my sister — messages from professors, college memories, achievement showcase. She cried happy tears. Best ₹299 I have ever spent in my life!', rating:5 },
+    text:`Created a graduation website for my sister — messages from professors, college memories, achievement showcase. She cried happy tears. Best ₹${BASE_PRICE_INR} I have ever spent in my life!`, rating:5 },
 ]
 
 export default function Testimonials() {

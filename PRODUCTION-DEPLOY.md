@@ -32,8 +32,8 @@ GOOGLE_SITE_VERIFICATION=<Search Console HTML-tag content value>
 BING_SITE_VERIFICATION=<Bing msvalidate.01 content value>
 
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=<cloud name>
-NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=birthdayglow_unsigned
-NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET=<optional unless voice/video uploads are enabled>
+CLOUDINARY_API_KEY=<server-side API key>
+CLOUDINARY_API_SECRET=<server-side API secret>
 
 RESEND_API_KEY=<production key>
 RESEND_FROM_EMAIL=<verified sender>

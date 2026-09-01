@@ -8,6 +8,7 @@ import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import InvitationActions from "../InvitationActions";
 
 interface Celebration {
   id?: string;
@@ -101,7 +102,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const [playing, setPlaying] = useState(false);
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
-  const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
+  const toggle = () => { const audio = audioRef.current; if (!audio) return; if (audio.paused) void audio.play().catch(() => {}); else audio.pause(); };
   return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: "#f5f5f5", border: "1px solid #ddd" }}>{playing ? <Volume2 size={18} color="#333" /> : <VolumeX size={18} color="#333" />}</button></>);
 }
 
@@ -122,7 +123,8 @@ function ShareBar({ name, celebrationHeading }: { name: string; celebrationHeadi
 function FloatingDots() {
   const [dots, setDots] = useState<{ id: number; x: number; delay: number; dur: number }[]>([]);
   useEffect(() => {
-    setDots(Array.from({ length: 15 }, (_, i) => ({ id: i, x: Math.random() * 100, delay: Math.random() * 10, dur: Math.random() * 8 + 6 })));
+    const frame = requestAnimationFrame(() => setDots(Array.from({ length: 15 }, (_, i) => ({ id: i, x: Math.random() * 100, delay: Math.random() * 10, dur: Math.random() * 8 + 6 }))));
+    return () => cancelAnimationFrame(frame);
   }, []);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -371,11 +373,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
         <ReactionWall celebrationId={celebration.id} accentColor="#333" isDark={false} />
       )}
 
-      <MusicPlayer celebration={celebration} />
-      <ShareBar name={celebration.recipientName} celebrationHeading={content.heading2.replace(/[!🎂🎈💍💌🎉💑]/g, "").trim()} />
-      {celebration.id && (
-        <StoryCardModal celebration={celebration} slug={celebration.id} />
-      )}
+      <InvitationActions celebration={celebration} shareMessage={`🤍 ${content.heading2.replace(/[!🎂🎈💍💌🎉💑]/g, "").trim()}, ${celebration.recipientName} 🤍`} accentColor="#333333" isDark={false} />
     </main>
   );
 }

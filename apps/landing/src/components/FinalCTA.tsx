@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { ArrowRight, MessageCircle } from 'lucide-react'
+import { BASE_PRICE_INR, whatsappContactUrl } from '../marketing-config'
 
 export default function FinalCTA() {
   const ref    = useRef<HTMLDivElement>(null)
@@ -46,7 +47,7 @@ export default function FinalCTA() {
               initial={{ opacity:0,y:18 }} animate={inView?{opacity:1,y:0}:{}} transition={{ delay:0.5,duration:0.7 }}
               style={{ color:'#888',fontSize:'1rem',lineHeight:1.75,maxWidth:500,margin:'0 auto 36px' }}>
               Create a magical online surprise that your loved ones will remember forever.
-              Starting at just ₹299.
+              Starting at just ₹{BASE_PRICE_INR}.
             </motion.p>
 
             <motion.div
@@ -56,7 +57,7 @@ export default function FinalCTA() {
                 Create Website Now <ArrowRight size={16} />
               </motion.button>
               <motion.a
-                href="https://wa.me/919999999999?text=Hi!%20I%20want%20to%20create%20a%20surprise%20website."
+                href={whatsappContactUrl('Hi! I want to create a surprise website.')}
                 target="_blank" rel="noopener noreferrer"
                 className="btn-secondary" whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}>
                 <MessageCircle size={17} style={{ color:'#25D366' }} />

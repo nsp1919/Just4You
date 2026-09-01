@@ -61,7 +61,6 @@ export default function QRCodeCard({
       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(168,85,247,0.2)" }}
     >
       <div className="rounded-2xl overflow-hidden bg-white p-2 mb-3" style={{ width: 160, height: 160 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={dataUrl} alt="Scan to open the surprise" width={144} height={144} />
       </div>
       <p className="text-sm font-semibold mb-1">Scan to open ✨</p>

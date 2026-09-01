@@ -7,17 +7,20 @@ import { CAMPAIGNS, decodeMiniCard, type MiniCardData } from "@/lib/miniCard";
 
 function Particles({ symbols }: { symbols: string[] }) {
   const [items, setItems] = useState<{ id: number; left: number; delay: number; dur: number; sym: string }[]>([]);
+  const symbolsKey = symbols.join("\u0000");
   useEffect(() => {
-    setItems(
+    const values = symbolsKey.split("\u0000");
+    const frame = requestAnimationFrame(() => setItems(
       Array.from({ length: 16 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
         delay: Math.random() * 8,
         dur: Math.random() * 6 + 7,
-        sym: symbols[Math.floor(Math.random() * symbols.length)],
+        sym: values[Math.floor(Math.random() * values.length)],
       }))
-    );
-  }, [symbols]);
+    ));
+    return () => cancelAnimationFrame(frame);
+  }, [symbolsKey]);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       <style>{`@keyframes miniFall{0%{transform:translateY(-10%) rotate(0);opacity:0}10%{opacity:.7}90%{opacity:.5}100%{transform:translateY(110vh) rotate(180deg);opacity:0}}`}</style>
@@ -32,12 +35,8 @@ function Particles({ symbols }: { symbols: string[] }) {
 
 function CardView() {
   const params = useSearchParams();
-  const [data, setData] = useState<MiniCardData | null | undefined>(undefined);
-
-  useEffect(() => {
-    const d = params.get("d");
-    setData(d ? decodeMiniCard(d) : null);
-  }, [params]);
+  const encodedData = params.get("d");
+  const data = useMemo<MiniCardData | null>(() => encodedData ? decodeMiniCard(encodedData) : null, [encodedData]);
 
   const campaign = useMemo(() => (data ? CAMPAIGNS[data.c] : null), [data]);
 
@@ -46,10 +45,6 @@ function CardView() {
       setTimeout(() => confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 }, colors: ["#ff5f8f", "#ffb23e", "#ffffff", "#c084fc"] }), 500);
     }
   }, [campaign]);
-
-  if (data === undefined) {
-    return <main className="min-h-screen flex items-center justify-center bg-[#0a0612] text-white"><div className="text-4xl animate-bounce">💌</div></main>;
-  }
 
   if (!data || !campaign) {
     return (

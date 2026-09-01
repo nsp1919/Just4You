@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/jsx-no-comment-textnodes -- Double slashes are intentional cyber-theme copy. */
 import { useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import { Share2, Copy, Check, Volume2, VolumeX, ChevronDown } from "lucide-react";
@@ -9,6 +10,7 @@ import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
 import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import InvitationActions from "../InvitationActions";
 
 interface Celebration {
   id?: string;
@@ -103,7 +105,7 @@ function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const [playing, setPlaying] = useState(false);
   const url = celebration.musicType === "upload" ? celebration.musicUploadUrl : celebration.musicType === "preset" && celebration.musicPresetId ? `/music/${celebration.musicPresetId}.mp3` : null;
   if (!url) return null;
-  const toggle = () => { const a = audioRef.current; if (!a) return; playing ? (a.pause(), setPlaying(false)) : (a.play().catch(() => {}), setPlaying(true)); };
+  const toggle = () => { const audio = audioRef.current; if (!audio) return; if (audio.paused) void audio.play().catch(() => {}); else audio.pause(); };
   return (<><audio ref={audioRef} src={url} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><button onClick={toggle} className="fixed bottom-24 left-6 z-50 w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-110" style={{ background: "rgba(0,255,245,0.1)", border: "1px solid rgba(0,255,245,0.5)", boxShadow: "0 0 15px rgba(0,255,245,0.3)" }}>{playing ? <Volume2 size={18} color="#00fff5" /> : <VolumeX size={18} color="#00fff5" />}</button></>);
 }
 
@@ -134,7 +136,8 @@ function ElectricParticles() {
   const [sparks, setSparks] = useState<{ id: number; x: number; delay: number; dur: number; color: string }[]>([]);
   useEffect(() => {
     const colors = ["#00fff5", "#ff00ff", "#ffff00", "#ff6600"];
-    setSparks(Array.from({ length: 25 }, (_, i) => ({ id: i, x: Math.random() * 100, delay: Math.random() * 10, dur: Math.random() * 6 + 4, color: colors[Math.floor(Math.random() * colors.length)] })));
+    const frame = requestAnimationFrame(() => setSparks(Array.from({ length: 25 }, (_, i) => ({ id: i, x: Math.random() * 100, delay: Math.random() * 10, dur: Math.random() * 6 + 4, color: colors[Math.floor(Math.random() * colors.length)] }))));
+    return () => cancelAnimationFrame(frame);
   }, []);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -396,11 +399,7 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
         <ReactionWall celebrationId={celebration.id} accentColor="#00fff5" isDark={true} />
       )}
 
-      <MusicPlayer celebration={celebration} />
-      <ShareBar name={celebration.recipientName} celebrationHeading={content.heading2.replace(/[!🎂🎈💍💌🎉💑]/g, "").trim()} />
-      {celebration.id && (
-        <StoryCardModal celebration={celebration} slug={celebration.id} />
-      )}
+      <InvitationActions celebration={celebration} shareMessage={`⚡ ${content.heading2.replace(/[!🎂🎈💍💌🎉💑]/g, "").trim().toUpperCase()} ${celebration.recipientName.toUpperCase()}! ⚡`} accentColor="#00b8b0" />
     </main>
   );
 }

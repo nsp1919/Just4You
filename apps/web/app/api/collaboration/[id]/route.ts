@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { COLLECTIONS } from "@/lib/constants";
+import { isAllowedCloudinaryUrl, type UploadPurpose } from "@/lib/cloudinary-policy";
 
 const SETTINGS_DOC = "settings";
 const MAX_CONTRIBUTIONS = 100;
@@ -27,17 +28,10 @@ function cleanText(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
-function validCloudinaryUrl(value: string): boolean {
+function validCloudinaryUrl(value: string, purpose: UploadPurpose): boolean {
   if (!value) return true;
-  try {
-    const url = new URL(value);
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    return url.protocol === "https:"
-      && url.hostname === "res.cloudinary.com"
-      && (!cloudName || url.pathname.startsWith(`/${cloudName}/`));
-  } catch {
-    return false;
-  }
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  return Boolean(cloudName && isAllowedCloudinaryUrl(value, purpose, cloudName));
 }
 
 function tokensMatch(actual: unknown, supplied: string): boolean {
@@ -177,7 +171,7 @@ export async function POST(
     if (!name || (!message && !photoUrl && !voiceUrl)) {
       return NextResponse.json({ error: "Add your name and at least one message or memory." }, { status: 400 });
     }
-    if (!validCloudinaryUrl(photoUrl) || !validCloudinaryUrl(voiceUrl)) {
+    if (!validCloudinaryUrl(photoUrl, "contributionPhoto") || !validCloudinaryUrl(voiceUrl, "contributionVoice")) {
       return NextResponse.json({ error: "Uploaded media URL is invalid." }, { status: 400 });
     }
 

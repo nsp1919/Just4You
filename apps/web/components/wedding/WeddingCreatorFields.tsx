@@ -9,6 +9,7 @@ import {
   type WeddingDataDraft,
 } from "@/lib/constants";
 import { usePricingSettings } from "@/lib/use-pricing-settings";
+import { uploadCloudinaryFile } from "@/lib/cloudinary-upload";
 
 interface WeddingDataProps {
   value: WeddingDataDraft;
@@ -221,22 +222,6 @@ export function WeddingDetailsEditor({
   );
 }
 
-async function uploadCloudinary(file: File, resource: "image" | "video", folder: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-  formData.append("folder", folder);
-  if (resource === "video") formData.append("resource_type", "video");
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resource}/upload`,
-    { method: "POST", body: formData },
-  );
-  if (!response.ok) throw new Error(`Upload failed (${response.status})`);
-  const result = await response.json();
-  if (!result.secure_url) throw new Error(result.error?.message ?? "No upload URL returned.");
-  return result.secure_url as string;
-}
-
 export function WeddingPosterEditor({ value, onChange }: WeddingDataProps) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -246,7 +231,7 @@ export function WeddingPosterEditor({ value, onChange }: WeddingDataProps) {
     setUploadingId(ceremony.id);
     setError(null);
     try {
-      const image = await uploadCloudinary(file, "image", "birthdayglow/wedding/posters");
+      const image = await uploadCloudinaryFile(file, "weddingPoster");
       onChange({ ...value, ceremonies: updateCeremony(value.ceremonies, ceremony.id, { image }) });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Poster upload failed.");
@@ -305,7 +290,7 @@ export function WeddingRevealMusicEditor({ value, onChange }: WeddingDataProps) 
     setUploadingId(ceremony.id);
     setError(null);
     try {
-      const revealMusicUrl = await uploadCloudinary(file, "video", "birthdayglow/wedding/reveal-music");
+      const revealMusicUrl = await uploadCloudinaryFile(file, "weddingRevealMusic");
       onChange({ ...value, ceremonies: updateCeremony(value.ceremonies, ceremony.id, { revealMusicUrl }) });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Music upload failed.");

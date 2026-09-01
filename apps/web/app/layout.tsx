@@ -50,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${weddingDisplay.variable} ${weddingBody.variable}`}>
+    <html suppressHydrationWarning lang="en" className={`${inter.variable} ${playfair.variable} ${weddingDisplay.variable} ${weddingBody.variable}`}>
       <body className="font-sans antialiased bg-bg-deep text-white">
         <script
           type="application/ld+json"

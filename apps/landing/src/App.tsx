@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, ArrowRight, Play, Check, Star, ChevronLeft, ChevronRight,
-  Quote, Music2, Images, Lock, Clock, MessageCircle, Gift, Zap, Shield, Share2,
+  Quote, MessageCircle,
   Menu, X, Heart, Camera, Mail
 } from 'lucide-react'
+import { BASE_PRICE_INR, whatsappContactUrl } from './marketing-config'
+import { FEATURES, HOW_IT_WORKS, OCCASIONS, PARTICLES, TESTIMONIALS, THEMES } from './landing-content'
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
 
@@ -17,71 +19,6 @@ const appUrl = (path: string) => {
   const base = isDev ? 'http://localhost:3000' : window.location.origin;
   return `${base}${path}`;
 };
-
-const OCCASIONS = [
-  { emoji: '🎂', title: 'Birthday Websites', tag: 'Most Popular', c: '#ff9e4f', bg: 'rgba(255,158,79,0.06)', border: 'rgba(255,158,79,0.16)',
-    desc: 'A personalized birthday page packed with photos, music, countdown & a heartfelt surprise reveal.' },
-  { emoji: '💍', title: 'Anniversary Websites', tag: 'Most Romantic', c: '#ff6f9c', bg: 'rgba(255,111,156,0.06)', border: 'rgba(255,111,156,0.16)',
-    desc: 'Celebrate years of togetherness with a stunning timeline of shared memories & love letters.' },
-  { emoji: '💌', title: 'Proposal Websites', tag: 'Trending', c: '#ff5f8f', bg: 'rgba(255,95,143,0.06)', border: 'rgba(255,95,143,0.16)',
-    desc: 'Pop the question with a cinematic digital story — photos, vows & a Yes/No reveal moment.' },
-  { emoji: '🧸', title: 'Kids Birthday', tag: 'Adorable', c: '#ffbe3d', bg: 'rgba(255,190,61,0.06)', border: 'rgba(255,190,61,0.16)',
-    desc: 'Colorful, playful birthday pages with balloon animations, character themes & fun surprises.' },
-  { emoji: '🎓', title: 'Graduation Websites', tag: 'New ✨', c: '#f7a83a', bg: 'rgba(247,168,58,0.06)', border: 'rgba(247,168,58,0.16)',
-    desc: 'Honour the achievement with a premium tribute — professor wishes, milestone photos & a proud message.' },
-  { emoji: '🎉', title: 'Custom Celebrations', tag: 'Fully Custom', c: '#ff7d6b', bg: 'rgba(255,125,107,0.06)', border: 'rgba(255,125,107,0.16)',
-    desc: 'Weddings, engagements, reunions, farewells — any occasion crafted beautifully, just for you.' },
-]
-
-const THEMES = [
-  { id: 'galaxy', emoji: '🌌', name: 'Galaxy Theme', desc: 'Deep space vibes — floating stars, nebula glow & cosmic gold typography.' },
-  { id: 'floral', emoji: '🌸', name: 'Floral Theme', desc: 'Romantic pink petals, soft cream backgrounds & elegant serif typography.' },
-  { id: 'neon', emoji: '⚡', name: 'Neon Theme', desc: 'Electric cyberpunk aesthetic — bright neon accents on a dark slate canvas.' },
-  { id: 'minimal', emoji: '🤍', name: 'Minimal Theme', desc: 'Clean white space, minimal typography, and focused layout elegance.' },
-  { id: 'retro', emoji: '🎞️', name: 'Retro Theme', desc: 'Warm vintage film tones, typewriter typewriter text & sepia charm.' },
-  { id: 'magical', emoji: '🎈', name: 'Magical Theme', desc: 'Playful cartoonish elements — floating balloons & light pastel tones.' },
-]
-
-const HOW_IT_WORKS = [
-  { n: '01', title: 'Choose Your Occasion', desc: 'Select from Birthday, Anniversary, Proposal, Kids Birthday, Graduation, or create a fully custom celebration website.', emoji: '🎯' },
-  { n: '02', title: 'Fill In The Details', desc: 'Add the recipient\'s name, your heartfelt personal message, pick a beautiful visual theme & set the celebration date.', emoji: '✍️' },
-  { n: '03', title: 'Upload Photos & Music', desc: 'Add up to 8 photos, choose a preset music track or upload your own song, even record a personal voice message.', emoji: '📸' },
-  { n: '04', title: 'Secure Check & Go Live', desc: 'Complete secure payments. Your beautiful surprise website is ready within 24 hours — sometimes instantly!', emoji: '✅' },
-]
-
-const FEATURES = [
-  { icon: Images, title: 'Photo Gallery', desc: 'Upload up to 8 photos in a stunning animated slideshow.', color: '#ff9e4f' },
-  { icon: Music2, title: 'Custom Music & Voice', desc: 'Choose from preset tracks, upload your own song, or record a voice note.', color: '#ff6f9c' },
-  { icon: Clock, title: 'Countdown Reveal', desc: 'Lock the site until the big day with an animated countdown timer.', color: '#ffbe3d' },
-  { icon: MessageCircle, title: 'Guest Wishes Section', desc: 'Allow friends & family to leave messages on the surprise page.', color: '#ff7d6b' },
-  { icon: Lock, title: 'Password Protected', desc: 'Ensure absolute privacy with optional passcode protection.', color: '#f7a83a' },
-  { icon: Gift, title: '6 Premium Themes', desc: 'Pick the theme that matches their vibe perfectly.', color: '#fb923c' },
-  { icon: Zap, title: 'Ready in 24 Hours', desc: 'Express delivery ensuring your site goes live on schedule.', color: '#ff9e4f' },
-  { icon: Share2, title: 'Easy Sharing', desc: 'Get one beautiful link to share via WhatsApp, Instagram, or email.', color: '#ff6f9c' },
-  { icon: Shield, title: 'Hosted 1 Full Year', desc: 'Secure hosting active for 365 days of celebration.', color: '#ffbe3d' },
-]
-
-const TESTIMONIALS = [
-  { init: 'PM', name: 'Priya Mehta', loc: 'Mumbai', occ: 'Birthday', c: '#ff9e4f', bg: 'rgba(255,158,79,0.14)',
-    text: 'My husband literally cried when he saw it. The photos, the music, the messages from family — it was beyond anything I could have imagined. Pure magic! 🥹', rating: 5 },
-  { init: 'RS', name: 'Rahul Sharma', loc: 'Delhi', occ: 'Proposal', c: '#ff6f9c', bg: 'rgba(255,111,156,0.14)',
-    text: 'I proposed using the website and she said YES! The countdown, the love story, the photos — she was completely speechless. Best decision of my life.', rating: 5 },
-  { init: 'AS', name: 'Arjun & Sneha', loc: 'Bangalore', occ: 'Anniversary', c: '#ff5f8f', bg: 'rgba(255,95,143,0.14)',
-    text: 'For our 10th anniversary, the team created a beautiful timeline of our decade together. Our entire family is still talking about it months later!', rating: 5 },
-  { init: 'KN', name: 'Kavya Nair', loc: 'Kochi', occ: 'Kids Birthday', c: '#ffbe3d', bg: 'rgba(255,190,61,0.14)',
-    text: 'My daughter\'s 5th birthday website had her favourite characters and all her friends\' wishes. She watches it every week — her most treasured memory!', rating: 5 },
-  { init: 'VP', name: 'Vikram Patel', loc: 'Ahmedabad', occ: 'Graduation', c: '#f7a83a', bg: 'rgba(247,168,58,0.14)',
-    text: 'Made a graduation surprise for my sister — prof messages, college memories, achievement showcase. She cried happy tears. Best ₹299 ever spent!', rating: 5 },
-]
-
-const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
-  id: i,
-  size: Math.random() * 3 + 2,
-  left: Math.random() * 100,
-  delay: Math.random() * 10,
-  dur: Math.random() * 8 + 8,
-  color: ['#ff9e4f', '#ff6f9c', '#ffcf7a', '#ff8a5c', '#ffe6b0'][Math.floor(Math.random() * 5)],
-}))
 
 /* ─── Reusable: Section Header ─────────────────────────────────────────────── */
 function SectionHeader({ label, labelColor, title, sub, inView }: {
@@ -199,7 +136,7 @@ function Navbar({ onOpenAuth }: { onOpenAuth: (mode?: 'login' | 'signup') => voi
                   Sign In
                 </button>
                 <button onClick={() => { setOpen(false); onOpenAuth('signup'); }} className="btn btn-main" style={{ textAlign: 'center', justifyContent: 'center', padding: '14px', fontSize: '1rem' }}>
-                  Create Surprise — from ₹199
+                  Create Surprise — from ₹{BASE_PRICE_INR}
                 </button>
               </div>
             </div>
@@ -306,7 +243,7 @@ function Hero({ onOpenAuth }: { onOpenAuth: (mode?: 'login' | 'signup') => void 
             initial={{ opacity:0,y:16 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.85,duration:0.6 }}
             style={{ display:'flex',flexWrap:'wrap',justifyContent:'center',gap:'24px 64px', width: '100%',
               paddingTop:36,borderTop:'1px solid rgba(255,224,196,0.09)' }}>
-            {[['6','Stunning Themes'],['24 hrs','Fast Delivery'],['1 Year','Hosting Included'],['₹199','Starting Price']].map(([v,l]) => (
+            {[['6','Stunning Themes'],['24 hrs','Fast Delivery'],['1 Year','Hosting Included'],[`₹${BASE_PRICE_INR}`,'Starting Price']].map(([v,l]) => (
               <div key={l} style={{ textAlign:'center' }}>
                 <div className="g-text-gold" style={{ fontSize:'1.8rem',fontWeight:800,fontFamily:"'Plus Jakarta Sans',sans-serif" }}>{v}</div>
                 <div style={{ fontSize:'0.8rem',color:'#8f8098',marginTop:6,fontWeight:500,letterSpacing:'0.04em',textTransform:'uppercase' }}>{l}</div>
@@ -584,7 +521,7 @@ function Pricing() {
       <div className="wrap" style={{ maxWidth:1020 }}>
         <SectionHeader label="Simple Pricing" labelColor="#ff8a5c"
           title={<>Build Your Own <span className="g-text">Package.</span></>}
-          sub="Start from ₹199 and add only the features you want. No subscriptions — pay once, surprise them forever."
+          sub={`Start from ₹${BASE_PRICE_INR} and add only the features you want. No subscriptions — pay once, surprise them forever.`}
           inView={inView} />
 
         <div className="three-col" style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24,alignItems:'stretch' }}>
@@ -659,13 +596,13 @@ function FinalCTA({ onOpenAuth }: { onOpenAuth: (mode?: 'login' | 'signup') => v
               Than a Disposable Card.
             </h2>
             <p style={{ color:'#b9a6be',fontSize:'1.08rem',lineHeight:1.75,maxWidth:500,margin:'0 auto 40px' }}>
-              Create a magical digital surprise page that your loved ones will open, cherish, and remember forever — starting at just ₹199.
+              Create a magical digital surprise page that your loved ones will open, cherish, and remember forever — starting at just ₹{BASE_PRICE_INR}.
             </p>
             <div style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center' }}>
               <button onClick={() => onOpenAuth('signup')} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>
                 Create Surprise Website <ArrowRight size={18} />
               </button>
-              <a href="https://wa.me/919999999999?text=Hi!%20I%20want%20to%20create%20a%20surprise%20website."
+              <a href={whatsappContactUrl('Hi! I want to create a surprise website.')}
                 target="_blank" rel="noopener noreferrer"
                 className="btn btn-ghost" style={{ fontSize:'1.05rem',padding:'15px 32px' }}>
                 <MessageCircle size={18} style={{ color:'#25D366' }} />

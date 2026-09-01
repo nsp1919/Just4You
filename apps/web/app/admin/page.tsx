@@ -9,6 +9,7 @@ import {
 import { COLLECTIONS, computePriceInr, DEFAULT_PRICING_SETTINGS, FEATURE_ADDONS, type PricingSettings } from "@/lib/constants";
 import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine, BadgeCheck, Upload, Trash2, ExternalLink, LockKeyhole, LogOut, LayoutDashboard, Settings2 } from "lucide-react";
 import Link from "next/link";
+import { uploadCloudinaryFile } from "@/lib/cloudinary-upload";
 
 interface PrebookOrder {
   id: string;
@@ -295,40 +296,23 @@ export default function AdminPage() {
       return;
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = mediaType === "video"
-      ? process.env.NEXT_PUBLIC_CLOUDINARY_VIDEO_PRESET || process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
-      : process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-    if (!cloudName || !uploadPreset) {
-      setWithdrawalError("Cloudinary uploads are not configured.");
-      return;
-    }
-
     setUploadingReviewId(celebration.id);
     setWithdrawalError("");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", uploadPreset);
-      formData.append("folder", "birthdayglow/verified-reviews");
-      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${mediaType}/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const uploadResult = await uploadResponse.json();
-      if (!uploadResponse.ok || !uploadResult.secure_url) {
-        throw new Error(uploadResult.error?.message ?? "Review media upload failed.");
-      }
+      const reviewMediaUrl = await uploadCloudinaryFile(
+        file,
+        mediaType === "video" ? "verifiedReviewVideo" : "verifiedReviewImage",
+      );
 
       await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, celebration.id), {
-        reviewMediaUrl: uploadResult.secure_url,
+        reviewMediaUrl,
         reviewMediaType: mediaType,
         reviewVerified: true,
         reviewVerifiedAt: serverTimestamp(),
       });
       setCelebrations((items) => items.map((item) => item.id === celebration.id ? {
         ...item,
-        reviewMediaUrl: uploadResult.secure_url,
+        reviewMediaUrl,
         reviewMediaType: mediaType,
         reviewVerified: true,
       } : item));
