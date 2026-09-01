@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { customAlphabet } from "nanoid";
-import { COLLECTIONS, VALIDITY_DAYS } from "@/lib/constants";
+import { COLLECTIONS, normalizeVanitySlug, VALIDITY_DAYS } from "@/lib/constants";
 import { releaseCheckoutBenefits } from "@/lib/referral-server";
 import { requireAdminRequest } from "@/lib/admin-session";
+import { getCelebrationUrl } from "@/lib/celebration-url";
 
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
 
@@ -14,6 +15,24 @@ const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
 async function requireAdmin(req: NextRequest): Promise<string> {
   const admin = await requireAdminRequest(req);
   return admin.uid;
+}
+
+async function reserveVanityLink(celebrationId: string, userId: string, vanitySlug: string): Promise<void> {
+  if (!vanitySlug) return;
+
+  const vanityRef = adminDb.collection("vanityLinks").doc(vanitySlug);
+  await adminDb.runTransaction(async (transaction) => {
+    const vanitySnapshot = await transaction.get(vanityRef);
+    if (vanitySnapshot.exists && vanitySnapshot.data()?.celebrationId !== celebrationId) {
+      throw new Error("CUSTOM_LINK_TAKEN");
+    }
+    transaction.set(vanityRef, {
+      celebrationId,
+      userId,
+      reservedAt: vanitySnapshot.data()?.reservedAt ?? Timestamp.now(),
+      activatedAt: Timestamp.now(),
+    });
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -47,8 +66,22 @@ export async function POST(req: NextRequest) {
     }
 
     const celebData = celebSnap.data() as any;
+    const selectedFeatures = Array.isArray(celebData.checkoutFeatures)
+      ? celebData.checkoutFeatures
+      : Array.isArray(celebData.selectedFeatures)
+        ? celebData.selectedFeatures
+        : [];
+    const hasCustomLink = selectedFeatures.includes("custom_link");
+    const vanitySlug = hasCustomLink
+      ? normalizeVanitySlug(celebData.checkoutVanitySlug ?? celebData.vanitySlug)
+      : "";
+
+    if (hasCustomLink && vanitySlug.length < 3) {
+      return NextResponse.json({ error: "Enter a valid custom link" }, { status: 400 });
+    }
 
     if (celebData.isActive && celebData.paymentStatus === "paid") {
+      await reserveVanityLink(celebrationId, celebData.userId, vanitySlug);
       if (hasLaunchAt) {
         await celebRef.update({
           launchAt: launchDate ? Timestamp.fromDate(launchDate) : null,
@@ -56,10 +89,15 @@ export async function POST(req: NextRequest) {
           launchScheduleUpdatedAt: Timestamp.now(),
         });
       }
+      if (vanitySlug) {
+        await celebRef.update({ vanitySlug, checkoutVanitySlug: vanitySlug });
+      }
       return NextResponse.json({
         success: true,
         message: hasLaunchAt ? "Launch time updated" : "Already active",
         slug: celebData.slug,
+        vanitySlug,
+        birthdayUrl: getCelebrationUrl(celebData.slug, vanitySlug),
       });
     }
 
@@ -87,9 +125,11 @@ export async function POST(req: NextRequest) {
     if (waivePayment) {
       await releaseCheckoutBenefits(celebrationId);
     }
+    await reserveVanityLink(celebrationId, celebData.userId, vanitySlug);
 
     await celebRef.update({
       slug,
+      ...(vanitySlug ? { vanitySlug, checkoutVanitySlug: vanitySlug } : {}),
       razorpayPaymentId: waivePayment ? "payment_waived" : razorpayPaymentId,
       paymentStatus: "paid",
       isActive: true,
@@ -105,7 +145,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       slug,
-      birthdayUrl: `${process.env.NEXT_PUBLIC_BIRTHDAY_APP_URL}/wish/${slug}`,
+      vanitySlug,
+      birthdayUrl: getCelebrationUrl(slug, vanitySlug),
       message: `Celebration ${celebrationId} activated with slug: ${slug}`,
     });
   } catch (error: any) {
@@ -117,6 +158,9 @@ export async function POST(req: NextRequest) {
     }
     if (error?.message === "ADMIN_SESSION_REQUIRED") {
       return NextResponse.json({ error: "Admin session expired" }, { status: 401 });
+    }
+    if (error?.message === "CUSTOM_LINK_TAKEN") {
+      return NextResponse.json({ error: "This custom link is already in use" }, { status: 409 });
     }
     console.error("Admin activate error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

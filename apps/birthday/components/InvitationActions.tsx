@@ -72,10 +72,21 @@ export default function InvitationActions({ celebration, shareMessage, accentCol
   return (
     <>
       {musicUrl && <audio ref={audioRef} src={musicUrl} loop data-background-music onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />}
+      {musicUrl && (
+        <button
+          type="button"
+          onClick={toggleMusic}
+          aria-label={playing ? "Pause background music" : "Play background music"}
+          className={`fixed bottom-5 left-5 z-50 flex h-12 min-w-12 items-center justify-center gap-2 px-3 text-sm font-semibold shadow-2xl transition-transform hover:scale-105 ${square ? "rounded-none" : "rounded-full"}`}
+          style={neutralStyle}
+        >
+          {playing ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          <span>{playing ? "Pause music" : "Play music"}</span>
+        </button>
+      )}
       <div ref={menuRef} className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
         {open && (
           <div id="invitation-actions" className="flex flex-col items-end gap-2" role="menu" aria-label="Invitation actions">
-            {musicUrl && <button type="button" role="menuitem" onClick={toggleMusic} className={itemClass} style={neutralStyle}>{playing ? <Volume2 size={16} /> : <VolumeX size={16} />}{playing ? "Pause music" : "Play music"}</button>}
             <button type="button" role="menuitem" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${shareMessage}\n${window.location.href}`)}`, "_blank", "noopener,noreferrer")} className={`${itemClass} text-white`} style={{ background: "#128c4a" }}><Share2 size={16} />WhatsApp</button>
             <button type="button" role="menuitem" onClick={() => void copyLink()} className={itemClass} style={neutralStyle}>{copied ? <Check size={16} /> : <Copy size={16} />}{copied ? "Copied" : "Copy link"}</button>
             {celebration.id && <button type="button" role="menuitem" onClick={() => { setStoryOpen(true); setOpen(false); }} className={itemClass} style={neutralStyle}><Music2 size={16} />Story card</button>}

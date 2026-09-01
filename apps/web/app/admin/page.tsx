@@ -6,10 +6,11 @@ import { db } from "@/lib/firebase";
 import {
   collection, query, orderBy, getDocs, updateDoc, doc, serverTimestamp
 } from "firebase/firestore";
-import { COLLECTIONS, computePriceInr, DEFAULT_PRICING_SETTINGS, FEATURE_ADDONS, type PricingSettings } from "@/lib/constants";
+import { COLLECTIONS, computePriceInr, DEFAULT_PRICING_SETTINGS, FEATURE_ADDONS, normalizeVanitySlug, type PricingSettings } from "@/lib/constants";
 import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine, BadgeCheck, Upload, Trash2, ExternalLink, LockKeyhole, LogOut, LayoutDashboard, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { uploadCloudinaryFile } from "@/lib/cloudinary-upload";
+import { getCelebrationUrl } from "@/lib/celebration-url";
 
 interface PrebookOrder {
   id: string;
@@ -56,6 +57,17 @@ function toDatetimeLocal(value: string | null): string {
   return local.toISOString().slice(0, 16);
 }
 
+function getRequestedVanitySlug(celebration: Record<string, any>): string {
+  const features = Array.isArray(celebration.checkoutFeatures)
+    ? celebration.checkoutFeatures
+    : Array.isArray(celebration.selectedFeatures)
+      ? celebration.selectedFeatures
+      : [];
+  return features.includes("custom_link")
+    ? normalizeVanitySlug(celebration.checkoutVanitySlug ?? celebration.vanitySlug)
+    : "";
+}
+
 export default function AdminPage() {
   const { user, userDoc, logout, loading } = useAuth();
   const router = useRouter();
@@ -81,6 +93,7 @@ export default function AdminPage() {
   const [creditDraft, setCreditDraft] = useState("");
   const [savingCreditId, setSavingCreditId] = useState<string | null>(null);
   const [uploadingReviewId, setUploadingReviewId] = useState<string | null>(null);
+  const [uploadingMusicId, setUploadingMusicId] = useState<string | null>(null);
   const [minimumWithdrawalInr, setMinimumWithdrawalInr] = useState(300);
   const [minimumWithdrawalRange, setMinimumWithdrawalRange] = useState({ min: 100, max: 10_000 });
   const [referrerRewardInr, setReferrerRewardInr] = useState(50);
@@ -323,6 +336,40 @@ export default function AdminPage() {
     }
   };
 
+  const uploadCelebrationMusic = async (celebration: any, file: File) => {
+    const selectedFeatures = Array.isArray(celebration.checkoutFeatures)
+      ? celebration.checkoutFeatures
+      : Array.isArray(celebration.selectedFeatures)
+        ? celebration.selectedFeatures
+        : [];
+    if (!selectedFeatures.includes("custom_music")) {
+      setWithdrawalError("This celebration does not include the custom music add-on.");
+      return;
+    }
+
+    setUploadingMusicId(celebration.id);
+    setWithdrawalError("");
+    try {
+      const musicUploadUrl = await uploadCloudinaryFile(file, "celebrationMusic");
+      await updateDoc(doc(db, COLLECTIONS.CELEBRATIONS, celebration.id), {
+        musicType: "upload",
+        musicPresetId: "",
+        musicUploadUrl,
+        updatedAt: serverTimestamp(),
+      });
+      setCelebrations((items) => items.map((item) => item.id === celebration.id ? {
+        ...item,
+        musicType: "upload",
+        musicPresetId: "",
+        musicUploadUrl,
+      } : item));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to upload celebration music.");
+    } finally {
+      setUploadingMusicId(null);
+    }
+  };
+
   const removeVerifiedReview = async (celebrationId: string) => {
     setUploadingReviewId(celebrationId);
     setWithdrawalError("");
@@ -518,10 +565,45 @@ export default function AdminPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to approve order");
       setCelebrations((orders) => orders.map((order) => order.id === celebrationId
-        ? { ...order, paymentStatus: "paid", isActive: true, paymentWaived: true, slug: result.slug }
+        ? {
+            ...order,
+            paymentStatus: "paid",
+            isActive: true,
+            paymentWaived: true,
+            slug: result.slug,
+            vanitySlug: result.vanitySlug,
+            checkoutVanitySlug: result.vanitySlug,
+          }
         : order));
     } catch (error) {
       setWithdrawalError(error instanceof Error ? error.message : "Unable to approve order");
+    } finally {
+      setProcessingOrder(null);
+    }
+  };
+
+  const applyCustomLink = async (celebrationId: string) => {
+    if (!user) return;
+    setProcessingOrder(celebrationId);
+    setWithdrawalError("");
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/activate-celebration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          celebrationId,
+          waivePayment: true,
+          reason: "Custom link repaired from admin dashboard",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to apply custom link");
+      setCelebrations((orders) => orders.map((order) => order.id === celebrationId
+        ? { ...order, vanitySlug: result.vanitySlug, checkoutVanitySlug: result.vanitySlug }
+        : order));
+    } catch (error) {
+      setWithdrawalError(error instanceof Error ? error.message : "Unable to apply custom link");
     } finally {
       setProcessingOrder(null);
     }
@@ -911,7 +993,23 @@ export default function AdminPage() {
                         <div>{c.recipientName}</div>
                         {c.creditText && <div className="mt-1 max-w-48 truncate text-xs font-normal text-amber-200/80">{c.creditText}</div>}
                       </td>
-                      <td className="px-4 py-3 text-purple-400 font-mono text-xs">{c.slug || "—"}</td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        <div className="text-purple-400">{c.slug || "—"}</div>
+                        {getRequestedVanitySlug(c) && (
+                          c.checkoutVanitySlug ? (
+                            <a
+                              href={getCelebrationUrl(c.slug, c.checkoutVanitySlug)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 inline-flex items-center gap-1 text-emerald-300 hover:text-emerald-200"
+                            >
+                              /p/{getRequestedVanitySlug(c)} <ExternalLink size={10} />
+                            </a>
+                          ) : (
+                            <div className="mt-1 text-amber-300">/p/{getRequestedVanitySlug(c)} (pending)</div>
+                          )
+                        )}
+                      </td>
                       <td className="px-4 py-3 capitalize">{c.theme}</td>
                       <td className="px-4 py-3">{c.photos?.length ?? 0}</td>
                       <td className="px-4 py-3">
@@ -937,6 +1035,28 @@ export default function AdminPage() {
                             <button disabled={processingOrder === c.id} onClick={() => void acceptWithoutPayment(c.id)} className="flex items-center gap-1 rounded bg-green-500/10 px-2 py-1 text-xs font-medium text-green-300 transition hover:bg-green-500/20 disabled:opacity-50">
                               {processingOrder === c.id ? <LoaderCircle size={11} className="animate-spin" /> : <Gift size={11} />} Accept free
                             </button>
+                          )}
+                          {c.paymentStatus === "paid" && getRequestedVanitySlug(c) && !c.checkoutVanitySlug && (
+                            <button disabled={processingOrder === c.id} onClick={() => void applyCustomLink(c.id)} className="flex items-center gap-1 rounded bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50">
+                              {processingOrder === c.id ? <LoaderCircle size={11} className="animate-spin" /> : <ExternalLink size={11} />} Apply custom
+                            </button>
+                          )}
+                          {(c.checkoutFeatures ?? c.selectedFeatures)?.includes?.("custom_music") && (
+                            <label className="flex cursor-pointer items-center gap-1 rounded bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-200 transition hover:bg-purple-500/20">
+                              {uploadingMusicId === c.id ? <LoaderCircle size={11} className="animate-spin" /> : <Upload size={11} />}
+                              {uploadingMusicId === c.id ? "Uploading song" : c.musicUploadUrl ? "Replace song" : "Upload song"}
+                              <input
+                                type="file"
+                                accept="audio/mpeg,audio/mp3,audio/wav,audio/webm,audio/mp4,audio/ogg,audio/aac"
+                                className="sr-only"
+                                disabled={uploadingMusicId === c.id}
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0];
+                                  if (file) void uploadCelebrationMusic(c, file);
+                                  event.currentTarget.value = "";
+                                }}
+                              />
+                            </label>
                           )}
                           {c.isPublicOptIn && (
                             <button onClick={() => toggleGalleryApproved(c.id, c.galleryApproved)}
