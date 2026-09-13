@@ -7,8 +7,10 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, Hero3D } from "./Scroll3D";
 import InvitationActions from "../InvitationActions";
+import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
+import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
 
 interface Celebration {
   id?: string;
@@ -37,29 +39,6 @@ function AnimLine({ children, delay = 0, className = "", from = "bottom", style 
   return (
     <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.9s ease ${delay}ms, transform 0.9s ease ${delay}ms`, ...style }}>
       {children}
-    </div>
-  );
-}
-
-function PhotoCard({ url, caption, index }: { url: string; caption: string; index: number }) {
-  const { ref, inView } = useInView(0.12);
-  const isLeft = index % 2 === 0;
-  return (
-    <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 1s ease ${index * 80}ms` }}>
-      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1} intensity={0.6}>
-        <div className="h-64 md:h-72 overflow-hidden relative group" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-          <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(245,245,245,0.6) 0%, transparent 50%)" }} />
-        </div>
-      </Tilt3D>
-      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={30}>
-        <div className="text-5xl mb-3 leading-none" style={{ fontFamily: "Georgia, serif", color: "#bbb" }}>"</div>
-        <p className="text-xl md:text-2xl leading-relaxed" style={{ fontFamily: "'Lora', Georgia, serif", color: "#333", fontStyle: "italic" }}>
-          {caption}
-        </p>
-        <div className="mt-5 w-12 h-px" style={{ background: "#333", marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </Parallax>
     </div>
   );
 }
@@ -195,6 +174,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
           <span className="font-cormorant text-sm tracking-widest" style={{ color: "#bbb" }}>scroll</span><ChevronDown size={18} />
         </button>
       </section>
+      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
 
       {/* ── Scene 2: Happy Birthday */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
@@ -241,6 +221,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
         style={{ background: "#fafafa" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-10" style={{ color: "#bbb" }}>— a letter —</AnimLine>
+          <EnvelopeLetter>
           <div className="p-8 md:p-12 text-left" style={{ background: "white", border: "1px solid #e8e8e8", borderRadius: 2, boxShadow: "0 4px 40px rgba(0,0,0,0.06)" }}>
             <div className="font-lora text-3xl italic mb-6" style={{ color: "#333" }}>{content.letterSalutation}</div>
             <div className="space-y-5">
@@ -256,6 +237,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
               <p className="font-lora text-2xl italic text-right mt-8" style={{ color: "#888" }}>{content.letterSignoff}</p>
             </AnimLine>
           </div>
+          </EnvelopeLetter>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#222" isDark={false} label="A personal voice message for you 🎤" />
           )}
@@ -274,8 +256,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
               <AnimLine delay={100}><h2 className="font-lora text-3xl md:text-5xl font-semibold" style={{ color: "#111" }}>Worth Keeping</h2></AnimLine>
               <AnimLine delay={200}><p className="font-cormorant text-lg italic mt-3" style={{ color: "#888" }}>Some things don't need words.</p></AnimLine>
             </div>
-            <div className="flex flex-col gap-24 md:gap-32">
-              {celebration.photos.map((url: string, i: number) => {
+            <MemoryAlbum theme="minimal" photos={celebration.photos.map((url: string, i: number) => {
                 const occasionType = celebration.occasionType || "birthday";
                 const birthdayCaptions = [
                   "The quietest memories are often the most powerful.",
@@ -324,9 +305,8 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
                   "kids-birthday": kidsCaptions,
                 };
                 const caps = captionMap[occasionType] || birthdayCaptions;
-                return <PhotoCard key={i} url={url} caption={caps[i % caps.length]} index={i} />;
-              })}
-            </div>
+                return { url, caption: caps[i % caps.length] };
+              })} />
           </div>
         </section>
       )}

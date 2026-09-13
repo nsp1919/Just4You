@@ -6,6 +6,14 @@
   "types": "./src/index.ts",
   "dependencies": {
     "firebase": "^12.17.1",
-    "nanoid": "^5.0.7"
+    "nanoid": "^5.0.7",
+    "three": "^0.180.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "lucide-react": ">=0.511.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0"
   }
 }

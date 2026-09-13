@@ -8,8 +8,10 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, Hero3D } from "./Scroll3D";
 import InvitationActions from "../InvitationActions";
+import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
+import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
 
 interface Celebration {
   id?: string;
@@ -221,41 +223,6 @@ const PHOTO_CAPTIONS_BY_OCCASION: Record<string, string[]> = {
   ],
 };
 
-function PhotoCard({ url, caption, index }: { url: string; caption: string; index: number }) {
-  const { ref, inView } = useInView(0.12);
-  const isLeft = index % 2 === 0;
-  return (
-    <div ref={ref as any}
-      className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-4xl mx-auto w-full px-4"
-      style={{
-        flexDirection: isLeft ? undefined : "row-reverse",
-        opacity: inView ? 1 : 0,
-        transition: `opacity 1s ease ${index * 80}ms`,
-      }}>
-      {/* Photo */}
-      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1}>
-        <div className="h-64 md:h-72 overflow-hidden rounded-3xl relative group"
-          style={{ boxShadow: "0 20px 60px rgba(168,85,247,0.3), 0 0 0 1px rgba(168,85,247,0.2)" }}>
-          <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-          <div className="absolute inset-0 rounded-3xl" style={{ background: "linear-gradient(to top, rgba(10,8,21,0.7) 0%, transparent 50%)" }} />
-          <div className="absolute bottom-3 right-3 text-white/50 text-xs tracking-widest" style={{ fontFamily: "Georgia, serif" }}>
-            Photo {index + 1}
-          </div>
-        </div>
-      </Tilt3D>
-      {/* Caption */}
-      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={38}>
-        <div className="text-5xl mb-3 text-white/30" style={{ fontFamily: "serif", lineHeight: 1 }}>"</div>
-        <p className="text-xl md:text-2xl leading-relaxed text-white/80 italic" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
-          {caption}
-        </p>
-        <div className="mt-5 w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400"
-          style={{ marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </Parallax>
-    </div>
-  );
-}
-
 // ─── "Why You're Special" card — extracted to avoid hook-in-loop ──────────────
 function SpecialCard({ emoji, text, index }: { emoji: string; text: string; index: number }) {
   return (
@@ -416,6 +383,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
           <ChevronDown size={20} />
         </button>
       </section>
+      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
 
       {/* ══ SCENE 2: Happy Birthday ═══════════════════════════════════════ */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
@@ -475,6 +443,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
             ✦ A Letter From The Heart ✦
           </AnimLine>
 
+          <EnvelopeLetter>
           <div className="glass-card p-8 md:p-12 text-left relative" style={{ boxShadow: "0 0 60px rgba(168,85,247,0.12)" }}>
             {/* Stationery inner frame + ornament */}
             <div className="absolute inset-3 rounded-2xl pointer-events-none" style={{ border: "1px solid rgba(168,85,247,0.16)" }} />
@@ -507,6 +476,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
             </AnimLine>
             </div>
           </div>
+          </EnvelopeLetter>
           {/* Voice Message Player */}
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#a855f7" isDark={true} />
@@ -535,13 +505,11 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
                 <p className="font-cormorant text-lg italic text-white/50 mt-3">Every photo holds a piece of something beautiful.</p>
               </AnimLine>
             </div>
-            <div className="flex flex-col gap-24 md:gap-32">
-              {celebration.photos.map((url: string, i: number) => {
+            <MemoryAlbum theme="galaxy" photos={celebration.photos.map((url: string, i: number) => {
                 const occasionType = celebration.occasionType || "birthday";
                 const caps = PHOTO_CAPTIONS_BY_OCCASION[occasionType] || PHOTO_CAPTIONS_BY_OCCASION.birthday;
-                return <PhotoCard key={i} url={url} caption={caps[i % caps.length]} index={i} />;
-              })}
-            </div>
+                return { url, caption: caps[i % caps.length] };
+              })} />
           </div>
         </section>
       )}

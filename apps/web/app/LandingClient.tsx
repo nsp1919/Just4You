@@ -8,6 +8,7 @@ import { BUSINESS } from '@/lib/business'
 import { formatInr } from '@/lib/constants'
 import type { PublicCelebrationProof } from '@/lib/public-proof'
 import { useReferralRewards } from '@/lib/use-referral-rewards'
+import { GiftUnboxing } from '@birthdayglow/shared/src/components/SurpriseReveal'
 import {
   Sparkles, ArrowRight, Play, Check, Eye,
   Music2, Images, Lock, Clock, MessageCircle, Gift, Zap, Shield, Share2,
@@ -304,19 +305,11 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
     }
   }, [])
 
-  const storyMoments = [
-    { Icon: Images, label: 'Favorite photos' },
-    { Icon: Music2, label: 'Their song' },
-    { Icon: Clock, label: 'Midnight reveal' },
-    { Icon: Heart, label: 'Your message' },
-    { Icon: Zap, label: 'Instantly live' },
-  ]
-
   return (
     <section style={{
       position: 'relative', minHeight: '100vh',
       display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-      padding: '120px 0 80px',
+      padding: '96px 0 48px',
       background: 'radial-gradient(ellipse 85% 65% at 50% -5%, rgba(255,120,150,0.14) 0%, #18101e 66%)',
     }}>
       {/* Ambient Orbs */}
@@ -342,7 +335,7 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
             initial={{ opacity:0,y:20 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.2,duration:0.7 }}
             style={{ display:'inline-flex',alignItems:'center',gap:10,
               background:'rgba(255,158,79,0.08)',border:'1px solid rgba(255,158,79,0.24)',
-              borderRadius:50,padding:'10px 22px',marginBottom:32 }}>
+              borderRadius:50,padding:'8px 18px',marginBottom:18 }}>
             <AnimatePresence mode="wait">
               <motion.span key={currentOcc}
                 initial={{ opacity:0,y:6 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0,y:-6 }}
@@ -365,8 +358,8 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
           {/* Cinematic Headline */}
           <motion.h1 className="serif"
             initial={{ opacity:0,y:40 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.35,duration:0.9,ease:[0.22,1,0.36,1] }}
-            style={{ fontSize:'clamp(2.5rem, 6.5vw, 4.8rem)',fontWeight:900,lineHeight:1.15,letterSpacing:'-0.03em',
-              color:'#fff5ec',marginBottom:24 }}>
+            style={{ fontSize:'clamp(2rem, 6.5vw, 4rem)',fontWeight:900,lineHeight:1.15,letterSpacing:0,
+              color:'#fff5ec',marginBottom:16 }}>
             Make Every Celebration <br />
             <span className="hero-headline-finish">
               <span className="g-text">Unforgettable.</span>
@@ -379,15 +372,15 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
           {/* Subheading */}
           <motion.p
             initial={{ opacity:0,y:22 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.55,duration:0.7 }}
-            style={{ fontSize:'1.15rem',lineHeight:1.8,color:'#b9a6be',
-              maxWidth:620,margin:'0 auto 48px',fontWeight:400,letterSpacing:'0.01em' }}>
+            style={{ fontSize:'1.05rem',lineHeight:1.65,color:'#b9a6be',
+              maxWidth:620,margin:'0 auto 22px',fontWeight:400,letterSpacing:0 }}>
             Create a personalized surprise website with photos, music, timelines and heartfelt messages. Pick an instant-delivery theme or make every detail your own.
           </motion.p>
 
           {/* CTAs */}
           <motion.div
             initial={{ opacity:0,y:22 }} animate={{ opacity:1,y:0 }} transition={{ delay:0.7,duration:0.7 }}
-            style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center',alignItems:'center',marginBottom:42 }}>
+            style={{ display:'flex',flexWrap:'wrap',gap:16,justifyContent:'center',alignItems:'center',marginBottom:8 }}>
             <button onClick={onOpenAuth} className="btn btn-main" style={{ fontSize:'1.05rem',padding:'16px 36px' }}>
               Create a Surprise Website <ArrowRight size={18} />
             </button>
@@ -396,21 +389,7 @@ function Hero({ onOpenAuth }: { onOpenAuth: () => void }) {
             </a>
           </motion.div>
 
-          <motion.div className="hero-story-reel"
-            initial={shouldReduceMotion?false:{ opacity:0,y:18 }} animate={{ opacity:1,y:0 }}
-            transition={{ delay:0.82,duration:0.7 }} aria-label="Your surprise website story">
-            <motion.div className="hero-story-track"
-              animate={shouldReduceMotion?undefined:{ x:['0%','-50%'] }}
-              transition={shouldReduceMotion?undefined:{ duration:18,repeat:Infinity,ease:'linear' }}>
-              {[...storyMoments,...storyMoments].map(({ Icon,label },index) => (
-                <div className="hero-story-moment" key={`${label}-${index}`} aria-hidden={index >= storyMoments.length}>
-                  <span><Icon size={15} /></span>
-                  <strong>{label}</strong>
-                  <ArrowRight size={13} className="hero-story-arrow" />
-                </div>
-              ))}
-            </motion.div>
-          </motion.div>
+          <GiftUnboxing demo recipientName="Priya & Rahul" photo="/wedding-demo/couple.jpg" />
 
           {/* Stats Bar */}
           <motion.div

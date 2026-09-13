@@ -8,8 +8,10 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, Hero3D } from "./Scroll3D";
 import InvitationActions from "../InvitationActions";
+import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
+import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
 
 interface Celebration {
   id?: string;
@@ -39,30 +41,6 @@ function AnimLine({ children, delay = 0, className = "", from = "bottom", style 
   return (
     <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.85s ease ${delay}ms, transform 0.85s ease ${delay}ms`, ...style }}>
       {children}
-    </div>
-  );
-}
-
-function PhotoCard({ url, caption, index, accent }: { url: string; caption: string; index: number; accent: string }) {
-  const { ref, inView } = useInView(0.12);
-  const isLeft = index % 2 === 0;
-  return (
-    <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 1s ease ${index * 80}ms` }}>
-      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1}>
-        <div className="h-64 md:h-72 overflow-hidden rounded-3xl relative group"
-          style={{ boxShadow: `0 20px 60px ${accent}44, 0 0 0 1px ${accent}33` }}>
-          <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-          <div className="absolute inset-0 rounded-3xl" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 50%)" }} />
-        </div>
-      </Tilt3D>
-      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={38}>
-        <div className="text-5xl mb-3 opacity-30" style={{ fontFamily: "serif", lineHeight: 1, color: accent }}>"</div>
-        <p className="text-xl md:text-2xl leading-relaxed italic" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "inherit" }}>
-          {caption}
-        </p>
-        <div className="mt-5 w-12 h-0.5" style={{ background: `linear-gradient(to right, ${accent}, transparent)`, marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </Parallax>
     </div>
   );
 }
@@ -217,6 +195,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
           <span className="font-cormorant text-sm tracking-widest">Scroll</span><ChevronDown size={20} />
         </button>
       </section>
+      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
 
       {/* ── Scene 2: Happy Birthday */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
@@ -262,6 +241,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
         style={{ background: "linear-gradient(180deg,#fff5f8 0%,#ffe8ef 50%,#fff5f8 100%)" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-10" style={{ color: "#c2185b88" }}>✿ A Letter From The Heart ✿</AnimLine>
+          <EnvelopeLetter>
           <div className="glass-floral p-8 md:p-12 text-left shadow-xl">
             <div className="font-greatvibes text-4xl mb-5" style={{ color: "#c2185b" }}>{content.letterSalutation}</div>
             <div className="space-y-5">
@@ -277,6 +257,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
               <p className="font-greatvibes text-3xl text-right mt-8" style={{ color: "#c2185b" }}>{content.letterSignoff}</p>
             </AnimLine>
           </div>
+          </EnvelopeLetter>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#c2185b" isDark={false} />
           )}
@@ -295,8 +276,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
               <AnimLine delay={100}><h2 className="font-cormorant text-3xl md:text-5xl font-bold" style={{ color: "#880e4f" }}>Stories Worth Telling</h2></AnimLine>
               <AnimLine delay={200}><p className="font-garamond text-lg italic mt-3" style={{ color: "#6d3b57" }}>Every photo holds a petal of something beautiful.</p></AnimLine>
             </div>
-            <div className="flex flex-col gap-24 md:gap-32" style={{ color: "#2d1a2e" }}>
-              {celebration.photos.map((url: string, i: number) => {
+            <MemoryAlbum theme="floral" photos={celebration.photos.map((url: string, i: number) => {
                 const occasionType = celebration.occasionType || "birthday";
                 const birthdayCaptions = [
                   "Every time I look at this, my heart smiles a little more.",
@@ -345,9 +325,8 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
                   "kids-birthday": kidsCaptions,
                 };
                 const caps = captionMap[occasionType] || birthdayCaptions;
-                return <PhotoCard key={i} url={url} caption={caps[i % caps.length]} index={i} accent={accent} />;
-              })}
-            </div>
+                return { url, caption: caps[i % caps.length] };
+              })} />
           </div>
         </section>
       )}

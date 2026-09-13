@@ -9,8 +9,10 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, Hero3D } from "./Scroll3D";
 import InvitationActions from "../InvitationActions";
+import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
+import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
 
 interface Celebration {
   id?: string;
@@ -39,30 +41,6 @@ function AnimLine({ children, delay = 0, className = "", from = "bottom", style 
   return (
     <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.85s ease ${delay}ms, transform 0.85s ease ${delay}ms`, ...style }}>
       {children}
-    </div>
-  );
-}
-
-function PhotoCard({ url, caption, index }: { url: string; caption: string; index: number }) {
-  const { ref, inView } = useInView(0.12);
-  const isLeft = index % 2 === 0;
-  return (
-    <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 1s ease ${index * 80}ms` }}>
-      <Tilt3D className="flex-shrink-0 w-full md:w-64" direction={isLeft ? 1 : -1}>
-        <div className="h-64 md:h-72 overflow-hidden rounded-2xl relative group"
-          style={{ boxShadow: "0 20px 60px rgba(0,255,245,0.2), 0 0 0 1px rgba(0,255,245,0.15)", border: "1px solid rgba(0,255,245,0.3)" }}>
-          <img src={url} alt={caption} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(5,5,5,0.8) 0%, transparent 50%)" }} />
-        </div>
-      </Tilt3D>
-      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={38}>
-        <div className="text-5xl mb-3 opacity-30" style={{ fontFamily: "monospace", lineHeight: 1, color: "#00fff5" }}>//</div>
-        <p className="text-xl md:text-2xl leading-relaxed" style={{ fontFamily: "'Share Tech Mono', 'Courier New', monospace", color: "#e0e0e0" }}>
-          {caption}
-        </p>
-        <div className="mt-5 w-12 h-0.5" style={{ background: "linear-gradient(to right, #00fff5, #ff00ff)", marginLeft: isLeft ? 0 : "auto", marginRight: isLeft ? "auto" : 0 }} />
-      </Parallax>
     </div>
   );
 }
@@ -216,6 +194,7 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
           <span className="font-mono-share text-xs tracking-widest">SCROLL</span><ChevronDown size={20} />
         </button>
       </section>
+      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
 
       {/* ── Scene 2: Happy Birthday */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
@@ -262,6 +241,7 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
         style={{ background: "linear-gradient(180deg,#050505 0%,#080b10 50%,#050505 100%)" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-mono-share text-sm tracking-[0.35em] uppercase mb-10" style={{ color: "#00fff566" }}>// letter.open() ──────────────────</AnimLine>
+          <EnvelopeLetter>
           <div className="p-8 md:p-12 text-left rounded-2xl neon-border" style={{ background: "rgba(0,255,245,0.03)" }}>
             {/* Corner decorations */}
             <div style={{ position: "absolute", top: 0, left: 0, width: 16, height: 16, borderLeft: "2px solid #00fff5", borderTop: "2px solid #00fff5" }} />
@@ -282,6 +262,7 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
               <p className="font-mono-share text-xl text-right mt-8 neon-magenta">FROM: {content.letterSignoff.toUpperCase().replace("💕", "❤")}</p>
             </AnimLine>
           </div>
+          </EnvelopeLetter>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#00fff5" isDark={true} label="Voice message from your special someone 💌" />
           )}
@@ -300,8 +281,7 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
               <AnimLine delay={100}><h2 className="font-orbitron text-3xl md:text-5xl font-bold neon-cyan">LOADING MOMENTS</h2></AnimLine>
               <AnimLine delay={200}><p className="font-mono-share text-lg mt-3" style={{ color: "#555" }}>// these files cannot be corrupted</p></AnimLine>
             </div>
-            <div className="flex flex-col gap-24 md:gap-32">
-              {celebration.photos.map((url: string, i: number) => {
+            <MemoryAlbum theme="neon" photos={celebration.photos.map((url: string, i: number) => {
                 const occasionType = celebration.occasionType || "birthday";
                 const birthdayCaptions = [
                   "// this moment? it's saved permanently. no deletes allowed.",
@@ -350,9 +330,8 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
                   "kids-birthday": kidsCaptions,
                 };
                 const caps = captionMap[occasionType] || birthdayCaptions;
-                return <PhotoCard key={i} url={url} caption={caps[i % caps.length]} index={i} />;
-              })}
-            </div>
+                return { url, caption: caps[i % caps.length] };
+              })} />
           </div>
         </section>
       )}

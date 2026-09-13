@@ -8,8 +8,10 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Tilt3D, Parallax, Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, Hero3D } from "./Scroll3D";
 import InvitationActions from "../InvitationActions";
+import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
+import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
 
 interface Celebration {
   id?: string;
@@ -46,35 +48,6 @@ function AnimLine({ children, delay = 0, className = "", from = "bottom", style 
   return (
     <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}ms, transform 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}ms`, ...style }}>
       {children}
-    </div>
-  );
-}
-
-function PhotoCard({ url, caption, index }: { url: string; caption: string; index: number }) {
-  const { ref, inView } = useInView(0.12);
-  const isLeft = index % 2 === 0;
-  const colors = ["border-rose-400 bg-rose-50", "border-amber-400 bg-amber-50", "border-emerald-400 bg-emerald-50", "border-indigo-400 bg-indigo-50"];
-  const borderCol = colors[index % colors.length];
-
-  return (
-    <div ref={ref as any} className="flex flex-col md:flex-row items-center gap-8 md:gap-12 max-w-4xl mx-auto w-full px-4"
-      style={{ flexDirection: isLeft ? undefined : "row-reverse", opacity: inView ? 1 : 0, transition: `opacity 0.8s ease ${index * 80}ms` }}>
-      {/* Polaroid frame */}
-      <Tilt3D className="flex-shrink-0 w-full md:w-72" direction={isLeft ? 1 : -1}>
-        <div className={`p-4 pb-8 rounded-3xl border-4 ${borderCol} shadow-xl transform rotate-3 hover:rotate-0 transition-transform duration-300`} style={{ fontFamily: "'Patrick Hand', cursive" }}>
-          <div className="w-full aspect-square overflow-hidden rounded-2xl bg-white mb-4">
-            <img src={url} alt={caption} className="w-full h-full object-cover" />
-          </div>
-          <div className="text-center text-xl text-gray-700 font-bold font-comic">
-            🌈 Slide #{index + 1}
-          </div>
-        </div>
-      </Tilt3D>
-      <Parallax className={`flex-1 ${isLeft ? "text-left" : "text-left md:text-right"}`} distance={34}>
-        <p className="text-2xl leading-relaxed text-slate-700 font-bold font-comic" style={{ fontFamily: "'Patrick Hand', cursive" }}>
-          {caption}
-        </p>
-      </Parallax>
     </div>
   );
 }
@@ -198,6 +171,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
           <span className="font-comic text-sm tracking-widest">SCROLL</span><ChevronDown size={24} />
         </button>
       </section>
+      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
 
       {/* ── Scene 2: Main Event Heading */}
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-20 bg-rose-50/50">
@@ -242,6 +216,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-white/40">
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-comic text-rose-400 text-sm tracking-widest uppercase mb-8">✦ A Letter For You ✦</AnimLine>
+          <EnvelopeLetter>
           <div className="kids-bubble-card p-8 md:p-12 text-left" style={{ border: "4px solid #fecdd3" }}>
             <div className="font-comic text-3xl text-rose-500 mb-6">{content.letterSalutation}</div>
             <div className="space-y-5">
@@ -257,6 +232,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
               <div className="font-comic text-2xl text-rose-400 text-right mt-8">{content.letterSignoff}</div>
             </AnimLine>
           </div>
+          </EnvelopeLetter>
           {celebration.voiceMessageUrl && (
             <VoiceMessagePlayer url={celebration.voiceMessageUrl} accentColor="#f43f5e" isDark={false} label="A magical voice message just for you ✨" />
           )}
@@ -275,8 +251,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
               <AnimLine delay={100}><h2 className="font-comic text-rose-500 text-4xl md:text-6xl">Stories of Magic</h2></AnimLine>
               <AnimLine delay={200}><p className="text-xl text-slate-500 mt-2">Smiles and sweet moments worth keeping!</p></AnimLine>
             </div>
-            <div className="flex flex-col gap-20">
-              {celebration.photos.map((url: string, i: number) => {
+            <MemoryAlbum theme="magical" photos={celebration.photos.map((url: string, i: number) => {
                 const occasionType = celebration.occasionType || "kids-birthday";
                 const kidsCaptions = [
                   "Our little superstar shining so bright! 🌟",
@@ -329,9 +304,8 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
                 }
 
                 const caption = captionsList[i % captionsList.length];
-                return <PhotoCard key={i} url={url} caption={caption} index={i} />;
-              })}
-            </div>
+                return { url, caption };
+              })} />
           </div>
         </section>
       )}
