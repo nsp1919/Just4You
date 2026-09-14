@@ -1,0 +1,39 @@
+.reveal { width: 100%; max-width: 740px; margin: 0 auto; position: relative; letter-spacing: 0; }
+.stage { position: relative; width: 100%; height: 280px; }
+.reveal[data-kind="envelope"] .stage { height: 240px; }
+.canvas, .fallback { position: absolute; inset: 0; }
+.canvas { opacity: 0; pointer-events: none; }
+.canvas[data-ready="true"] { opacity: 1; }
+.canvas canvas { display: block; width: 100%; height: 100%; }
+.fallback { display: grid; place-items: center; color: #ef8092; }
+.fallback[data-hidden="true"] { visibility: hidden; }
+.actions { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 14px; margin: 0 auto 24px; }
+.openButton, .skip { font: inherit; font-size: 15px; line-height: 1.4; display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; cursor: pointer; }
+.openButton { background: #a6234a; color: #fff; border: 1px solid #ef8d9b; border-radius: 6px; padding: 12px 20px; }
+.openButton:hover { background: #861b3c; }
+.skip { background: transparent; color: inherit; border: 0; padding: 8px; text-decoration: underline; text-underline-offset: 4px; }
+.reveal :focus-visible, .recipient summary:focus-visible { outline: 3px solid #e77c8c; outline-offset: 4px; }
+.content { position: relative; overflow-wrap: anywhere; }
+.content:not([hidden]) { animation: letter-arrive 700ms ease both; }
+.reveal[data-instant="true"] .content { animation: none; }
+.giftResult { display: flex; gap: 22px; align-items: center; justify-content: center; padding: 24px 0 16px; text-align: left; }
+.memory { display: block; width: 148px; height: 176px; object-fit: contain; background: #fff; border: 7px solid #fff; box-shadow: 0 6px 18px #0003; transform: rotate(-4deg); flex-shrink: 0; }
+.eyebrow { font-size: 12px; line-height: 1.5; margin: 0 0 8px; }
+.name { font-family: inherit; font-size: 28px; line-height: 1.2; margin: 0 0 12px; overflow-wrap: anywhere; }
+.note { font-size: 16px; line-height: 1.6; margin: 0; max-width: 350px; }
+.demoLink { display: inline-flex; align-items: center; gap: 8px; color: inherit; font-size: 15px; min-height: 44px; text-decoration: underline; text-underline-offset: 4px; margin-top: 12px; }
+.recipient { position: relative; z-index: 20; width: min(100%, 700px); margin: 24px auto 70px; padding: 0 16px; }
+.recipient summary { width: fit-content; min-height: 44px; margin: auto; display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 16px; list-style: none; text-decoration: underline; text-underline-offset: 5px; }
+.recipient summary::-webkit-details-marker { display: none; }
+@keyframes letter-arrive { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 600px) {
+  .stage { height: 180px; }
+  .reveal[data-kind="envelope"] .stage { height: 210px; }
+  .giftResult { gap: 18px; flex-direction: column; text-align: center; }
+  .memory { width: 135px; height: 160px; }
+  .name { font-size: 24px; }
+  .actions { gap: 8px; }
+  .openButton { font-size: 13px; padding: 10px 12px; gap: 6px; }
+  .skip { font-size: 13px; padding: 4px; gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .content:not([hidden]) { animation: none; } .memory { transform: none; } }

@@ -43,3 +43,10 @@ gen_service_account.js
 just4you-hostinger/
 just4you-hostinger.tar.gz
 
+# Generated media / reels
+generated-reels/
+video-captures/
+Voice over/
+*.mp4
+*.mp3
+
