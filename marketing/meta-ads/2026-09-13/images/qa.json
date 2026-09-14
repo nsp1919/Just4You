@@ -1,0 +1,425 @@
+{
+  "generatedAt": "2026-09-13T02:59:41.438Z",
+  "browser": "Local Microsoft Edge / Playwright",
+  "localOnly": true,
+  "network": "Loopback only; all external requests blocked",
+  "rights": "Staged demo assets; permissions unknown for paid use. Local preview only. Windows font copies for local rendering, redistribution rights not established.",
+  "crops": [
+    {
+      "input": "clean-01-hero.png",
+      "output": "demo-hero.png",
+      "region": {
+        "left": 0,
+        "top": 0,
+        "width": 355,
+        "height": 632
+      }
+    },
+    {
+      "input": "clean-02-letter.png",
+      "output": "demo-letter.png",
+      "region": {
+        "left": 0,
+        "top": 203,
+        "width": 355,
+        "height": 429
+      }
+    }
+  ],
+  "results": [
+    {
+      "filename": "just4you-personal-4x5.png",
+      "width": 1080,
+      "height": 1350,
+      "nonblank": true,
+      "passed": true,
+      "errors": [],
+      "safe": {
+        "left": 64,
+        "top": 64,
+        "right": 1016,
+        "bottom": 1286
+      },
+      "text": [
+        {
+          "text": "Just4You",
+          "left": 72,
+          "top": 67,
+          "right": 257.453125,
+          "bottom": 118,
+          "width": 185.453125,
+          "height": 51
+        },
+        {
+          "text": "More than abirthday message.",
+          "left": 72,
+          "top": 154,
+          "right": 689.5,
+          "bottom": 303.15625,
+          "width": 617.5,
+          "height": 149.15625
+        },
+        {
+          "text": "Photos. Words. A celebration website.",
+          "left": 75,
+          "top": 326,
+          "right": 585.203125,
+          "bottom": 365,
+          "width": 510.203125,
+          "height": 39
+        },
+        {
+          "text": "Sample celebration",
+          "left": 566,
+          "top": 1103,
+          "right": 773.65625,
+          "bottom": 1134.1875,
+          "width": 207.65625,
+          "height": 31.1875
+        },
+        {
+          "text": "Message SURPRISEfor the demo",
+          "left": 72,
+          "top": 1192,
+          "right": 435.265625,
+          "bottom": 1282.59375,
+          "width": 363.265625,
+          "height": 90.59375
+        }
+      ],
+      "images": [
+        {
+          "source": "./assets/demo-hero.png",
+          "loaded": true,
+          "naturalWidth": 355,
+          "naturalHeight": 632,
+          "scale": 1.1352112676056338,
+          "left": 95,
+          "top": 428,
+          "right": 498,
+          "bottom": 1145.453125,
+          "width": 403,
+          "height": 717.453125
+        },
+        {
+          "source": "./assets/demo-letter.png",
+          "loaded": true,
+          "naturalWidth": 355,
+          "naturalHeight": 429,
+          "scale": 1.0591549295774647,
+          "left": 577,
+          "top": 600,
+          "right": 953,
+          "bottom": 1054.375,
+          "width": 376,
+          "height": 454.375
+        }
+      ],
+      "products": [
+        {
+          "left": 84,
+          "top": 417,
+          "right": 509,
+          "bottom": 1156.453125,
+          "width": 425,
+          "height": 739.453125
+        },
+        {
+          "left": 566,
+          "top": 589,
+          "right": 964,
+          "bottom": 1065.375,
+          "width": 398,
+          "height": 476.375
+        }
+      ],
+      "violations": [],
+      "fontsLoaded": true
+    },
+    {
+      "filename": "just4you-personal-9x16.png",
+      "width": 1080,
+      "height": 1920,
+      "nonblank": true,
+      "passed": true,
+      "errors": [],
+      "safe": {
+        "left": 64,
+        "top": 250,
+        "right": 950,
+        "bottom": 1500
+      },
+      "text": [
+        {
+          "text": "Just4You",
+          "left": 64,
+          "top": 264,
+          "right": 245.25,
+          "bottom": 314,
+          "width": 181.25,
+          "height": 50
+        },
+        {
+          "text": "More than abirthday message.",
+          "left": 64,
+          "top": 353,
+          "right": 644.078125,
+          "bottom": 493.09375,
+          "width": 580.078125,
+          "height": 140.09375
+        },
+        {
+          "text": "Photos. Words. A celebration website.",
+          "left": 67,
+          "top": 515,
+          "right": 560.1875,
+          "bottom": 552.6875,
+          "width": 493.1875,
+          "height": 37.6875
+        },
+        {
+          "text": "Sample celebration",
+          "left": 509,
+          "top": 1261,
+          "right": 716.65625,
+          "bottom": 1292.1875,
+          "width": 207.65625,
+          "height": 31.1875
+        },
+        {
+          "text": "Message SURPRISEfor the demo",
+          "left": 64,
+          "top": 1380,
+          "right": 418.8125,
+          "bottom": 1469.390625,
+          "width": 354.8125,
+          "height": 89.390625
+        }
+      ],
+      "images": [
+        {
+          "source": "./assets/demo-hero.png",
+          "loaded": true,
+          "naturalWidth": 355,
+          "naturalHeight": 632,
+          "scale": 1.0338028169014084,
+          "left": 79,
+          "top": 631,
+          "right": 446,
+          "bottom": 1284.359375,
+          "width": 367,
+          "height": 653.359375
+        },
+        {
+          "source": "./assets/demo-letter.png",
+          "loaded": true,
+          "naturalWidth": 355,
+          "naturalHeight": 429,
+          "scale": 1.056338028169014,
+          "left": 520,
+          "top": 759,
+          "right": 895,
+          "bottom": 1212.15625,
+          "width": 375,
+          "height": 453.15625
+        }
+      ],
+      "products": [
+        {
+          "left": 68,
+          "top": 620,
+          "right": 457,
+          "bottom": 1295.359375,
+          "width": 389,
+          "height": 675.359375
+        },
+        {
+          "left": 509,
+          "top": 748,
+          "right": 906,
+          "bottom": 1223.15625,
+          "width": 397,
+          "height": 475.15625
+        }
+      ],
+      "violations": [],
+      "fontsLoaded": true
+    },
+    {
+      "filename": "just4you-link-4x5.png",
+      "width": 1080,
+      "height": 1350,
+      "nonblank": true,
+      "passed": true,
+      "errors": [],
+      "safe": {
+        "left": 64,
+        "top": 64,
+        "right": 1016,
+        "bottom": 1286
+      },
+      "text": [
+        {
+          "text": "Just4You",
+          "left": 72,
+          "top": 67,
+          "right": 257.453125,
+          "bottom": 118,
+          "width": 185.453125,
+          "height": 51
+        },
+        {
+          "text": "One link.A littlemore love.",
+          "left": 72,
+          "top": 296,
+          "right": 522,
+          "bottom": 510.078125,
+          "width": 450,
+          "height": 214.078125
+        },
+        {
+          "text": "A personalised website for their special day.",
+          "left": 75,
+          "top": 630,
+          "right": 475,
+          "bottom": 719.59375,
+          "width": 400,
+          "height": 89.59375
+        },
+        {
+          "text": "Sample celebration",
+          "left": 580,
+          "top": 1047,
+          "right": 787.65625,
+          "bottom": 1078.1875,
+          "width": 207.65625,
+          "height": 31.1875
+        },
+        {
+          "text": "Message SURPRISEfor the demo",
+          "left": 72,
+          "top": 1170,
+          "right": 435.265625,
+          "bottom": 1260.59375,
+          "width": 363.265625,
+          "height": 90.59375
+        }
+      ],
+      "images": [
+        {
+          "source": "./assets/demo-hero.png",
+          "loaded": true,
+          "naturalWidth": 355,
+          "naturalHeight": 632,
+          "scale": 1.1549295774647887,
+          "left": 571,
+          "top": 259,
+          "right": 981,
+          "bottom": 988.90625,
+          "width": 410,
+          "height": 729.90625
+        }
+      ],
+      "products": [
+        {
+          "left": 560,
+          "top": 248,
+          "right": 992,
+          "bottom": 999.90625,
+          "width": 432,
+          "height": 751.90625
+        }
+      ],
+      "violations": [],
+      "fontsLoaded": true
+    },
+    {
+      "filename": "just4you-link-9x16.png",
+      "width": 1080,
+      "height": 1920,
+      "nonblank": true,
+      "passed": true,
+      "errors": [],
+      "safe": {
+        "left": 64,
+        "top": 250,
+        "right": 950,
+        "bottom": 1500
+      },
+      "text": [
+        {
+          "text": "Just4You",
+          "left": 64,
+          "top": 264,
+          "right": 245.25,
+          "bottom": 314,
+          "width": 181.25,
+          "height": 50
+        },
+        {
+          "text": "One link.A little more love.",
+          "left": 64,
+          "top": 350,
+          "right": 939,
+          "bottom": 492.71875,
+          "width": 875,
+          "height": 142.71875
+        },
+        {
+          "text": "A personalised website for their special day.",
+          "left": 64,
+          "top": 730,
+          "right": 393,
+          "bottom": 874.796875,
+          "width": 329,
+          "height": 144.796875
+        },
+        {
+          "text": "Sample celebration",
+          "left": 504,
+          "top": 1381,
+          "right": 703,
+          "bottom": 1410.890625,
+          "width": 199,
+          "height": 29.890625
+        },
+        {
+          "text": "Message SURPRISEfor the demo",
+          "left": 64,
+          "top": 1380,
+          "right": 359.671875,
+          "bottom": 1461,
+          "width": 295.671875,
+          "height": 81
+        }
+      ],
+      "images": [
+        {
+          "source": "./assets/demo-hero.png",
+          "loaded": true,
+          "naturalWidth": 355,
+          "naturalHeight": 632,
+          "scale": 1.1492957746478873,
+          "left": 494,
+          "top": 611,
+          "right": 902,
+          "bottom": 1337.34375,
+          "width": 408,
+          "height": 726.34375
+        }
+      ],
+      "products": [
+        {
+          "left": 483,
+          "top": 600,
+          "right": 913,
+          "bottom": 1348.34375,
+          "width": 430,
+          "height": 748.34375
+        }
+      ],
+      "violations": [],
+      "fontsLoaded": true
+    }
+  ]
+}

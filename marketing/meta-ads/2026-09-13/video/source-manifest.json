@@ -1,0 +1,132 @@
+{
+  "createdAt": "2026-09-13T02:59:01.652Z",
+  "duration": 21,
+  "fps": 30,
+  "audio": "Intentionally absent: user requested no voiceover, music or sound effects.",
+  "sourceUrl": "https://just4you.buzz/demo/galaxy",
+  "originalCaptureManifest": "generated-reels/reel-03-recipient-experience/website-capture-manifest.json",
+  "rights": "Existing public staged/demo captures. Paid-media rights for demo photography are NOT verified. No private customer media used. Confirm rights before publication.",
+  "safeZone9x16": {
+    "top": 250,
+    "bottom": 420,
+    "right": 130
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "duration": 3,
+      "lines": [
+        "A birthday wish.",
+        "Made personal."
+      ],
+      "asset": "01-hero.png",
+      "crop": [
+        0,
+        520,
+        1080,
+        850
+      ]
+    },
+    {
+      "id": "name",
+      "duration": 3,
+      "lines": [
+        "Their name.",
+        "Their celebration."
+      ],
+      "asset": "01-hero.png",
+      "crop": [
+        0,
+        620,
+        1080,
+        740
+      ]
+    },
+    {
+      "id": "photos",
+      "duration": 4,
+      "lines": [
+        "Your photos.",
+        "A place of their own."
+      ],
+      "asset": "03-gallery.png",
+      "crop": [
+        0,
+        80,
+        1080,
+        1040
+      ]
+    },
+    {
+      "id": "message",
+      "duration": 4,
+      "lines": [
+        "The words",
+        "only you can write."
+      ],
+      "asset": "04-message.png",
+      "crop": [
+        30,
+        130,
+        1020,
+        800
+      ]
+    },
+    {
+      "id": "link",
+      "duration": 4,
+      "lines": [
+        "One celebration.",
+        "One shareable link."
+      ],
+      "asset": "01-hero.png",
+      "crop": [
+        0,
+        610,
+        1080,
+        1310
+      ]
+    },
+    {
+      "id": "cta",
+      "duration": 3,
+      "lines": [
+        "Message SURPRISE",
+        "for the demo"
+      ],
+      "asset": "01-hero.png",
+      "crop": [
+        0,
+        620,
+        1080,
+        740
+      ]
+    }
+  ],
+  "formats": [
+    {
+      "id": "9x16",
+      "width": 1080,
+      "height": 1920
+    },
+    {
+      "id": "4x5",
+      "width": 1080,
+      "height": 1350
+    }
+  ],
+  "assets": [
+    {
+      "local": "assets/01-hero.png",
+      "original": "generated-reels/reel-03-recipient-experience/assets/website-captures/01-hero.png"
+    },
+    {
+      "local": "assets/03-gallery.png",
+      "original": "generated-reels/reel-03-recipient-experience/assets/website-captures/03-gallery.png"
+    },
+    {
+      "local": "assets/04-message.png",
+      "original": "generated-reels/reel-03-recipient-experience/assets/website-captures/04-message.png"
+    }
+  ]
+}

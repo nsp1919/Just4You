@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Just4You | Local Ad Preview</title>
+  <style>
+    @font-face { font-family: Editorial; src: url('./assets/georgiab.ttf'); font-weight: 700; }
+    @font-face { font-family: Humanist; src: url('./assets/trebuc.ttf'); font-weight: 400; }
+    @font-face { font-family: Humanist; src: url('./assets/trebucbd.ttf'); font-weight: 700; }
+    :root { --raspberry: #ad1653; --pink: #f9dbe7; --light: #fffafb; --ink: #472339; --teal: #126563; --mint: #e5f1ec; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: Humanist, sans-serif; color: var(--ink); letter-spacing: 0; }
+    .poster { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: var(--light); }
+    .poster::before { content: ''; position: absolute; inset: 395px 0 175px; background: var(--pink); }
+    .brand { position: absolute; left: 72px; top: 67px; margin: 0; font-size: 44px; font-weight: 700; color: var(--raspberry); }
+    h1 { position: absolute; left: 72px; top: 154px; margin: 0; font-family: Editorial, serif; font-size: 66px; line-height: 1.13; font-weight: 700; color: var(--raspberry); }
+    h1 span { display: block; }
+    .support { position: absolute; left: 75px; top: 326px; margin: 0; font-size: 30px; line-height: 1.3; }
+    .screen { position: absolute; padding: 10px; background: white; border: 1px solid #edb4c8; border-radius: 8px; box-shadow: 0 18px 36px #7e26451a; }
+    .screen img { display: block; width: 100%; height: auto; }
+    .hero { left: 84px; top: 417px; width: 425px; }
+    .letter { left: 566px; top: 589px; width: 398px; }
+    .sample { position: absolute; margin: 0; font-size: 24px; line-height: 1.3; color: var(--teal); }
+    .personal .sample { left: 566px; top: 1103px; }
+    .cta { position: absolute; left: 72px; top: 1192px; color: var(--teal); }
+    .cta strong { display: block; font-size: 43px; line-height: 1.2; }
+    .cta span { display: block; margin-top: 4px; font-size: 28px; line-height: 1.25; }
+    .rule { position: absolute; height: 5px; width: 110px; background: var(--teal); left: 566px; top: 528px; }
+    .link::before { inset: 0 0 0 531px; background: var(--pink); }
+    .link::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 228px; background: var(--mint); }
+    .link h1 { top: 296px; font-size: 61px; width: 450px; line-height: 1.17; }
+    .link .support { top: 630px; width: 400px; font-size: 32px; line-height: 1.4; }
+    .link .hero { left: 560px; top: 248px; width: 432px; }
+    .link .letter { display: none; }
+    .link .sample { left: 580px; top: 1047px; }
+    .link .rule { left: 75px; top: 787px; }
+    .link .cta { top: 1170px; z-index: 1; }
+    .story { height: 1920px; }
+    .story .brand { left: 64px; top: 264px; font-size: 43px; }
+    .story h1 { left: 64px; top: 353px; font-size: 62px; }
+    .story .support { left: 67px; top: 515px; font-size: 29px; }
+    .story.personal::before { inset: 594px 0 577px; }
+    .story.personal .hero { left: 68px; top: 620px; width: 389px; }
+    .story.personal .letter { left: 509px; top: 748px; width: 397px; }
+    .story.personal .sample { left: 509px; top: 1261px; }
+    .story.personal .rule { left: 509px; top: 687px; }
+    .story .cta { left: 64px; top: 1380px; }
+    .story .cta strong { font-size: 42px; }
+    .story .cta span { font-size: 28px; }
+    .story.link::before { inset: 591px 0 552px 452px; }
+    .story.link::after { height: 569px; }
+    .story.link h1 { top: 350px; width: 875px; font-size: 61px; }
+    .story.link .support { left: 64px; top: 730px; width: 329px; font-size: 34px; line-height: 1.42; }
+    .story.link .hero { left: 483px; top: 600px; width: 430px; }
+    .story.link .sample { left: 504px; top: 1381px; z-index: 2; font-size: 23px; }
+    .story.link .rule { left: 67px; top: 971px; width: 108px; }
+    .story.link .cta { top: 1380px; }
+    .story.link .cta strong { font-size: 35px; }
+  </style>
+</head>
+<body>
+  <main class="poster personal" aria-label="Just4You ad using a sample celebration">
+    <p class="brand" data-text>Just4You</p>
+    <h1 data-text></h1>
+    <p class="support" data-text></p>
+    <div class="rule" aria-hidden="true"></div>
+    <div class="screen hero" data-product><img src="./assets/demo-hero.png" alt="Staged floral celebration opening screen with demo names Priya and Rahul"></div>
+    <div class="screen letter" data-product><img src="./assets/demo-letter.png" alt="Face-free crop of the staged celebration's personal letter opening"></div>
+    <p class="sample" data-text>Sample celebration</p>
+    <div class="cta" data-text><strong>Message SURPRISE</strong><span>for the demo</span></div>
+  </main>
+  <script>
+    const parameters = new URLSearchParams(location.search);
+    const concept = parameters.get('concept') === 'link' ? 'link' : 'personal';
+    const story = parameters.get('format') === '9x16';
+    document.querySelector('main').className = `poster ${concept}${story ? ' story' : ''}`;
+    const headline = concept === 'personal'
+      ? ['More than a', 'birthday message.']
+      : story ? ['One link.', 'A little more love.'] : ['One link.', 'A little', 'more love.'];
+    document.querySelector('h1').replaceChildren(...headline.map(line => {
+      const span = document.createElement('span');
+      span.textContent = line;
+      return span;
+    }));
+    document.querySelector('.support').textContent = concept === 'personal'
+      ? 'Photos. Words. A celebration website.'
+      : 'A personalised website for their special day.';
+  </script>
+</body>
+</html>

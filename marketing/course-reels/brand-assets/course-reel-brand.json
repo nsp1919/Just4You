@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "character": {
+    "path": "C:\\Users\\nsp19\\Downloads\\Birthday\\marketing\\course-reels\\brand-assets\\character\\canonical-character.png",
+    "sourceFilename": "ChatGPT Image Sep 6, 2026, 09_04_19 AM.png",
+    "hash": "1a582d77cf655c8542322c6a610667bbc993417b75a7119086e729a386dce82a",
+    "hashAlgorithm": "sha256",
+    "width": 1312,
+    "height": 1199,
+    "registeredAt": "2026-09-06T03:43:04.9765268Z",
+    "replacedAt": null
+  },
+  "profiles": {
+    "@code_with_nsp": {
+      "displayHandle": "@code_with_nsp",
+      "accentColors": ["#0B63F6", "#19A974", "#FFB800"],
+      "tone": "technical but approachable",
+      "defaultCta": "Follow",
+      "logoPlacement": "None",
+      "usernamePlacement": "Top Right"
+    }
+  },
+  "backups": []
+}

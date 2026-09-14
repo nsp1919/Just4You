@@ -1,0 +1,27 @@
+[Script Info]
+Title: Just4You Tenglish White Sticker Reel
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+YCbCr Matrix: TV.709
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Telugu,Trebuchet MS,54,&H003C2117,&H000000FF,&H00FFFFFF,&H18F7F4FF,1,0,0,0,100,100,0,0,3,10,0,2,76,76,245,1
+Style: TeluguCTA,Trebuchet MS,58,&H00FFFFFF,&H000000FF,&H003C2117,&HE6695BF4,1,0,0,0,100,100,0,0,3,4,0,2,72,72,235,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.10,0:00:06.04,Telugu,,0,0,0,,{\fad(180,180)}Chaala bahumathulu okkasari terichi,\Naa tarvatha marchipothaaru.
+Dialogue: 0,0:00:06.24,0:00:11.28,Telugu,,0,0,0,,{\fad(180,180)}Kaani okarini aagi, navvela chesi,\N"Idi ela chesaavu?" ani adigela chese...
+Dialogue: 0,0:00:11.48,0:00:18.24,Telugu,,0,0,0,,{\fad(180,180)}Oka surprise-ni vaariki pampithe\Nela untundo oohinchandi.
+Dialogue: 0,0:00:18.44,0:00:22.00,Telugu,,0,0,0,,{\fad(180,180)}Just4You meeku ishtamaina gnapakaalu,\Nvaariki ishtamaina paata, mee personal maatalu...
+Dialogue: 0,0:00:22.00,0:00:25.36,Telugu,,0,0,0,,{\fad(180,180)}Prathyekamaina countdown,\Nandari subhakankshalu...
+Dialogue: 0,0:00:25.56,0:00:31.88,Telugu,,0,0,0,,{\fad(180,180)}Vaaru malli malli choodagalige\Noka andamaina link-lo teesukuvastundi.
+Dialogue: 0,0:00:32.08,0:00:37.91,Telugu,,0,0,0,,{\fad(180,180)}Puttinarojulu • vaarshikotsavaalu • proposals\NVivahaalu • graduations • farewell sandarbhaalu
+Dialogue: 0,0:00:38.11,0:00:41.29,Telugu,,0,0,0,,{\fad(180,180)}Okarini impress cheyadam ante\Nekkuva kharchu cheyadam kaadu.
+Dialogue: 0,0:00:41.49,0:00:44.40,Telugu,,0,0,0,,{\fad(180,180)}Vaari gurinchi meeku entha baaga teluso\Nchoopinchadam.
+Dialogue: 0,0:00:44.60,0:00:48.09,TeluguCTA,,0,0,0,,{\fad(180,180)}Live experience kosam\NSURPRISE ani comment cheyandi.
+Dialogue: 0,0:00:48.29,0:00:51.41,Telugu,,0,0,0,,{\fad(180,180)}Tarvathi video-lo idi ela panichestundo\Nnenu meeku choopisthaanu.

@@ -1,0 +1,3 @@
+Primary: "IDI ELA CHESAAVU?"
+Alternate A: "OKA LINK. BIG SURPRISE."
+Alternate B: "EE GIFT MARCHIPORU."

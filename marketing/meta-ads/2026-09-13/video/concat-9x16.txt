@@ -1,0 +1,6 @@
+file '9x16-hook.mp4'
+file '9x16-name.mp4'
+file '9x16-photos.mp4'
+file '9x16-message.mp4'
+file '9x16-link.mp4'
+file '9x16-cta.mp4'
