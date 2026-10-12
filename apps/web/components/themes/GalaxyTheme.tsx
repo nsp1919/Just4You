@@ -8,10 +8,11 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, StaticHero, ScrollReveal as AnimLine, ScrollScene, ScrollSection, ScrollCue, ScrollText } from "@birthdayglow/shared/src/components/ScrollScenes";
 import InvitationActions from "../InvitationActions";
-import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
-import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
+import ScrollGift from "@birthdayglow/shared/src/components/ScrollGift";
+import EnvelopeLetter from "@birthdayglow/shared/src/components/ScrollLetter";
+import MemoryAlbum from "@birthdayglow/shared/src/components/ScrollMemoryGallery";
 
 interface Celebration {
   id?: string;
@@ -49,31 +50,7 @@ function useInView(threshold = 0.25) {
 }
 
 // ─── Animated line wrapper ─────────────────────────────────────────────────────
-function AnimLine({
-  children, delay = 0, className = "", from = "bottom", style = {},
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-  from?: "bottom" | "left" | "right" | "scale";
-  style?: React.CSSProperties;
-}) {
-  const { ref, inView } = useInView(0.2);
-  const init: Record<string, string> = {
-    bottom: "translateY(40px)", left: "translateX(-50px)",
-    right: "translateX(50px)", scale: "scale(0.85)",
-  };
-  return (
-    <div ref={ref as any} className={className} style={{
-      opacity: inView ? 1 : 0,
-      transform: inView ? "none" : init[from],
-      transition: `opacity 0.85s ease ${delay}ms, transform 0.85s ease ${delay}ms`,
-      ...style,
-    }}>
-      {children}
-    </div>
-  );
-}
+
 
 // ─── Glowing divider ─────────────────────────────────────────────────────────
 function GlowDivider() {
@@ -239,27 +216,14 @@ function SpecialCard({ emoji, text, index }: { emoji: string; text: string; inde
 }
 
 // ─── Finale confetti trigger ──────────────────────────────────────────────────
-function FinaleConfetti() {
-  const { ref, inView } = useInView(0.5);
-  useEffect(() => {
-    if (inView) {
-      setTimeout(() => confetti({
-        particleCount: 90, spread: 75, origin: { y: 0.7 },
-        colors: ["#a855f7", "#f7d971", "#ec4899", "#60a5fa"],
-      }), 400);
-    }
-  }, [inView]);
-  return (
-    <div ref={ref as any} className="font-dancing gradient-text-rose text-3xl select-none"
+function FinaleConfetti() { return (
+    <AnimLine className="font-dancing gradient-text-rose text-3xl select-none"
       style={{
         fontFamily: "'Dancing Script', cursive",
-        opacity: inView ? 1 : 0,
-        transition: "opacity 1.2s ease",
-      }}>
+        }}>
       Made with love ❤️
-    </div>
-  );
-}
+    </AnimLine>
+  ); }
 
 // ─── Global styles ────────────────────────────────────────────────────────────
 const GLOBAL_CSS = `
@@ -323,17 +287,9 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
     celebration.recipientName
   );
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      confetti({
-        particleCount: 150, spread: 100, origin: { y: 0.55 },
-        colors: content.confettiColors
-      });
-    }, 1300);
-    return () => clearTimeout(t);
-  }, [content.confettiColors]);
+  
 
-  const scrollDown = () => window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
+  
   const firstName = celebration.recipientName.split(" ")[0];
   const messageLines: string[] = (celebration.message || "").split(/\n+/).filter(Boolean);
   const specialItems = content.specialItems;
@@ -344,18 +300,18 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
   };
 
   return (
-    <main className="bg-galaxy-page" style={{ color: "white", overflowX: "hidden", fontFamily: "Georgia, serif" }}>
+    <main data-scroll-theme="galaxy" className="bg-galaxy-page" style={{ color: "white", overflowX: "clip", fontFamily: "Georgia, serif" }}>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
       <FloatingParticles list={content.particles} />
 
       {/* ══ SCENE 1: Opening ══════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
+      <StaticHero  className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
         style={{ background: "linear-gradient(180deg, #0a0815 0%, #0f0a22 100%)" }}>
         <Stars />
         <div className="nebula-purple" style={{ width: 600, height: 600, top: "5%", left: "15%" }} />
         <div className="nebula-pink" style={{ width: 500, height: 500, bottom: "5%", right: "5%" }} />
 
-        <Hero3D className="relative z-10 max-w-3xl">
+        <div className="relative z-10 max-w-3xl">
           <div className="text-7xl mb-6" style={{ animation: "bgFloat2 3.5s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-cormorant text-xl md:text-2xl text-purple-300/80 tracking-[0.35em] uppercase mb-5">
             {content.heroSubtitle}
@@ -374,19 +330,15 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
           <p className="font-cormorant text-xl md:text-2xl italic text-white/60 leading-relaxed">
             The world became more beautiful because you are in it.
           </p>
-        </Hero3D>
+        </div>
 
-        <button onClick={scrollDown}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 hover:text-white/70 transition-colors z-10"
-          style={{ animation: "bgFloat2 2s ease-in-out infinite" }}>
-          <span className="font-cormorant text-sm tracking-widest">Scroll</span>
-          <ChevronDown size={20} />
-        </button>
-      </section>
-      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+        <ScrollCue />
+      </StaticHero>
+      <ScrollGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+      
 
       {/* ══ SCENE 2: Happy Birthday ═══════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
         style={{ background: "radial-gradient(ellipse at top, #1c0938 0%, #0a0815 70%)" }}>
         <Stars />
         <div className="nebula-purple" style={{ width: 450, height: 450, top: "10%", right: "5%" }} />
@@ -432,10 +384,10 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
             </AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ══ SCENE 3: The Letter ═══════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollSection className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg, #0a0815 0%, #120829 50%, #0a0815 100%)" }}>
         <div className="nebula-pink" style={{ width: 600, height: 400, top: "30%", left: "0%" }} />
         <div className="relative z-10 max-w-2xl w-full">
@@ -457,7 +409,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
                 messageLines.map((line, i) => (
                   <AnimLine key={i} delay={i * 100} from="bottom">
                     <p className="font-cormorant text-lg md:text-xl leading-relaxed text-white/85">
-                      {line}
+                      <ScrollText text={line} />
                     </p>
                   </AnimLine>
                 ))
@@ -485,11 +437,11 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
             <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#a855f7" isDark={true} />
           )}
         </div>
-      </section>
+      </ScrollSection>
 
       {/* ══ SCENE 4: Photo Gallery ════════════════════════════════════════ */}
       {celebration.photos?.length > 0 && (
-        <section className="relative overflow-hidden px-6 py-28"
+        <ScrollSection className="relative overflow-hidden px-6 py-28"
           style={{ background: "linear-gradient(180deg, #0d0920 0%, #0a0815 100%)" }}>
           <Stars />
           <div className="nebula-purple" style={{ width: 400, height: 400, top: "5%", right: "5%" }} />
@@ -511,11 +463,11 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
                 return { url, caption: caps[i % caps.length] };
               })} />
           </div>
-        </section>
+        </ScrollSection>
       )}
 
       {/* ══ SCENE 5: Why You're Special ══════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "radial-gradient(ellipse at center, #1a0a30 0%, #0a0815 70%)" }}>
         <Stars />
         <div className="nebula-pink" style={{ width: 500, height: 500, bottom: "5%", left: "5%" }} />
@@ -529,10 +481,10 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
             ))}
           </div>
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ══ SCENE 6: Grand Finale ═════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg, #0a0815 0%, #0f0620 50%, #0a0815 100%)" }}>
         <Stars />
         <div className="nebula-purple" style={{ width: 600, height: 600, top: "0%", left: "20%", opacity: 0.8 }} />
@@ -576,7 +528,7 @@ export default function GalaxyTheme({ celebration }: { celebration: Celebration 
             </AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ══ REACTION WALL ════════════════════════════════════════════════════ */}
       {celebration.id && (

@@ -8,10 +8,11 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, StaticHero, ScrollReveal as AnimLine, ScrollScene, ScrollSection, ScrollCue, ScrollText } from "@birthdayglow/shared/src/components/ScrollScenes";
 import InvitationActions from "../InvitationActions";
-import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
-import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
+import ScrollGift from "@birthdayglow/shared/src/components/ScrollGift";
+import EnvelopeLetter from "@birthdayglow/shared/src/components/ScrollLetter";
+import MemoryAlbum from "@birthdayglow/shared/src/components/ScrollMemoryGallery";
 
 interface Celebration {
   id?: string;
@@ -34,16 +35,7 @@ function useInView(threshold = 0.2) {
   return { ref, inView };
 }
 
-function AnimLine({ children, delay = 0, className = "", from = "bottom", style = {} }:
-  { children: React.ReactNode; delay?: number; className?: string; from?: "bottom"|"left"|"right"|"scale"; style?: React.CSSProperties }) {
-  const { ref, inView } = useInView(0.2);
-  const init: Record<string, string> = { bottom:"translateY(40px)", left:"translateX(-50px)", right:"translateX(50px)", scale:"scale(0.88)" };
-  return (
-    <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.85s ease ${delay}ms, transform 0.85s ease ${delay}ms`, ...style }}>
-      {children}
-    </div>
-  );
-}
+
 
 const RETRO_CAPTIONS_BY_OCCASION: Record<string, string[]> = {
   birthday: [
@@ -98,17 +90,11 @@ function SpecialCard({ emoji, text, index }: { emoji: string; text: string; inde
   );
 }
 
-function FinaleConfetti() {
-  const { ref, inView } = useInView(0.5);
-  useEffect(() => {
-    if (inView) setTimeout(() => confetti({ particleCount: 90, spread: 75, origin: { y: 0.7 }, colors: ["#c9aa7a","#8b5a2b","#e8d5b0","#d4914f","#fff5e0"] }), 400);
-  }, [inView]);
-  return (
-    <div ref={ref as any} style={{ opacity: inView ? 1 : 0, transition: "opacity 1.2s ease", fontFamily: "'Special Elite', monospace", fontSize: "1.5rem", color: "#c9aa7a", letterSpacing: "0.1em" }}>
+function FinaleConfetti() { return (
+    <AnimLine style={{ fontFamily: "'Special Elite', monospace", fontSize: "1.5rem", color: "#c9aa7a", letterSpacing: "0.1em" }}>
       Made with love  ❤
-    </div>
-  );
-}
+    </AnimLine>
+  ); }
 
 function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -197,25 +183,23 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
     confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, colors: ["#ff3366", "#ff66b2", "#ff99cc", "#ffffff"] });
   };
 
-  useEffect(() => {
-    setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.55 }, colors: content.confettiColors }), 1200);
-  }, [content.confettiColors]);
+  
 
   return (
-    <main style={{ background: "#1a0e05", color: "#e8d5b0", overflowX: "hidden" }}>
+    <main data-scroll-theme="retro" style={{ background: "#1a0e05", color: "#e8d5b0", overflowX: "clip" }}>
       <style dangerouslySetInnerHTML={{ __html: RETRO_CSS }} />
       <FilmGrain />
       <DustParticles />
 
       {/* ── Scene 1: Opening */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
+      <StaticHero  className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
         style={{ background: "linear-gradient(180deg,#1a0e05 0%,#2c1a0e 100%)" }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center,rgba(201,170,122,0.08) 0%,transparent 70%)" }} />
         {/* Decorative border frame */}
         <div className="absolute inset-6 pointer-events-none" style={{ border: "1px solid rgba(201,170,122,0.15)" }}>
           <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
         </div>
-        <Hero3D className="relative z-10 max-w-3xl">
+        <div className="relative z-10 max-w-3xl">
           <div className="text-5xl mb-5" style={{ animation: "retroBob 4s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-special text-sm tracking-[0.4em] uppercase mb-5 gold-text">{content.heroSubtitle}</p>
           <h1 className="font-fell italic mb-7 leading-tight" style={{ fontSize: "clamp(3rem,10vw,6.5rem)", color: "#e8d5b0" }}>
@@ -229,15 +213,14 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
           <p className="font-fell italic text-xl leading-relaxed" style={{ color: "#a07850" }}>
             Some memories are worth developing twice.
           </p>
-        </Hero3D>
-        <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 transition-colors" style={{ color: "#8b5a2b44", animation: "retroBob 2.5s ease-in-out infinite" }}>
-          <span className="font-special text-xs tracking-widest gold-text" style={{ opacity: 0.5 }}>scroll</span><ChevronDown size={20} style={{ color: "#8b5a2b" }} />
-        </button>
-      </section>
-      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+        </div>
+        <ScrollCue />
+      </StaticHero>
+      <ScrollGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+      
 
       {/* ── Scene 2: Happy Birthday */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
         style={{ background: "linear-gradient(180deg,#2c1a0e 0%,#1a0e05 100%)" }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at top,rgba(201,170,122,0.07) 0%,transparent 70%)" }} />
         <div className="relative z-10 max-w-3xl w-full">
@@ -275,10 +258,10 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
             </AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 3: The Letter */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollSection className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg,#1a0e05 0%,#241408 50%,#1a0e05 100%)" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-special text-xs tracking-[0.4em] uppercase mb-10 gold-text" style={{ opacity: undefined }}>— a letter from the heart —</AnimLine>
@@ -289,7 +272,7 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
             <div className="space-y-5">
               {messageLines.length > 0 ? messageLines.map((line, i) => (
                 <AnimLine key={i} delay={i * 100}>
-                  <p className="font-fell italic text-lg md:text-xl leading-relaxed sepia-text">{line}</p>
+                  <p className="font-fell italic text-lg md:text-xl leading-relaxed sepia-text"><ScrollText text={line} /></p>
                 </AnimLine>
               )) : (
                 <AnimLine><p className="font-fell italic text-xl leading-relaxed sepia-text">You are the kind of person that history remembers fondly — not for grand gestures, but for the quiet warmth that you bring to everything. On this day, I simply want you to know that you are deeply, profoundly treasured.</p></AnimLine>
@@ -307,11 +290,11 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
             <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#c9a84c" isDark={true} label="A moving picture, just for you 🎞️" />
           )}
         </div>
-      </section>
+      </ScrollSection>
 
       {/* ── Scene 4: Photos */}
       {celebration.photos?.length > 0 && (
-        <section className="relative overflow-hidden px-6 py-28" style={{ background: "linear-gradient(180deg,#241408 0%,#1a0e05 100%)" }}>
+        <ScrollSection className="relative overflow-hidden px-6 py-28" style={{ background: "linear-gradient(180deg,#241408 0%,#1a0e05 100%)" }}>
           <div className="relative z-10">
             <div className="text-center mb-20">
               <AnimLine className="font-special text-xs tracking-[0.4em] uppercase mb-4 gold-text" style={{ opacity: undefined }}>— the archive —</AnimLine>
@@ -324,11 +307,11 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
                 return { url, caption: caps[i % caps.length] };
               })} />
           </div>
-        </section>
+        </ScrollSection>
       )}
 
       {/* ── Scene 5: Why You're Special */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg,#1a0e05 0%,#2c1a0e 100%)" }}>
         <div className="relative z-10 max-w-3xl w-full">
           <AnimLine className="font-special text-xs tracking-[0.4em] uppercase mb-10 gold-text" style={{ opacity: undefined }}>— what makes you timeless —</AnimLine>
@@ -336,10 +319,10 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
             {specialItems.map((item, i) => <SpecialCard key={i} emoji={item.emoji} text={item.text} index={i} />)}
           </div>
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 6: Finale */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg,#2c1a0e 0%,#1a0e05 50%,#0d0703 100%)" }}>
         <div className="absolute inset-8 pointer-events-none" style={{ border: "1px solid rgba(201,170,122,0.1)" }}>
           <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
@@ -365,7 +348,7 @@ export default function RetroTheme({ celebration }: { celebration: any }) {
             <AnimLine delay={700}><ViewCounter views={celebration.views} accentColor="#c9a84c" isDark={true} /></AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {celebration.id && (
         <ReactionWall celebrationId={celebration.id} accentColor="#c9a84c" isDark={true} />

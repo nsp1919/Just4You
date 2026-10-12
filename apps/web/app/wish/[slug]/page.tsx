@@ -201,7 +201,7 @@ export default async function WishPage({ params }: Props) {
   if (celeb.occasionType === "wedding" && celeb.weddingData) {
     return (
       <>
-        <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
+        <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} message={celeb.message} />
         <BrandFooter slug={slug} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
       </>
     );

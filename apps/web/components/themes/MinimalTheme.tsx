@@ -7,10 +7,11 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, StaticHero, ScrollReveal as AnimLine, ScrollScene, ScrollSection, ScrollCue, ScrollText } from "@birthdayglow/shared/src/components/ScrollScenes";
 import InvitationActions from "../InvitationActions";
-import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
-import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
+import ScrollGift from "@birthdayglow/shared/src/components/ScrollGift";
+import EnvelopeLetter from "@birthdayglow/shared/src/components/ScrollLetter";
+import MemoryAlbum from "@birthdayglow/shared/src/components/ScrollMemoryGallery";
 
 interface Celebration {
   id?: string;
@@ -32,16 +33,7 @@ function useInView(threshold = 0.2) {
   return { ref, inView };
 }
 
-function AnimLine({ children, delay = 0, className = "", from = "bottom", style = {} }:
-  { children: React.ReactNode; delay?: number; className?: string; from?: "bottom"|"left"|"right"|"scale"; style?: React.CSSProperties }) {
-  const { ref, inView } = useInView(0.2);
-  const init: Record<string, string> = { bottom:"translateY(40px)", left:"translateX(-50px)", right:"translateX(50px)", scale:"scale(0.9)" };
-  return (
-    <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.9s ease ${delay}ms, transform 0.9s ease ${delay}ms`, ...style }}>
-      {children}
-    </div>
-  );
-}
+
 
 const MIN_CAPTIONS = [
   "Some moments are best kept simple — like this one.",
@@ -64,17 +56,11 @@ function SpecialCard({ emoji, text, index }: { emoji: string; text: string; inde
   );
 }
 
-function FinaleConfetti() {
-  const { ref, inView } = useInView(0.5);
-  useEffect(() => {
-    if (inView) setTimeout(() => confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 }, colors: ["#333","#888","#ccc","#000","#fff"] }), 400);
-  }, [inView]);
-  return (
-    <div ref={ref as any} style={{ opacity: inView ? 1 : 0, transition: "opacity 1.2s ease", fontFamily: "'Lora', Georgia, serif", fontSize: "1.5rem", color: "#555", fontStyle: "italic" }}>
+function FinaleConfetti() { return (
+    <AnimLine style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "1.5rem", color: "#555", fontStyle: "italic" }}>
       Made with love
-    </div>
-  );
-}
+    </AnimLine>
+  ); }
 
 function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -142,20 +128,18 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
     confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, colors: ["#ff3366", "#ff66b2", "#ff99cc", "#ffffff"] });
   };
 
-  useEffect(() => {
-    setTimeout(() => confetti({ particleCount: 80, spread: 70, origin: { y: 0.55 }, colors: content.confettiColors }), 1200);
-  }, [content.confettiColors]);
+  
 
   return (
-    <main style={{ background: "#fafafa", color: "#111", overflowX: "hidden" }}>
+    <main data-scroll-theme="minimal" style={{ background: "#fafafa", color: "#111", overflowX: "clip" }}>
       <style dangerouslySetInnerHTML={{ __html: MIN_CSS }} />
       <FloatingDots />
 
       {/* ── Scene 1: Opening */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
+      <StaticHero  className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
         style={{ background: "#fafafa" }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center,rgba(0,0,0,0.03) 0%,transparent 70%)" }} />
-        <Hero3D className="relative z-10 max-w-3xl">
+        <div className="relative z-10 max-w-3xl">
           <div className="text-5xl mb-6" style={{ animation: "minFloat2 4s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-cormorant text-lg tracking-[0.4em] uppercase mb-5" style={{ color: "#aaa" }}>{content.heroSubtitle}</p>
           <h1 className="font-lora font-semibold mb-7 leading-tight" style={{ fontSize: "clamp(3rem,10vw,6.5rem)", color: "#111" }}>
@@ -169,15 +153,14 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
           <p className="font-cormorant text-xl italic leading-relaxed" style={{ color: "#777" }}>
             Some people make the world more beautiful simply by existing.
           </p>
-        </Hero3D>
-        <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 transition-colors" style={{ color: "#ccc", animation: "minFloat2 2.5s ease-in-out infinite" }}>
-          <span className="font-cormorant text-sm tracking-widest" style={{ color: "#bbb" }}>scroll</span><ChevronDown size={18} />
-        </button>
-      </section>
-      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+        </div>
+        <ScrollCue />
+      </StaticHero>
+      <ScrollGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+      
 
       {/* ── Scene 2: Happy Birthday */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
         style={{ background: "#f0f0f0" }}>
         <div className="relative z-10 max-w-3xl w-full">
           <AnimLine className="font-cormorant text-lg tracking-[0.4em] uppercase mb-5" style={{ color: "#aaa" }}>today is a special day</AnimLine>
@@ -214,10 +197,10 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
             </AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 3: The Letter */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollSection className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "#fafafa" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-10" style={{ color: "#bbb" }}>— a letter —</AnimLine>
@@ -227,7 +210,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
             <div className="space-y-5">
               {messageLines.length > 0 ? messageLines.map((line, i) => (
                 <AnimLine key={i} delay={i * 100}>
-                  <p className="font-lora text-lg md:text-xl leading-relaxed" style={{ color: "#444" }}>{line}</p>
+                  <p className="font-lora text-lg md:text-xl leading-relaxed" style={{ color: "#444" }}><ScrollText text={line} /></p>
                 </AnimLine>
               )) : (
                 <AnimLine><p className="font-lora text-xl italic leading-relaxed" style={{ color: "#444" }}>You carry the most beautiful light inside you — one that brightens every room, every heart, every moment. On this precious day, I want you to know: you are deeply, endlessly loved.</p></AnimLine>
@@ -245,11 +228,11 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
             <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#222" isDark={false} label="A personal video message for you 🎥" />
           )}
         </div>
-      </section>
+      </ScrollSection>
 
       {/* ── Scene 4: Photos */}
       {celebration.photos?.length > 0 && (
-        <section className="relative overflow-hidden px-6 py-28" style={{ background: "#f0f0f0" }}>
+        <ScrollSection className="relative overflow-hidden px-6 py-28" style={{ background: "#f0f0f0" }}>
           <div className="relative z-10">
             <div className="text-center mb-20">
               <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-4" style={{ color: "#bbb" }}>— moments —</AnimLine>
@@ -308,11 +291,11 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
                 return { url, caption: caps[i % caps.length] };
               })} />
           </div>
-        </section>
+        </ScrollSection>
       )}
 
       {/* ── Scene 5: Why You're Special */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "#fafafa" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-10" style={{ color: "#bbb" }}>— what makes you, you —</AnimLine>
@@ -320,10 +303,10 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
             {specialItems.map((item, i) => <SpecialCard key={i} emoji={item.emoji} text={item.text} index={i} />)}
           </div>
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 6: Finale */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "#111", color: "white" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine from="scale"><div className="text-6xl mb-8">{content.heroEmoji}</div></AnimLine>
@@ -347,7 +330,7 @@ export default function MinimalTheme({ celebration }: { celebration: any }) {
             <AnimLine delay={700}><ViewCounter views={celebration.views} accentColor="#555" isDark={false} /></AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {celebration.id && (
         <ReactionWall celebrationId={celebration.id} accentColor="#333" isDark={false} />

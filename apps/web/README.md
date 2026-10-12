@@ -2,6 +2,11 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Celebration demos and the creator's live preview share the scroll-driven
+components with the templates app. See the
+[scroll-template development guide](../birthday/README.md#scroll-driven-celebration-templates)
+for behavior, accessibility, and `npm run test:scroll`.
+
 First, run the development server:
 
 ```bash

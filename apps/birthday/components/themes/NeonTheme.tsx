@@ -9,10 +9,11 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, StaticHero, ScrollReveal as AnimLine, ScrollScene, ScrollSection, ScrollCue, ScrollText } from "@birthdayglow/shared/src/components/ScrollScenes";
 import InvitationActions from "../InvitationActions";
-import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
-import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
+import ScrollGift from "@birthdayglow/shared/src/components/ScrollGift";
+import EnvelopeLetter from "@birthdayglow/shared/src/components/ScrollLetter";
+import MemoryAlbum from "@birthdayglow/shared/src/components/ScrollMemoryGallery";
 
 interface Celebration {
   id?: string;
@@ -35,16 +36,7 @@ function useInView(threshold = 0.2) {
   return { ref, inView };
 }
 
-function AnimLine({ children, delay = 0, className = "", from = "bottom", style = {} }:
-  { children: React.ReactNode; delay?: number; className?: string; from?: "bottom"|"left"|"right"|"scale"; style?: React.CSSProperties }) {
-  const { ref, inView } = useInView(0.2);
-  const init: Record<string, string> = { bottom:"translateY(40px)", left:"translateX(-50px)", right:"translateX(50px)", scale:"scale(0.85)" };
-  return (
-    <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.85s ease ${delay}ms, transform 0.85s ease ${delay}ms`, ...style }}>
-      {children}
-    </div>
-  );
-}
+
 
 const NEON_CAPTIONS = [
   "// this memory.exe — running forever in my heart",
@@ -67,17 +59,11 @@ function SpecialCard({ emoji, text, index }: { emoji: string; text: string; inde
   );
 }
 
-function FinaleConfetti() {
-  const { ref, inView } = useInView(0.5);
-  useEffect(() => {
-    if (inView) setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.7 }, colors: ["#00fff5","#ff00ff","#ffff00","#ff6600"] }), 400);
-  }, [inView]);
-  return (
-    <div ref={ref as any} style={{ opacity: inView ? 1 : 0, transition: "opacity 1.2s ease", fontFamily: "'Share Tech Mono', monospace", fontSize: "1.4rem", color: "#00fff5", textShadow: "0 0 15px #00fff5" }}>
+function FinaleConfetti() { return (
+    <AnimLine style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "1.4rem", color: "#00fff5", textShadow: "0 0 15px #00fff5" }}>
       // made_with(love) ❤
-    </div>
-  );
-}
+    </AnimLine>
+  ); }
 
 function MusicPlayer({ celebration }: { celebration: Celebration }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -158,22 +144,20 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
     confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, colors: ["#ff3366", "#ff66b2", "#ff99cc", "#ffffff"] });
   };
 
-  useEffect(() => {
-    setTimeout(() => confetti({ particleCount: 160, spread: 100, origin: { y: 0.55 }, colors: content.confettiColors }), 1200);
-  }, [content.confettiColors]);
+  
 
   return (
-    <main style={{ background: "#050505", color: "white", overflowX: "hidden" }}>
+    <main data-scroll-theme="neon" style={{ background: "#050505", color: "white", overflowX: "clip" }}>
       <style dangerouslySetInnerHTML={{ __html: NEON_CSS }} />
       <CyberGrid />
       <ElectricParticles />
 
       {/* ── Scene 1: Opening */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
+      <StaticHero  className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
         style={{ background: "radial-gradient(ellipse at center,#0d0a0d 0%,#050505 100%)" }}>
         <div className="absolute" style={{ top: 0, left: "50%", transform: "translateX(-50%)", width: 600, height: 300, background: "radial-gradient(ellipse,rgba(0,255,245,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
         <div className="absolute" style={{ bottom: 0, right: "10%", width: 400, height: 300, background: "radial-gradient(ellipse,rgba(255,0,255,0.06) 0%,transparent 70%)", pointerEvents: "none" }} />
-        <Hero3D className="relative z-10 max-w-3xl">
+        <div className="relative z-10 max-w-3xl">
           <div className="font-mono-share text-sm tracking-[0.4em] uppercase mb-5" style={{ color: "#ff00ff", textShadow: "0 0 10px #ff00ff" }}>★ CYBERPUNK {celebration.occasionType?.toUpperCase() || "BIRTHDAY"} ★</div>
           <div className="text-6xl mb-5" style={{ animation: "neonFloat2 3s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <h1 className="font-orbitron font-black neon-grad mb-4 leading-tight" style={{ fontSize: "clamp(2.5rem, 8vw, 5.5rem)" }}>
@@ -190,15 +174,14 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
           <p className="font-mono-share text-lg leading-relaxed" style={{ color: "#888" }}>
             // the world just got a lot more electric because you are here
           </p>
-        </Hero3D>
-        <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 transition-colors" style={{ color: "#00fff544", animation: "neonFloat2 2s ease-in-out infinite" }}>
-          <span className="font-mono-share text-xs tracking-widest">SCROLL</span><ChevronDown size={20} />
-        </button>
-      </section>
-      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+        </div>
+        <ScrollCue />
+      </StaticHero>
+      <ScrollGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+      
 
       {/* ── Scene 2: Happy Birthday */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
         style={{ background: "radial-gradient(ellipse at top,#110011 0%,#050505 70%)" }}>
         <div className="relative z-10 max-w-3xl w-full">
           <AnimLine className="font-mono-share text-sm tracking-[0.4em] uppercase mb-5" style={{ color: "#00fff577" }}>// today.is_special = true</AnimLine>
@@ -235,10 +218,10 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
             </AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 3: The Letter */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollSection className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg,#050505 0%,#080b10 50%,#050505 100%)" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-mono-share text-sm tracking-[0.35em] uppercase mb-10" style={{ color: "#00fff566" }}>// letter.open() ──────────────────</AnimLine>
@@ -253,7 +236,7 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
             <div className="space-y-5">
               {messageLines.length > 0 ? messageLines.map((line, i) => (
                 <AnimLine key={i} delay={i * 100}>
-                  <p className="font-mono-share text-lg leading-relaxed" style={{ color: "#d0d0d0" }}>{`> ${line}`}</p>
+                  <p className="font-mono-share text-lg leading-relaxed" style={{ color: "#d0d0d0" }}><ScrollText text={`> ${line}`} /></p>
                 </AnimLine>
               )) : (
                 <AnimLine><p className="font-mono-share text-lg leading-relaxed" style={{ color: "#d0d0d0" }}>{`> You carry the most beautiful light inside you — one that brightens every room, every heart, every moment. On this precious day, I want you to know: you are deeply, endlessly loved.`}</p></AnimLine>
@@ -271,11 +254,11 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
             <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#00fff5" isDark={true} label="Video transmission incoming 📹" />
           )}
         </div>
-      </section>
+      </ScrollSection>
 
       {/* ── Scene 4: Photos */}
       {celebration.photos?.length > 0 && (
-        <section className="relative overflow-hidden px-6 py-28" style={{ background: "linear-gradient(180deg,#080b10 0%,#050505 100%)" }}>
+        <ScrollSection className="relative overflow-hidden px-6 py-28" style={{ background: "linear-gradient(180deg,#080b10 0%,#050505 100%)" }}>
           <div className="relative z-10">
             <div className="text-center mb-20">
               <AnimLine className="font-mono-share text-sm tracking-[0.35em] uppercase mb-4" style={{ color: "#ff00ff66" }}>⚡ MEMORIES.EXE ⚡</AnimLine>
@@ -334,11 +317,11 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
                 return { url, caption: caps[i % caps.length] };
               })} />
           </div>
-        </section>
+        </ScrollSection>
       )}
 
       {/* ── Scene 5: Why You're Special */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "radial-gradient(ellipse at center,#0a0015 0%,#050505 70%)" }}>
         <div className="relative z-10 max-w-3xl w-full">
           <AnimLine className="font-mono-share text-sm tracking-[0.35em] uppercase mb-10" style={{ color: "#00fff566" }}>// reasons_you_are_legendary[]</AnimLine>
@@ -346,10 +329,10 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
             {specialItems.map((item, i) => <SpecialCard key={i} emoji={item.emoji} text={item.text} index={i} />)}
           </div>
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 6: Finale */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "radial-gradient(ellipse at center,#0d0510 0%,#050505 70%)" }}>
         <div className="absolute" style={{ top: "10%", left: "20%", width: 600, height: 600, background: "radial-gradient(circle,rgba(0,255,245,0.07) 0%,transparent 70%)", borderRadius: "50%", filter: "blur(60px)", pointerEvents: "none" }} />
         <div className="relative z-10 max-w-2xl w-full">
@@ -373,7 +356,7 @@ export default function NeonTheme({ celebration }: { celebration: any }) {
             <AnimLine delay={700}><ViewCounter views={celebration.views} accentColor="#00fff5" isDark={true} /></AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {celebration.id && (
         <ReactionWall celebrationId={celebration.id} accentColor="#00fff5" isDark={true} />

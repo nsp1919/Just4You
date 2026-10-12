@@ -8,10 +8,11 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, StaticHero, ScrollReveal as AnimLine, ScrollScene, ScrollSection, ScrollCue, ScrollText } from "@birthdayglow/shared/src/components/ScrollScenes";
 import InvitationActions from "../InvitationActions";
-import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
-import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
+import ScrollGift from "@birthdayglow/shared/src/components/ScrollGift";
+import EnvelopeLetter from "@birthdayglow/shared/src/components/ScrollLetter";
+import MemoryAlbum from "@birthdayglow/shared/src/components/ScrollMemoryGallery";
 
 interface Celebration {
   id?: string;
@@ -41,16 +42,7 @@ function useInView(threshold = 0.2) {
   return { ref, inView };
 }
 
-function AnimLine({ children, delay = 0, className = "", from = "bottom", style = {} }:
-  { children: React.ReactNode; delay?: number; className?: string; from?: "bottom"|"left"|"right"|"scale"; style?: React.CSSProperties }) {
-  const { ref, inView } = useInView(0.2);
-  const init: Record<string, string> = { bottom:"translateY(40px)", left:"translateX(-50px)", right:"translateX(50px)", scale:"scale(0.9)" };
-  return (
-    <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}ms, transform 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}ms`, ...style }}>
-      {children}
-    </div>
-  );
-}
+
 
 function SpecialCard({ emoji, text, index }: { emoji: string; text: string; index: number }) {
   const rotations = ["rotate-1", "-rotate-1", "rotate-2", "-rotate-2"];
@@ -136,13 +128,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
   const firstName = celebration.recipientName.split(" ")[0];
   const messageLines: string[] = (celebration.message || "").split(/\n+/).filter(Boolean);
 
-  useEffect(() => {
-    const triggerConfetti = () => {
-      confetti({ particleCount: 100, spread: 80, origin: { y: 0.55 }, colors: content.confettiColors });
-    };
-    const t = setTimeout(triggerConfetti, 1200);
-    return () => clearTimeout(t);
-  }, [content.confettiColors]);
+  
 
   const handleProposalYes = () => {
     setYesResponse(true);
@@ -150,13 +136,13 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
   };
 
   return (
-    <main className="kids-gradient-bg min-h-screen text-slate-800 font-hand relative" style={{ overflowX: "hidden", fontSize: "1.4rem" }}>
+    <main data-scroll-theme="magical" className="kids-gradient-bg min-h-screen text-slate-800 font-hand relative" style={{ overflowX: "clip", fontSize: "1.4rem" }}>
       <style dangerouslySetInnerHTML={{ __html: KIDS_CSS }} />
       <KidParticles list={content.particles} />
 
       {/* ── Scene 1: Welcome Header */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <Hero3D className="relative z-10 max-w-3xl">
+      <StaticHero  className="relative min-h-screen flex flex-col items-center justify-center text-center px-6">
+        <div className="relative z-10 max-w-3xl">
           <div className="text-8xl mb-6 inline-block" style={{ animation: "kidBounce 3.5s ease-in-out infinite" }}>
             {content.heroEmoji}
           </div>
@@ -172,15 +158,14 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
           <p className="text-3xl font-hand text-slate-600 max-w-xl mx-auto italic">
             "Bringing magic, balloons, and candy-colored smiles to your world! 💫"
           </p>
-        </Hero3D>
-        <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-rose-400 hover:text-rose-500 transition-colors z-10" style={{ animation: "kidBounce 2s ease-in-out infinite" }}>
-          <span className="font-comic text-sm tracking-widest">SCROLL</span><ChevronDown size={24} />
-        </button>
-      </section>
-      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+        </div>
+        <ScrollCue />
+      </StaticHero>
+      <ScrollGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+      
 
       {/* ── Scene 2: Main Event Heading */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-20 bg-rose-50/50">
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-20 bg-rose-50/50">
         <div className="relative z-10 max-w-3xl w-full">
           <AnimLine className="font-comic text-lg text-rose-400 tracking-wider uppercase mb-5">Today is a magical day</AnimLine>
           <AnimLine delay={120} from="scale">
@@ -216,10 +201,10 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
             </AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 3: The Board / Notebook Letter */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-white/40">
+      <ScrollSection className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-white/40">
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-comic text-rose-400 text-sm tracking-widest uppercase mb-8">✦ A Letter For You ✦</AnimLine>
           <EnvelopeLetter>
@@ -228,7 +213,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
             <div className="space-y-5">
               {messageLines.length > 0 ? messageLines.map((line, i) => (
                 <AnimLine key={i} delay={i * 100}>
-                  <p className="text-xl md:text-2xl leading-relaxed text-slate-700">{line}</p>
+                  <p className="text-xl md:text-2xl leading-relaxed text-slate-700"><ScrollText text={line} /></p>
                 </AnimLine>
               )) : (
                 <AnimLine><p className="text-2xl leading-relaxed text-slate-700 italic">You are incredibly sweet, smart, and amazing! We are so proud of the joy and happiness you bring to us every single day. Wishing you a year ahead filled with magic, wonders, learning, and endless toys! 🌈🍭</p></AnimLine>
@@ -246,11 +231,11 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
             <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#f43f5e" isDark={false} label="A magical video just for you 🎥" />
           )}
         </div>
-      </section>
+      </ScrollSection>
 
       {/* ── Scene 4: Photos */}
       {celebration.photos?.length > 0 && (
-        <section className="relative overflow-hidden px-6 py-28 bg-amber-50/20">
+        <ScrollSection className="relative overflow-hidden px-6 py-28 bg-amber-50/20">
           <div className="relative z-10">
             <div className="text-center mb-20">
               <AnimLine className="font-comic text-sm tracking-wider uppercase text-amber-500 mb-3">✦ Captured Memories ✦</AnimLine>
@@ -313,11 +298,11 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
                 return { url, caption };
               })} />
           </div>
-        </section>
+        </ScrollSection>
       )}
 
       {/* ── Scene 5: Relationship Virtues */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-teal-50/30">
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-teal-50/30">
         <div className="relative z-10 max-w-3xl w-full">
           <AnimLine className="font-comic text-sm tracking-wider uppercase text-rose-400 mb-10">✦ Why You Are Super Awesome ✦</AnimLine>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -326,10 +311,10 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
             ))}
           </div>
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 6: Grand Finale */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-gradient-to-t from-rose-100 to-amber-50">
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-gradient-to-t from-rose-100 to-amber-50">
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine from="scale"><div className="text-8xl mb-8">🎈🎂🧸</div></AnimLine>
           <AnimLine delay={100} className="font-comic text-xl text-rose-400 tracking-wider mb-4">ON THIS MAGICAL DAY</AnimLine>
@@ -354,7 +339,7 @@ export default function MagicalTheme({ celebration }: { celebration: Celebration
             <AnimLine delay={800}><ViewCounter views={celebration.views} accentColor="#f43f5e" isDark={false} /></AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {celebration.id && (
         <ReactionWall celebrationId={celebration.id} accentColor="#f43f5e" isDark={false} />

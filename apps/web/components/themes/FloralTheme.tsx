@@ -8,10 +8,11 @@ import ReactionWall from "../ReactionWall";
 import VoiceMessagePlayer from "../VoiceMessagePlayer";
 import VideoMessagePlayer from "../VideoMessagePlayer";
 import ViewCounter from "../ViewCounter";
-import { Reveal3D, Hero3D } from "./Scroll3D";
+import { Reveal3D, StaticHero, ScrollReveal as AnimLine, ScrollScene, ScrollSection, ScrollCue, ScrollText } from "@birthdayglow/shared/src/components/ScrollScenes";
 import InvitationActions from "../InvitationActions";
-import { EnvelopeLetter, RecipientGift } from "@birthdayglow/shared/src/components/SurpriseReveal";
-import MemoryAlbum from "@birthdayglow/shared/src/components/MemoryAlbum";
+import ScrollGift from "@birthdayglow/shared/src/components/ScrollGift";
+import EnvelopeLetter from "@birthdayglow/shared/src/components/ScrollLetter";
+import MemoryAlbum from "@birthdayglow/shared/src/components/ScrollMemoryGallery";
 
 interface Celebration {
   id?: string;
@@ -34,16 +35,7 @@ function useInView(threshold = 0.2) {
   return { ref, inView };
 }
 
-function AnimLine({ children, delay = 0, className = "", from = "bottom", style = {} }:
-  { children: React.ReactNode; delay?: number; className?: string; from?: "bottom"|"left"|"right"|"scale"; style?: React.CSSProperties }) {
-  const { ref, inView } = useInView(0.2);
-  const init: Record<string, string> = { bottom:"translateY(40px)", left:"translateX(-50px)", right:"translateX(50px)", scale:"scale(0.85)" };
-  return (
-    <div ref={ref as any} className={className} style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : init[from], transition: `opacity 0.85s ease ${delay}ms, transform 0.85s ease ${delay}ms`, ...style }}>
-      {children}
-    </div>
-  );
-}
+
 
 const CAPTIONS = [
   "Every petal, every smile — you make everything bloom.",
@@ -66,20 +58,11 @@ function SpecialCard({ emoji, text, index, accent }: { emoji: string; text: stri
   );
 }
 
-function FinaleConfetti({ colors }: { colors: string[] }) {
-  const { ref, inView } = useInView(0.5);
-  const colorsKey = colors.join(",");
-  useEffect(() => {
-    if (!inView) return;
-    const timer = setTimeout(() => confetti({ particleCount: 100, spread: 80, origin: { y: 0.7 }, colors: colorsKey.split(",") }), 400);
-    return () => clearTimeout(timer);
-  }, [colorsKey, inView]);
-  return (
-    <div ref={ref as any} style={{ opacity: inView ? 1 : 0, transition: "opacity 1.2s ease", fontFamily: "'Dancing Script', cursive", fontSize: "2rem", color: "#e75480" }}>
+function FinaleConfetti(_props: { colors: string[] }) { return (
+    <AnimLine style={{ fontFamily: "'Dancing Script', cursive", fontSize: "2rem", color: "#e75480" }}>
       Made with love 💕
-    </div>
-  );
-}
+    </AnimLine>
+  ); }
 
 function MusicPlayer({ celebration, accent }: { celebration: Celebration; accent: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -158,22 +141,20 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
     confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, colors: ["#ff3366", "#ff66b2", "#ff99cc", "#ffffff"] });
   };
 
-  useEffect(() => {
-    setTimeout(() => confetti({ particleCount: 120, spread: 90, origin: { y: 0.55 }, colors: content.confettiColors }), 1200);
-  }, [content.confettiColors]);
+  
 
   return (
-    <main style={{ background: "linear-gradient(160deg,#fff5f8 0%,#ffe8ef 40%,#fff9fb 70%,#ffdde8 100%)", color: "#2d1a2e", overflowX: "hidden" }}>
+    <main data-scroll-theme="floral" style={{ background: "linear-gradient(160deg,#fff5f8 0%,#ffe8ef 40%,#fff9fb 70%,#ffdde8 100%)", color: "#2d1a2e", overflowX: "clip" }}>
       <style dangerouslySetInnerHTML={{ __html: FLORAL_CSS }} />
       <FallingPetals />
 
 
       {/* ── Scene 1: Opening */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
+      <StaticHero  className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6"
         style={{ background: "linear-gradient(180deg,#fff5f8 0%,#ffe0ec 100%)" }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 30% 20%,rgba(231,84,128,0.12) 0%,transparent 60%)" }} />
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 70% 80%,rgba(194,24,91,0.08) 0%,transparent 60%)" }} />
-        <Hero3D className="relative z-10 max-w-3xl">
+        <div className="relative z-10 max-w-3xl">
           <div className="text-6xl mb-5" style={{ animation: "floatPetal 3.5s ease-in-out infinite" }}>{content.heroEmoji}</div>
           <p className="font-cormorant text-lg tracking-[0.35em] uppercase mb-4" style={{ color: "#c2185b88" }}>{content.heroSubtitle}</p>
           <div className="relative inline-block mb-6">
@@ -190,15 +171,14 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
           <p className="font-garamond text-xl italic leading-relaxed" style={{ color: "#6d3b57" }}>
             The world bloomed a little more because you are in it.
           </p>
-        </Hero3D>
-        <button onClick={() => window.scrollBy({ top: window.innerHeight, behavior: "smooth" })} className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 transition-colors z-10" style={{ color: "#c2185b77", animation: "floatPetal 2s ease-in-out infinite" }}>
-          <span className="font-cormorant text-sm tracking-widest">Scroll</span><ChevronDown size={20} />
-        </button>
-      </section>
-      <RecipientGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+        </div>
+        <ScrollCue />
+      </StaticHero>
+      <ScrollGift recipientName={celebration.recipientName} photo={celebration.photos?.[0]} />
+      
 
       {/* ── Scene 2: Happy Birthday */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-20"
         style={{ background: "linear-gradient(180deg,#ffe8ef 0%,#fff5f8 100%)" }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at top,rgba(231,84,128,0.1) 0%,transparent 70%)" }} />
         <div className="relative z-10 max-w-3xl w-full">
@@ -234,10 +214,10 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
             </AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 3: The Letter */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollSection className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg,#fff5f8 0%,#ffe8ef 50%,#fff5f8 100%)" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-10" style={{ color: "#c2185b88" }}>✿ A Letter From The Heart ✿</AnimLine>
@@ -247,7 +227,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
             <div className="space-y-5">
               {messageLines.length > 0 ? messageLines.map((line, i) => (
                 <AnimLine key={i} delay={i * 100}>
-                  <p className="font-garamond text-lg md:text-xl leading-relaxed" style={{ color: "#4a1c30" }}>{line}</p>
+                  <p className="font-garamond text-lg md:text-xl leading-relaxed" style={{ color: "#4a1c30" }}><ScrollText text={line} /></p>
                 </AnimLine>
               )) : (
                 <AnimLine><p className="font-garamond text-xl italic leading-relaxed" style={{ color: "#4a1c30" }}>You carry the most beautiful light inside you — one that brightens every room, every heart, every moment. On this precious day, I want you to know: you are deeply, endlessly loved.</p></AnimLine>
@@ -265,11 +245,11 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
             <VideoMessagePlayer url={celebration.videoMessageUrl} accentColor="#c2185b" isDark={false} />
           )}
         </div>
-      </section>
+      </ScrollSection>
 
       {/* ── Scene 4: Photos */}
       {celebration.photos?.length > 0 && (
-        <section className="relative overflow-hidden px-6 py-28" style={{ background: "linear-gradient(180deg,#ffe0ec 0%,#fff5f8 100%)" }}>
+        <ScrollSection className="relative overflow-hidden px-6 py-28" style={{ background: "linear-gradient(180deg,#ffe0ec 0%,#fff5f8 100%)" }}>
           <div className="relative z-10">
             <div className="text-center mb-20">
               <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-4" style={{ color: "#c2185b88" }}>✿ Captured Moments ✿</AnimLine>
@@ -328,11 +308,11 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
                 return { url, caption: caps[i % caps.length] };
               })} />
           </div>
-        </section>
+        </ScrollSection>
       )}
 
       {/* ── Scene 5: Why You're Special */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg,#fff5f8 0%,#ffe8ef 100%)" }}>
         <div className="relative z-10 max-w-3xl w-full">
           <AnimLine className="font-cormorant text-sm tracking-[0.4em] uppercase mb-10" style={{ color: "#c2185b88" }}>✿ What Makes You You ✿</AnimLine>
@@ -340,10 +320,10 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
             {specialItems.map((item, i) => <SpecialCard key={i} emoji={item.emoji} text={item.text} index={i} accent={accent} />)}
           </div>
         </div>
-      </section>
+      </ScrollScene>
 
       {/* ── Scene 6: Finale */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
+      <ScrollScene className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-6 py-24"
         style={{ background: "linear-gradient(180deg,#ffe8ef 0%,#fff5f8 50%,#ffe0ec 100%)" }}>
         <div className="relative z-10 max-w-2xl w-full">
           <AnimLine from="scale"><div className="text-7xl mb-8">{content.heroEmoji}</div></AnimLine>
@@ -364,7 +344,7 @@ export default function FloralTheme({ celebration }: { celebration: any }) {
             <AnimLine delay={700}><ViewCounter views={celebration.views} accentColor="#c2185b" isDark={false} /></AnimLine>
           )}
         </div>
-      </section>
+      </ScrollScene>
 
       {celebration.id && (
         <ReactionWall celebrationId={celebration.id} accentColor="#c2185b" isDark={false} />

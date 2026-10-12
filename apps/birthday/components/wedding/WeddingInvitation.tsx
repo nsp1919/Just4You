@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarPlus,
   Check,
@@ -26,6 +26,8 @@ import {
 } from "react";
 import { db } from "@/lib/firebase";
 import styles from "./WeddingInvitation.module.css";
+import { ScrollScene, ScrollReveal, ScrollDepth, ScrollText, StaticHero } from "@birthdayglow/shared/src/components/ScrollScenes";
+import ScrollLetter from "@birthdayglow/shared/src/components/ScrollLetter";
 
 type CeremonyInteraction = "scratch" | "trace" | "rhythm" | "bonalu" | "wedding" | "reception" | "reveal";
 
@@ -65,6 +67,7 @@ export interface WeddingInvitationData {
 interface WeddingInvitationProps {
   invitation: WeddingInvitationData;
   celebrationId?: string;
+  message?: string;
 }
 
 interface TimeLeft {
@@ -160,16 +163,12 @@ function FallingPetals() {
 
 function SectionHeading({ eyebrow, children }: { eyebrow: string; children: React.ReactNode }) {
   return (
-    <motion.header
+    <ScrollReveal
       className={styles.sectionHeading}
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.7 }}
     >
       <p>{eyebrow}</p>
       <h2>{children}</h2>
-    </motion.header>
+    </ScrollReveal>
   );
 }
 
@@ -558,9 +557,7 @@ function CeremonyModal({ ceremony, onClose }: { ceremony: WeddingCeremony; onClo
   );
 }
 
-export default function WeddingInvitation({ invitation, celebrationId }: WeddingInvitationProps) {
-  const [isOpening, setIsOpening] = useState(false);
-  const [openingComplete, setOpeningComplete] = useState(false);
+export default function WeddingInvitation({ invitation, celebrationId, message }: WeddingInvitationProps) {
   const [activeCeremony, setActiveCeremony] = useState<WeddingCeremony | null>(null);
   const [team, setTeam] = useState<"bride" | "groom" | null>(null);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -572,7 +569,6 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
   const [selectedCeremonies, setSelectedCeremonies] = useState<string[]>(
     invitation.ceremonies.map((ceremony) => ceremony.id),
   );
-  const reduceMotion = useReducedMotion();
   const coupleNames = `${invitation.couple.partnerOne} & ${invitation.couple.partnerTwo}`;
   const hasHeroImage = Boolean(invitation.heroImage?.trim());
   const weddingDate = new Intl.DateTimeFormat("en-IN", {
@@ -609,18 +605,11 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
     : null;
 
   useEffect(() => {
-    if (!openingComplete) return;
     const update = () => setTimeLeft(calculateTimeLeft(invitation.date));
     update();
     const timer = window.setInterval(update, 1_000);
     return () => window.clearInterval(timer);
-  }, [invitation.date, openingComplete]);
-
-  useEffect(() => {
-    if (!isOpening) return;
-    const timer = window.setTimeout(() => setOpeningComplete(true), 4_650);
-    return () => window.clearTimeout(timer);
-  }, [isOpening]);
+  }, [invitation.date]);
 
   const sendRsvp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -673,24 +662,22 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
 
   return (
     <main className={styles.page}>
-      <FallingPetals />
-
-      <section
+      <StaticHero
         className={styles.hero}
-        aria-label={hasHeroImage ? `${coupleNames} wedding invitation` : undefined}
-        aria-labelledby={hasHeroImage ? undefined : "wedding-title"}
+        label={`${coupleNames} wedding invitation`}
       >
         {hasHeroImage && invitation.heroImage ? (
-          <Image className={styles.heroImage} src={invitation.heroImage} alt={`${coupleNames} wedding invitation`} fill priority sizes="100vw" />
+          <div className={styles.scrollHeroImage}>
+            <div className={styles.scrollImageFrame}>
+              <Image src={invitation.heroImage} alt={`${coupleNames} wedding invitation`} fill priority sizes="100vw" style={{ objectFit: "contain" }} />
+            </div>
+          </div>
         ) : (
           <>
             <div className={styles.heroShade} />
             <div className={styles.heroTexture} />
-            <motion.div
+            <div
               className={styles.heroContent}
-              initial={reduceMotion ? false : { opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.35 }}
             >
               <p className={styles.eyebrow}>{invitation.families}</p>
               <p className={styles.invitationLine}>request the pleasure of your company</p>
@@ -705,25 +692,33 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
                 <span>{invitation.location}</span>
               </div>
               <p className={styles.hashtag}>{invitation.hashtag}</p>
-            </motion.div>
+            </div>
           </>
         )}
+      </StaticHero>
+
+      <section className={styles.letterSection} aria-label="A letter from the couple">
+        <SectionHeading eyebrow="From our hearts">A note for you</SectionHeading>
+        <ScrollLetter>
+          <div className={styles.letterPaper}>
+            <ScrollReveal><h3>Dear family and friends,</h3></ScrollReveal>
+            <ScrollText text={message?.trim() || `${invitation.families}, we invite you to celebrate with us. Your love and presence would make our day even more special.`} />
+            <ScrollReveal><p className={styles.letterSignoff}>With love,<br />{coupleNames}</p></ScrollReveal>
+          </div>
+        </ScrollLetter>
       </section>
 
       <section id="celebrations" className={styles.festivities}>
         <SectionHeading eyebrow={`${invitation.ceremonies.length} celebrations`}>The Festivities</SectionHeading>
         <div className={styles.timeline}>
           {invitation.ceremonies.map((ceremony, index) => (
-            <motion.article
+            <ScrollScene
               key={ceremony.id}
               className={styles.ceremony}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-70px" }}
-              transition={{ duration: 0.65, delay: index * 0.06 }}
+              label={ceremony.name}
             >
               <div className={styles.timelineMarker}><span>{index + 1}</span></div>
-              <div className={styles.ceremonyCopy}>
+              <ScrollReveal className={styles.ceremonyCopy}>
                 <p>{new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long" }).format(new Date(ceremony.date))}</p>
                 <h3>{ceremony.name}</h3>
                 <strong>{ceremony.subtitle}</strong>
@@ -736,17 +731,19 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
                 <button type="button" className={styles.outlineButton} onClick={() => downloadCalendar(ceremony, coupleNames)}>
                   <CalendarPlus size={16} /> Add to calendar
                 </button>
-              </div>
-              <button type="button" className={styles.revealCard} onClick={() => setActiveCeremony(ceremony)} aria-label={`Open the ${ceremony.name} invitation`}>
-                <Image src={ceremony.image} alt="" fill sizes="128px" />
+              </ScrollReveal>
+              <ScrollDepth direction={index % 2 ? -1 : 1}>
+                <button type="button" className={styles.revealCard} onClick={() => setActiveCeremony(ceremony)} aria-label={`Open the ${ceremony.name} invitation`}>
+                <Image src={ceremony.image} alt="" fill sizes="(max-width: 700px) 80vw, 35vw" />
                 <span><Sparkles size={14} /> Reveal</span>
               </button>
-            </motion.article>
+              </ScrollDepth>
+            </ScrollScene>
           ))}
         </div>
       </section>
 
-      <section className={styles.teamSection}>
+      <ScrollScene className={styles.teamSection} label="Pick your side">
         <SectionHeading eyebrow="A little friendly rivalry">Pick your side</SectionHeading>
         <p className={styles.sectionIntro}>Whose side are you cheering for? Your pick travels with your RSVP.</p>
         <div className={styles.teamPicker}>
@@ -764,18 +761,18 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
             {team === "groom" && <span><Check size={13} /> You&apos;re in</span>}
           </button>
         </div>
-      </section>
+      </ScrollScene>
 
-      <section className={styles.countdownSection}>
+      <ScrollScene className={styles.countdownSection} label="Wedding countdown">
         <p>Counting down to the muhurtham</p>
         <div className={styles.countdown}>
           {Object.entries(timeLeft).map(([label, value]) => (
             <div key={label}><strong>{String(value).padStart(2, "0")}</strong><span>{label}</span></div>
           ))}
         </div>
-      </section>
+      </ScrollScene>
 
-      {invitation.rsvpEnabled !== false && <section className={styles.rsvpSection}>
+      {invitation.rsvpEnabled !== false && <ScrollScene className={styles.rsvpSection} label="RSVP">
         <div className={styles.rsvpIntro}>
           <p>Save your place</p>
           <h2>Will you join us?</h2>
@@ -833,9 +830,9 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
           {rsvpStatus === "saved" && <p className={styles.rsvpStatus} role="status">RSVP saved. Your WhatsApp message is ready to send.</p>}
           {rsvpStatus === "error" && <p className={`${styles.rsvpStatus} ${styles.rsvpError}`} role="alert">{rsvpError}</p>}
         </form>
-      </section>}
+      </ScrollScene>}
 
-      {videoUrl && <section className={styles.videoSection}>
+      {videoUrl && <ScrollScene className={styles.videoSection} label="Wedding film">
         <div className={styles.videoCopy}>
           <p>Our wedding film</p>
           <h2>One more moment to share</h2>
@@ -852,40 +849,19 @@ export default function WeddingInvitation({ invitation, celebrationId }: Wedding
           )}
           <small>Scan to watch</small>
         </div>
-      </section>}
+      </ScrollScene>}
 
-      <footer className={styles.finale}>
+      <ScrollScene className={styles.finale} label="With love from the couple">
         <span>ॐ</span>
         <p>With the blessings of our elders<br />and the warmth of your presence.</p>
         <strong>{coupleNames}</strong>
         <small>Made with love</small>
-      </footer>
+      </ScrollScene>
 
       <AnimatePresence>
         {activeCeremony && <CeremonyModal ceremony={activeCeremony} onClose={() => setActiveCeremony(null)} />}
       </AnimatePresence>
 
-      {!openingComplete && (
-        <section className={`${styles.opener} ${isOpening ? styles.opening : ""}`} data-wedding-opener aria-label="Open the wedding invitation">
-          <div className={`${styles.door} ${styles.doorLeft}`} />
-          <div className={`${styles.door} ${styles.doorRight}`} />
-          <div className={styles.sealWrap}>
-            <button
-              ref={(button) => {
-                if (!button) return;
-                const openInvitation = () => setIsOpening(true);
-                button.onpointerdown = openInvitation;
-                button.onclick = openInvitation;
-              }}
-              className={styles.seal}
-              type="button"
-            >
-              <span>{invitation.couple.monogram}</span>
-              <small>Tap to open</small>
-            </button>
-          </div>
-        </section>
-      )}
     </main>
   );
 }

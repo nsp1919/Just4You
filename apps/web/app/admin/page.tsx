@@ -7,7 +7,7 @@ import {
   collection, query, orderBy, getDocs, updateDoc, doc, serverTimestamp
 } from "firebase/firestore";
 import { COLLECTIONS, computePriceInr, DEFAULT_PRICING_SETTINGS, FEATURE_ADDONS, normalizeVanitySlug, type PricingSettings } from "@/lib/constants";
-import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine, BadgeCheck, Upload, Trash2, ExternalLink, LockKeyhole, LogOut, LayoutDashboard, Settings2 } from "lucide-react";
+import { Users, DollarSign, Globe, TrendingUp, Search, Ban, CheckCircle, Eye, Shield, Landmark, LoaderCircle, XCircle, CalendarClock, Save, Gift, Mail, Phone, PencilLine, BadgeCheck, Upload, Trash2, ExternalLink, LockKeyhole, LogOut, LayoutDashboard, Settings2, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { uploadCloudinaryFile } from "@/lib/cloudinary-upload";
 import { getCelebrationUrl } from "@/lib/celebration-url";
@@ -50,6 +50,28 @@ interface CelebrationEditRequest {
   processedAt: string | null;
 }
 
+interface ReferralRow {
+  referredUserId: string;
+  referredName: string;
+  referredEmail: string;
+  referrerUserId: string;
+  referrerName: string;
+  referrerEmail: string;
+  referralCode: string;
+  status: "completed" | "pending";
+  earnedInr: number;
+  completedAt: Date | null;
+}
+
+interface ReferrerSummary {
+  userId: string;
+  name: string;
+  email: string;
+  completedCount: number;
+  pendingCount: number;
+  earnedInr: number;
+}
+
 function toDatetimeLocal(value: string | null): string {
   if (!value) return "";
   const date = new Date(value);
@@ -71,7 +93,7 @@ function getRequestedVanitySlug(celebration: Record<string, any>): string {
 export default function AdminPage() {
   const { user, userDoc, logout, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"overview" | "orders" | "launch" | "users" | "payouts" | "social" | "pricing" | "edits">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "launch" | "users" | "referrals" | "payouts" | "social" | "pricing" | "edits">("overview");
   const [celebrations, setCelebrations] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -639,6 +661,61 @@ export default function AdminPage() {
     u.email?.toLowerCase().includes(search.toLowerCase()) ||
     u.name?.toLowerCase().includes(search.toLowerCase())
   );
+  const usersByReferralCode = new Map<string, any>();
+  users.forEach((account) => {
+    const referralCode = String(account.referralCode ?? "").trim().toUpperCase();
+    if (referralCode) usersByReferralCode.set(referralCode, account);
+  });
+  const settledReferralByBuyer = new Map<string, { earnedInr: number; completedAt: Date | null }>();
+  celebrations.forEach((celebration) => {
+    if (celebration.referralRewardSettled !== true || !celebration.referredBy || !celebration.userId) return;
+    const previous = settledReferralByBuyer.get(celebration.userId);
+    const completedAt = celebration.referralBenefitsSettledAt?.toDate?.() ?? null;
+    settledReferralByBuyer.set(celebration.userId, {
+      earnedInr: (previous?.earnedInr ?? 0) + Math.max(0, Number(celebration.referralRewardInr) || 0),
+      completedAt: completedAt ?? previous?.completedAt ?? null,
+    });
+  });
+  const referralRows: ReferralRow[] = users.flatMap((referredUser): ReferralRow[] => {
+    const referralCode = String(referredUser.referredBy ?? "").trim().toUpperCase();
+    const referrer = usersByReferralCode.get(referralCode);
+    if (!referralCode || !referrer || referrer.id === referredUser.id) return [];
+    const settlement = settledReferralByBuyer.get(referredUser.id);
+    return [{
+      referredUserId: referredUser.id,
+      referredName: referredUser.name || "Unknown user",
+      referredEmail: referredUser.email || "",
+      referrerUserId: referrer.id,
+      referrerName: referrer.name || "Unknown user",
+      referrerEmail: referrer.email || "",
+      referralCode,
+      status: settlement || referredUser.referralRedeemed === true ? "completed" : "pending",
+      earnedInr: settlement?.earnedInr ?? 0,
+      completedAt: settlement?.completedAt ?? null,
+    }];
+  });
+  const filteredReferralRows = referralRows.filter((referral) => {
+    const term = search.trim().toLowerCase();
+    return !term || [referral.referrerName, referral.referrerEmail, referral.referredName, referral.referredEmail, referral.referralCode]
+      .some((value) => value.toLowerCase().includes(term));
+  });
+  const referrerSummaries = Array.from(referralRows.reduce((summaries, referral) => {
+    const current = summaries.get(referral.referrerUserId) ?? {
+      userId: referral.referrerUserId,
+      name: referral.referrerName,
+      email: referral.referrerEmail,
+      completedCount: 0,
+      pendingCount: 0,
+      earnedInr: 0,
+    };
+    current.completedCount += referral.status === "completed" ? 1 : 0;
+    current.pendingCount += referral.status === "pending" ? 1 : 0;
+    current.earnedInr += referral.earnedInr;
+    summaries.set(referral.referrerUserId, current);
+    return summaries;
+  }, new Map<string, ReferrerSummary>()).values()).sort((left, right) => right.earnedInr - left.earnedInr || right.completedCount - left.completedCount);
+  const totalReferralEarnings = referralRows.reduce((total, referral) => total + referral.earnedInr, 0);
+  const completedReferralCount = referralRows.filter((referral) => referral.status === "completed").length;
 
   return (
     <main className="min-h-screen" style={{ background: "var(--bg-deep)" }}>
@@ -677,7 +754,7 @@ export default function AdminPage() {
         {/* Tabs */}
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex gap-1 overflow-x-auto rounded-lg border border-white/8 bg-white/[0.025] p-1">
-          {(["overview", "orders", "launch", "users", "pricing", "edits", "payouts", "social"] as const).map((t) => (
+          {(["overview", "orders", "launch", "users", "referrals", "pricing", "edits", "payouts", "social"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold capitalize transition-all ${tab === t ? "bg-emerald-300 text-[#07120d]" : "text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-white"}`}>
               {t}
@@ -687,13 +764,82 @@ export default function AdminPage() {
           <div className="relative lg:ml-auto">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search orders or users" className="input-field w-full py-2 pl-9 text-sm lg:w-56" />
+              placeholder={tab === "referrals" ? "Search referrals" : "Search orders or users"} className="input-field w-full py-2 pl-9 text-sm lg:w-56" />
           </div>
         </div>
 
         {withdrawalError && (
           <div className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {withdrawalError}
+          </div>
+        )}
+
+        {tab === "referrals" && (
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { label: "Referrers", value: referrerSummaries.length.toLocaleString("en-IN") },
+                { label: "Completed referrals", value: completedReferralCount.toLocaleString("en-IN") },
+                { label: "Referral earnings issued", value: `₹${totalReferralEarnings.toLocaleString("en-IN")}` },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-lg border border-emerald-300/10 bg-emerald-300/[0.035] p-5">
+                  <div className="text-2xl font-bold text-emerald-300">{stat.value}</div>
+                  <div className="mt-1 text-xs text-[var(--text-muted)]">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <section className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.025]">
+              <div className="flex items-center gap-2 border-b border-white/[0.08] p-4 text-emerald-300">
+                <UserRoundPlus size={18} />
+                <h2 className="font-semibold text-white">Earnings by referrer</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-white/[0.08] bg-white/[0.025]">
+                    {['Referrer', 'Completed', 'Pending', 'Total earned'].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{heading}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {referrerSummaries.map((summary) => (
+                      <tr key={summary.userId} className="border-b border-white/[0.05] hover:bg-white/[0.025]">
+                        <td className="px-4 py-3"><div className="font-medium text-white">{summary.name}</div><div className="mt-0.5 text-xs text-[var(--text-muted)]">{summary.email}</div></td>
+                        <td className="px-4 py-3 text-emerald-300">{summary.completedCount}</td>
+                        <td className="px-4 py-3 text-amber-300">{summary.pendingCount}</td>
+                        <td className="px-4 py-3 font-bold text-emerald-300">₹{summary.earnedInr.toLocaleString("en-IN")}</td>
+                      </tr>
+                    ))}
+                    {!fetching && referrerSummaries.length === 0 && <tr><td colSpan={4} className="px-4 py-12 text-center text-[var(--text-muted)]">No referrals yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.025]">
+              <div className="border-b border-white/[0.08] p-4">
+                <h2 className="font-semibold text-white">Referral activity</h2>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Each row shows who shared the code, who joined with it, and the reward earned after a completed payment.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-white/[0.08] bg-white/[0.025]">
+                    {['Referred by', 'Referred user', 'Code', 'Status', 'Earned', 'Completed'].map((heading) => <th key={heading} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{heading}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {filteredReferralRows.map((referral) => (
+                      <tr key={referral.referredUserId} className="border-b border-white/[0.05] hover:bg-white/[0.025]">
+                        <td className="px-4 py-3"><div className="font-medium text-white">{referral.referrerName}</div><div className="mt-0.5 text-xs text-[var(--text-muted)]">{referral.referrerEmail}</div></td>
+                        <td className="px-4 py-3"><div className="font-medium text-white">{referral.referredName}</div><div className="mt-0.5 text-xs text-[var(--text-muted)]">{referral.referredEmail}</div></td>
+                        <td className="px-4 py-3 font-mono text-xs text-white/65">{referral.referralCode}</td>
+                        <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${referral.status === "completed" ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}>{referral.status}</span></td>
+                        <td className="px-4 py-3 font-semibold text-emerald-300">₹{referral.earnedInr.toLocaleString("en-IN")}</td>
+                        <td className="px-4 py-3 text-xs text-[var(--text-muted)]">{referral.completedAt?.toLocaleDateString("en-IN") ?? "—"}</td>
+                      </tr>
+                    ))}
+                    {!fetching && filteredReferralRows.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-[var(--text-muted)]">No matching referrals.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
 

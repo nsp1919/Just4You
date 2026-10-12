@@ -14,6 +14,7 @@ import WeddingInvitation, { type WeddingInvitationData } from "@/components/wedd
 import type { OccasionType, WeddingDataDraft } from "@/lib/constants";
 import { resolveBackgroundMusicType } from "@/lib/media-selection";
 import { trackEvent } from "@/lib/analytics";
+import { ScrollContainerProvider } from "@birthdayglow/shared/src/components/ScrollScenes";
 
 const PREVIEW_THEME_COMPONENTS: Record<string, ComponentType<any>> = {
   galaxy: GalaxyTheme,
@@ -103,7 +104,9 @@ export default function LivePreviewModal({ data, photos, musicData, occasionType
       <div className="pointer-events-none fixed inset-0 z-[305] flex items-center justify-center overflow-hidden" style={{ backdropFilter: "blur(5px)", background: "rgba(0,0,0,0.01)" }}>
         <div className="select-none whitespace-nowrap font-black text-white/[0.06]" style={{ fontSize: "6rem", transform: "rotate(-30deg)", letterSpacing: "0.1em" }}>JUST4YOU.BUZZ · PREVIEW · JUST4YOU.BUZZ</div>
       </div>
-      <div className="select-none pt-11">{weddingInvitation ? <WeddingInvitation invitation={weddingInvitation} /> : <ThemeComp celebration={previewCelebration} />}</div>
+      <ScrollContainerProvider container={previewRef}>
+        <div className="select-none pt-11">{weddingInvitation ? <WeddingInvitation invitation={weddingInvitation} message={previewCelebration.message} /> : <ThemeComp celebration={previewCelebration} />}</div>
+      </ScrollContainerProvider>
     </div>,
     document.body,
   );

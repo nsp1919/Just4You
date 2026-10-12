@@ -17,7 +17,24 @@
       "tone": "technical but approachable",
       "defaultCta": "Follow",
       "logoPlacement": "None",
-      "usernamePlacement": "Top Right"
+      "usernamePlacement": "Top Right",
+      "sfxPreferences": {
+        "approvedOn": "2026-09-22",
+        "approvalSource": "User approved Day 13 version 3 SFX and requested a persistent note and agent update.",
+        "style": "Varied, clearly audible, concept-timed effects throughout the reel, from hook to CTA; narration remains primary.",
+        "coverage": ["opening hook", "hook payoff", "concept reveals", "map or algorithm actions", "transitions", "next-lesson preview", "CTA"],
+        "referenceCueCount": 20,
+        "referenceDurationSeconds": 86.047313,
+        "referenceSoundTypes": ["whoosh", "pop", "popup", "click", "notification"],
+        "adaptToNarration": true,
+        "fixedCueQuota": false,
+        "avoid": ["only a few middle-section cues", "inaudibly quiet effects", "the same sound on every beat", "effects on every word"],
+        "referenceVideo": "C:/Users/nsp19/Downloads/MY PROJECTS/Novantix-Innovation-Technology-main/Novantix-Innovation-Technology/Novantix-Innovation-Technology-main/generated-reels/dsa-day-13-hashmap-review-20260922/review-draft-v3-full-sfx.mp4",
+        "referenceRenderScript": "C:/Users/nsp19/Downloads/MY PROJECTS/Novantix-Innovation-Technology-main/Novantix-Innovation-Technology/Novantix-Innovation-Technology-main/generated-reels/dsa-day-13-hashmap-review-20260922/sound-design-v3.cjs",
+        "referenceEffects": "C:/Users/nsp19/Downloads/MY PROJECTS/Novantix-Innovation-Technology-main/Novantix-Innovation-Technology/Novantix-Innovation-Technology-main/generated-reels/dsa-day-13-hashmap-review-20260922/effects-v3.json",
+        "rightsStatus": "User style approval does not establish publication rights; verify selected assets for each reel.",
+        "timingStatus": "Style approved; existing caption and audible synchronization caveats remain."
+      }
     }
   },
   "backups": []

@@ -154,7 +154,7 @@ export default async function WishPage({ params }: Props) {
       <ViewTracker slug={slug} />
       {celeb.occasionType === "wedding" && celeb.weddingData ? (
         <>
-          <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} />
+          <WeddingInvitation invitation={celeb.weddingData} celebrationId={docId} message={celeb.message} />
           <BrandFooter creditText={creditText} celebrationId={docId} recipientName={celeb.recipientName} referralCode={referralCode} />
         </>
       ) : (
